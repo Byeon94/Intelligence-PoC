@@ -8,7 +8,7 @@ SYSTEM_PROMPT = (
     "- 불릿 외의 다른 설명이나 서두는 붙이지 마."
 )
 
-MODEL = "gemini-flash-latest"
+MODEL = "gemini-3.5-flash"
 
 
 def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> str:
@@ -24,7 +24,8 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
         model=MODEL,
         config={
             "system_instruction": SYSTEM_PROMPT,
-            "max_output_tokens": 3072,
+            "thinking_config": {"thinking_budget": 0},
+            "max_output_tokens": 800,
         },
         contents=(
             f"키워드: {keyword}\n\n"
