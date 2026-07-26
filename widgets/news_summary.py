@@ -1,3 +1,5 @@
+import threading
+
 from flask import Blueprint, jsonify, request
 from google.genai import Client
 
@@ -25,6 +27,11 @@ def summarize():
         client_secret=settings.naver_client_secret,
     )
     summary = summarize_articles(gemini_client, keyword, articles)
-    save_summary(supabase_client, keyword, summary, len(articles))
+
+    threading.Thread(
+        target=save_summary,
+        args=(supabase_client, keyword, summary, len(articles)),
+        daemon=True,
+    ).start()
 
     return jsonify({"keyword": keyword, "summary": summary, "articles": articles})

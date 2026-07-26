@@ -19,7 +19,11 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
 
     response = client.models.generate_content(
         model=MODEL,
-        config={"system_instruction": SYSTEM_PROMPT},
+        config={
+            "system_instruction": SYSTEM_PROMPT,
+            "thinking_config": {"thinking_budget": 0},
+            "max_output_tokens": 1024,
+        },
         contents=(
             f"키워드: {keyword}\n\n"
             f"다음 뉴스들을 업무에 필요한 핵심 위주로 요약 정리해줘:\n\n{articles_text}"

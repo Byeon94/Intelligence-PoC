@@ -16,8 +16,30 @@
 </div>
 
 <main>
-  <div class="widget-grid">
-    {% include "widgets/news_summary.html" %}
+  <div class="tabs" id="main-tabs">
+    <button class="tab-btn" data-tab="news">📰 뉴스</button>
+    <button class="tab-btn" data-tab="policy">📜 정책</button>
+    <button class="tab-btn" data-tab="capital">📈 자본시장 데이터</button>
+  </div>
+
+  <div class="tab-panel" data-panel="news">
+    <div class="widget-grid">
+      {% include "widgets/news_summary.html" %}
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="policy">
+    <div class="card widget wide">
+      <h3>📜 정책</h3>
+      <div class="page-note">준비 중입니다.</div>
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="capital">
+    <div class="card widget wide">
+      <h3>📈 자본시장 데이터</h3>
+      <div class="page-note">준비 중입니다.</div>
+    </div>
   </div>
 </main>
 
@@ -31,6 +53,22 @@ function toggleTheme() {
   applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 }
 applyTheme(localStorage.getItem('theme') || 'dark');
+
+function applyTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach((panel) => {
+    panel.hidden = panel.dataset.panel !== tab;
+  });
+  localStorage.setItem('activeTab', tab);
+  history.replaceState(null, '', '#' + tab);
+}
+document.getElementById('main-tabs').addEventListener('click', (e) => {
+  const tab = e.target.dataset.tab;
+  if (tab) applyTab(tab);
+});
+applyTab(location.hash.slice(1) || localStorage.getItem('activeTab') || 'news');
 </script>
 <script src="{{ url_for('static', filename='widgets/news_summary.js') }}"></script>
 </body>

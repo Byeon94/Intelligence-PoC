@@ -29,6 +29,17 @@ body {
 /* ── 공통 레이아웃 ── */
 main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
 
+/* ── 상위 탭 ── */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab-btn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: .9rem; font-weight: 600; padding: 10px 16px; border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--fg); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-panel[hidden] { display: none; }
+
 .widget-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
 @media (max-width: 760px) { .widget-grid { grid-template-columns: 1fr; } }
 .widget { transition: border-color .15s; }
