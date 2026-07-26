@@ -11,6 +11,7 @@ class Settings:
     naver_client_id: str
     naver_client_secret: str
     gemini_api_key: str
+    gemini_api_key_2: str | None
     supabase_url: str
     supabase_key: str
 
@@ -32,6 +33,7 @@ def get_settings() -> Settings:
         naver_client_id=required["NAVER_CLIENT_ID"],
         naver_client_secret=required["NAVER_CLIENT_SECRET"],
         gemini_api_key=required["GEMINI_API_KEY"],
+        gemini_api_key_2=os.getenv("GEMINI_API_KEY_2") or None,
         supabase_url=required["SUPABASE_URL"],
         supabase_key=required["SUPABASE_KEY"],
     )

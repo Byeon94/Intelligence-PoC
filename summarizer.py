@@ -1,4 +1,5 @@
 from google.genai import Client
+from google.genai import errors as genai_errors
 
 SYSTEM_PROMPT = (
     "너는 회사 업무에 필요한 뉴스를 정리해주는 어시스턴트야. "
@@ -34,3 +35,14 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
     )
 
     return response.text
+
+
+def summarize_with_fallback(clients: list[Client], keyword: str, articles: list[dict]) -> str:
+    for i, client in enumerate(clients):
+        is_last = i == len(clients) - 1
+        try:
+            return summarize_articles(client, keyword, articles)
+        except genai_errors.APIError as e:
+            if e.code == 429 and not is_last:
+                continue
+            raise

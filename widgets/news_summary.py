@@ -7,7 +7,7 @@ from google.genai import errors as genai_errors
 
 from config import get_settings
 from naver_news import search_news
-from summarizer import summarize_articles
+from summarizer import summarize_with_fallback
 from supabase_client import get_supabase_client, get_today_summary, save_summary
 
 ARTICLE_DISPLAY_COUNT = 5
@@ -15,7 +15,9 @@ ARTICLE_DISPLAY_COUNT = 5
 news_summary_bp = Blueprint("news_summary", __name__, url_prefix="/api/widgets/news-summary")
 
 settings = get_settings()
-gemini_client = Client(api_key=settings.gemini_api_key)
+gemini_clients = [Client(api_key=settings.gemini_api_key)]
+if settings.gemini_api_key_2:
+    gemini_clients.append(Client(api_key=settings.gemini_api_key_2))
 supabase_client = get_supabase_client(settings.supabase_url, settings.supabase_key)
 
 
@@ -58,7 +60,7 @@ def summary():
         return jsonify({"error": "키워드를 입력해주세요."}), 400
 
     try:
-        summary_text = summarize_articles(gemini_client, keyword, articles_in)
+        summary_text = summarize_with_fallback(gemini_clients, keyword, articles_in)
     except genai_errors.APIError as e:
         if e.code == 429:
             return jsonify({"error": "오늘 AI 요약 요청 한도를 모두 사용했습니다. 잠시 후 다시 시도해주세요."}), 429
