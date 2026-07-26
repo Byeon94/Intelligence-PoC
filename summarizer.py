@@ -24,7 +24,6 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
         model=MODEL,
         config={
             "system_instruction": SYSTEM_PROMPT,
-            "thinking_config": {"thinking_budget": 0},
             "max_output_tokens": 512,
         },
         contents=(
