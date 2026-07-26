@@ -1,0 +1,107 @@
+:root, [data-theme="dark"] {
+  --bg: #0d1117; --bg2: #010409; --card: #161b22; --border: #30363d;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --accent-bg: rgba(88,166,255,.12);
+}
+[data-theme="light"] {
+  --bg: #f6f8fa; --bg2: #ffffff; --card: #ffffff; --border: #d0d7de;
+  --fg: #1f2328; --muted: #59636e; --accent: #0969da; --accent-bg: rgba(9,105,218,.08);
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+body {
+  background: var(--bg); color: var(--fg); line-height: 1.55;
+  font-family: -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+}
+
+/* ── 상단 바 ── */
+.topbar { position: sticky; top: 0; z-index: 50; background: var(--bg2); border-bottom: 1px solid var(--border); }
+.topbar-inner {
+  max-width: 1180px; margin: 0 auto; padding: 0 16px; height: 52px;
+  display: flex; align-items: center; gap: 12px;
+}
+.logo { font-weight: 800; font-size: 1rem; flex: 1; }
+.theme-btn {
+  background: var(--card); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: .8rem;
+}
+
+/* ── 공통 레이아웃 ── */
+main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 60px; }
+
+.widget-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 760px) { .widget-grid { grid-template-columns: 1fr; } }
+.widget { transition: border-color .15s; }
+.widget.wide { grid-column: 1 / -1; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px;
+}
+.widget:hover { border-color: var(--accent); }
+.widget h3 { font-size: .95rem; margin-bottom: 12px; }
+
+/* ── 검색 영역 ── */
+.srch-box { display: flex; gap: 8px; margin-bottom: 12px; }
+.srch-box input {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 10px; padding: 12px 15px; font-size: 1rem;
+}
+.srch-box input:focus { outline: none; border-color: var(--accent); }
+.srch-box button {
+  background: var(--accent); color: #fff; border: none; border-radius: 10px;
+  padding: 0 20px; font-weight: 700; cursor: pointer; font-size: .95rem;
+}
+.srch-box button:disabled { opacity: .6; cursor: not-allowed; }
+
+.status { color: var(--muted); font-size: .82rem; margin-bottom: 12px; }
+
+/* ── 안내 문구 ── */
+.page-note { color: var(--muted); font-size: .78rem; margin-bottom: 12px; line-height: 1.6; }
+
+/* ── 칩(빠른 키워드) ── */
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip {
+  background: var(--card); border: 1px solid var(--border); color: var(--muted);
+  border-radius: 16px; padding: 5px 13px; font-size: .8rem; cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* ── AI 요약 카드 ── */
+.summary-card {
+  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; line-height: 1.7; margin-bottom: 16px; font-size: .88rem;
+}
+.summary-card .s-label { display: block; font-weight: 700; font-size: .78rem; color: var(--accent); margin-bottom: 8px; }
+.summary-card p { margin: 6px 0; }
+.summary-card p:first-child { margin-top: 0; }
+.summary-card .md-h { font-weight: 700; color: var(--fg); margin: 14px 0 6px; }
+.summary-card .md-h:first-child { margin-top: 0; }
+.summary-card ul { margin: 4px 0 10px 20px; padding: 0; }
+.summary-card li { margin: 3px 0; }
+.summary-card hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.summary-card strong { color: var(--fg); }
+
+/* ── 참고 기사 카드 ── */
+.article-card {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 8px; background: var(--bg2); transition: border-color .15s;
+}
+.article-card:hover { border-color: var(--accent); }
+.article-card .a-meta { color: var(--muted); font-size: .72rem; margin-bottom: 4px; }
+.article-card .a-title {
+  display: block; font-weight: 600; margin-bottom: 4px; color: var(--fg); text-decoration: none;
+}
+.article-card .a-title:hover { color: var(--accent); }
+.article-card .a-desc { color: var(--muted); font-size: .82rem; }
+
+.tags { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.tag {
+  font-size: .7rem; color: var(--muted); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 4px; padding: 0 6px;
+}
+
+h4.section-label {
+  font-size: .78rem; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .04em; margin: 14px 0 8px;
+}
