@@ -33,7 +33,7 @@ def main() -> None:
         )
 
         summary = summarize_articles(gemini_client, keyword, articles)
-        save_summary(supabase_client, keyword, summary, len(articles))
+        save_summary(supabase_client, keyword, summary, articles)
 
         print(f"\n=== '{keyword}' 뉴스 요약 ({len(articles)}건) ===")
         print(summary)

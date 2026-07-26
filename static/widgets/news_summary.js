@@ -57,20 +57,36 @@
     if (!keyword) return;
 
     submitButton.disabled = true;
-    statusEl.textContent = `'${keyword}' 관련 뉴스를 검색하고 요약하는 중입니다...`;
+    statusEl.textContent = `'${keyword}' 관련 뉴스를 검색하는 중입니다...`;
     resultEl.innerHTML = "";
 
     try {
-      const response = await fetch("/api/widgets/news-summary", {
+      const articlesRes = await fetch("/api/widgets/news-summary/articles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword }),
       });
+      const data = await articlesRes.json();
+      if (!articlesRes.ok) throw new Error(data.error || "뉴스 검색에 실패했습니다.");
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "요약에 실패했습니다.");
+      renderArticles(data, keyword);
 
-      render(data);
+      if (data.cached) {
+        statusEl.textContent = `'${keyword}' 관련 뉴스 ${data.articles.length}건을 요약했습니다. (오늘 조회한 결과를 다시 보여드려요)`;
+        return;
+      }
+
+      statusEl.textContent = `'${keyword}' 관련 뉴스 ${data.articles.length}건을 찾았습니다. AI 요약을 생성하는 중입니다...`;
+
+      const summaryRes = await fetch("/api/widgets/news-summary/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword, articles: data.articles }),
+      });
+      const summaryData = await summaryRes.json();
+      if (!summaryRes.ok) throw new Error(summaryData.error || "요약에 실패했습니다.");
+
+      fillSummary(summaryData.summary);
       statusEl.textContent = `'${keyword}' 관련 뉴스 ${data.articles.length}건을 요약했습니다.`;
     } catch (err) {
       statusEl.textContent = err.message;
@@ -79,7 +95,7 @@
     }
   }
 
-  function render(data) {
+  function renderArticles(data, keyword) {
     const summaryCard = document.createElement("div");
     summaryCard.className = "summary-card";
 
@@ -89,7 +105,12 @@
     summaryCard.appendChild(label);
 
     const body = document.createElement("div");
-    body.innerHTML = renderMarkdown(data.summary);
+    body.id = "ns-summary-body";
+    if (data.cached) {
+      body.innerHTML = renderMarkdown(data.summary);
+    } else {
+      body.innerHTML = '<p class="summary-loading">AI 요약을 생성하는 중입니다...</p>';
+    }
     summaryCard.appendChild(body);
 
     resultEl.appendChild(summaryCard);
@@ -101,9 +122,14 @@
       resultEl.appendChild(sectionLabel);
 
       for (const article of data.articles) {
-        resultEl.appendChild(buildArticleCard(article, data.keyword));
+        resultEl.appendChild(buildArticleCard(article, keyword));
       }
     }
+  }
+
+  function fillSummary(summaryText) {
+    const body = document.getElementById("ns-summary-body");
+    if (body) body.innerHTML = renderMarkdown(summaryText);
   }
 
   function buildArticleCard(article, keyword) {

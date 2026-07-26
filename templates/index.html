@@ -11,17 +11,16 @@
 <div class="topbar">
   <div class="topbar-inner">
     <span class="logo">업무 인텔리전스 홈</span>
+    <div class="tabs" id="main-tabs">
+      <button class="tab-btn" data-tab="news">📰 뉴스</button>
+      <button class="tab-btn" data-tab="policy">📜 정책</button>
+      <button class="tab-btn" data-tab="capital">📈 자본시장 데이터</button>
+    </div>
     <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ 라이트</button>
   </div>
 </div>
 
 <main>
-  <div class="tabs" id="main-tabs">
-    <button class="tab-btn" data-tab="news">📰 뉴스</button>
-    <button class="tab-btn" data-tab="policy">📜 정책</button>
-    <button class="tab-btn" data-tab="capital">📈 자본시장 데이터</button>
-  </div>
-
   <div class="tab-panel" data-panel="news">
     <div class="widget-grid">
       {% include "widgets/news_summary.html" %}

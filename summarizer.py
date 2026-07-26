@@ -2,7 +2,10 @@ from google.genai import Client
 
 SYSTEM_PROMPT = (
     "너는 회사 업무에 필요한 뉴스를 정리해주는 어시스턴트야. "
-    "주어진 뉴스 목록의 핵심 내용을 한국어로 간결하게 요약 정리해줘."
+    "아래 규칙을 반드시 지켜서 답변해.\n"
+    "- 소제목(#), 구분선(---) 없이 핵심만 담은 불릿 포인트 3~5개로만 정리해.\n"
+    "- 각 불릿은 '- '로 시작하고, 한 문장으로 간결하게 작성해.\n"
+    "- 불릿 외의 다른 설명이나 서두는 붙이지 마."
 )
 
 MODEL = "gemini-flash-latest"
@@ -13,7 +16,7 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
         return f"'{keyword}' 관련 뉴스를 찾지 못했습니다."
 
     articles_text = "\n\n".join(
-        f"제목: {a['title']}\n내용: {a['description']}\n링크: {a['link']}"
+        f"제목: {a.get('title', '')}\n내용: {a.get('description', '')}\n링크: {a.get('link', '')}"
         for a in articles
     )
 
@@ -22,7 +25,7 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
         config={
             "system_instruction": SYSTEM_PROMPT,
             "thinking_config": {"thinking_budget": 0},
-            "max_output_tokens": 1024,
+            "max_output_tokens": 512,
         },
         contents=(
             f"키워드: {keyword}\n\n"
