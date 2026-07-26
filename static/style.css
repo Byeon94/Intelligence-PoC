@@ -20,7 +20,15 @@ body {
   max-width: 1180px; margin: 0 auto; padding: 0 16px; height: 52px;
   display: flex; align-items: center; gap: 12px;
 }
-.logo { font-weight: 800; font-size: 1rem; white-space: nowrap; }
+.logo {
+  font-weight: 800; font-size: 1rem; white-space: nowrap;
+  color: var(--fg); text-decoration: none; display: flex; align-items: center; gap: 8px;
+}
+.poc-badge {
+  font-weight: 700; font-size: .62rem; letter-spacing: .04em; color: var(--accent);
+  background: var(--accent-bg); border: 1px solid var(--border);
+  border-radius: 5px; padding: 2px 6px;
+}
 .theme-btn {
   background: var(--card); border: 1px solid var(--border); color: var(--fg);
   border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: .8rem;
