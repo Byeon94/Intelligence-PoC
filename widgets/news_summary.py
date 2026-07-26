@@ -1,7 +1,9 @@
 import threading
 
+import requests
 from flask import Blueprint, jsonify, request
 from google.genai import Client
+from google.genai import errors as genai_errors
 
 from config import get_settings
 from naver_news import search_news
@@ -34,12 +36,16 @@ def articles():
             }
         )
 
-    found_articles = search_news(
-        keyword,
-        client_id=settings.naver_client_id,
-        client_secret=settings.naver_client_secret,
-        display=ARTICLE_DISPLAY_COUNT,
-    )
+    try:
+        found_articles = search_news(
+            keyword,
+            client_id=settings.naver_client_id,
+            client_secret=settings.naver_client_secret,
+            display=ARTICLE_DISPLAY_COUNT,
+        )
+    except requests.exceptions.RequestException:
+        return jsonify({"error": "뉴스 검색에 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
+
     return jsonify({"keyword": keyword, "articles": found_articles, "cached": False})
 
 
@@ -51,7 +57,12 @@ def summary():
     if not keyword:
         return jsonify({"error": "키워드를 입력해주세요."}), 400
 
-    summary_text = summarize_articles(gemini_client, keyword, articles_in)
+    try:
+        summary_text = summarize_articles(gemini_client, keyword, articles_in)
+    except genai_errors.APIError as e:
+        if e.code == 429:
+            return jsonify({"error": "오늘 AI 요약 요청 한도를 모두 사용했습니다. 잠시 후 다시 시도해주세요."}), 429
+        return jsonify({"error": "AI 요약 생성에 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
 
     threading.Thread(
         target=save_summary,

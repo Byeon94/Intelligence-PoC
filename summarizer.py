@@ -24,7 +24,7 @@ def summarize_articles(client: Client, keyword: str, articles: list[dict]) -> st
         model=MODEL,
         config={
             "system_instruction": SYSTEM_PROMPT,
-            "max_output_tokens": 512,
+            "max_output_tokens": 3072,
         },
         contents=(
             f"키워드: {keyword}\n\n"
