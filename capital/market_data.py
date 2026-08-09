@@ -1,8 +1,11 @@
+import logging
 import time
 from datetime import datetime
 
 import requests
 import yfinance as yf
+
+logger = logging.getLogger(__name__)
 
 # KRX 공식 API는 로그인 세션이 필요해 계정 없이 쓸 수 없으므로,
 # 코스피/코스닥은 로그인 없이 열람 가능한 네이버 금융 공개 엔드포인트를 사용한다.
@@ -66,6 +69,7 @@ def get_market_indices(use_cache: bool = True) -> list[dict]:
     try:
         krx_data = _fetch_krx_indices()
     except (requests.exceptions.RequestException, KeyError, ValueError):
+        logger.exception("KRX 지수(코스피/코스닥) 조회 실패")
         krx_data = {}
 
     for idx in KRX_INDICES:
@@ -87,6 +91,7 @@ def get_market_indices(use_cache: bool = True) -> list[dict]:
         try:
             value, change, change_pct, as_of = _fetch_us_index(idx["ticker"])
         except Exception:
+            logger.exception("미국 지수 조회 실패: %s", idx["ticker"])
             continue
         results.append(
             {
