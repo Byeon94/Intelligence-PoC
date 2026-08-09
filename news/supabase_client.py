@@ -1,13 +1,9 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from supabase import Client, create_client
+from supabase import Client
 
 KST = ZoneInfo("Asia/Seoul")
-
-
-def get_supabase_client(url: str, key: str) -> Client:
-    return create_client(url, key)
 
 
 def save_summary(client: Client, keyword: str, summary: str, articles: list[dict]) -> None:

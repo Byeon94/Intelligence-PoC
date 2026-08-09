@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업무 인텔리전스 홈</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="{{ url_for('home') }}" id="home-link">업무 인텔리전스 홈<span class="poc-badge">POC</span></a>
+    <div class="tabs" id="main-tabs">
+      <button class="tab-btn" data-tab="news">📰 뉴스</button>
+      <button class="tab-btn" data-tab="policy">📜 정책</button>
+      <button class="tab-btn" data-tab="capital">📈 자본시장 데이터</button>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ 라이트</button>
+  </div>
+</div>
+
+<main>
+  <div class="tab-panel" data-panel="">
+    <div class="card widget wide">
+      <h3>👋 업무 인텔리전스 홈 소개</h3>
+      <div class="page-note">사내 업무에 필요한 정보를 한 곳에 모아 보여주는 사내 정보 포털 POC입니다.</div>
+
+      <h4 class="section-label">기능</h4>
+      <ul class="intro-list">
+        <li>📰 뉴스 — 키워드로 네이버 뉴스를 검색하고 AI가 핵심만 요약</li>
+        <li>📜 정책 — 금융당국·유관기관 동향, 국회 법안, 연구·논문을 AI가 하루 한 번 수집</li>
+        <li>📈 자본시장 데이터 — 국내외 주요 지수, 자금동향 지표</li>
+      </ul>
+
+      <h4 class="section-label">환경</h4>
+      <ul class="intro-list">
+        <li>⚙️ 프레임워크: Flask (Python)</li>
+        <li>🗄️ 데이터베이스: Supabase</li>
+        <li>🐙 소스관리: GitHub</li>
+        <li>🚀 배포: Render</li>
+      </ul>
+
+      <h4 class="section-label">연결</h4>
+      <ul class="intro-list">
+        <li>📊 라이브러리: yfinance(미국지수)</li>
+        <li>🔌 API: 네이버(뉴스·금융), Google Gemini</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="news">
+    <div class="widget-grid">
+      {% include "news_summary.html" %}
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="policy">
+    <div class="widget-grid">
+      {% include "policy.html" %}
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="capital">
+    <div class="widget-grid">
+      {% include "market_summary.html" %}
+    </div>
+  </div>
+</main>
+
+<script>
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️ 라이트' : '🌙 다크';
+  localStorage.setItem('theme', t);
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+}
+applyTheme(localStorage.getItem('theme') || 'dark');
+
+function applyTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach((panel) => {
+    panel.hidden = panel.dataset.panel !== tab;
+  });
+  history.replaceState(null, '', tab ? '#' + tab : location.pathname);
+}
+document.getElementById('main-tabs').addEventListener('click', (e) => {
+  const tab = e.target.dataset.tab;
+  if (tab) applyTab(tab);
+});
+document.getElementById('home-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  applyTab('');
+});
+// 첫 진입 시 항상 소개 화면(main)으로 시작한다. URL 해시가 있으면 그 탭을 연다.
+applyTab(location.hash.slice(1) || '');
+</script>
+<script src="{{ url_for('static', filename='news/news_summary.js') }}"></script>
+<script src="{{ url_for('static', filename='capital/market_summary.js') }}"></script>
+<script src="{{ url_for('static', filename='policy/policy.js') }}"></script>
+</body>
+</html>

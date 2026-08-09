@@ -1,10 +1,12 @@
 :root, [data-theme="dark"] {
   --bg: #0d1117; --bg2: #010409; --card: #161b22; --border: #30363d;
   --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --accent-bg: rgba(88,166,255,.12);
+  --price-up: #f85149;
 }
 [data-theme="light"] {
   --bg: #f6f8fa; --bg2: #ffffff; --card: #ffffff; --border: #d0d7de;
   --fg: #1f2328; --muted: #59636e; --accent: #0969da; --accent-bg: rgba(9,105,218,.08);
+  --price-up: #cf222e;
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -130,3 +132,44 @@ h4.section-label {
   font-size: .78rem; color: var(--muted); text-transform: uppercase;
   letter-spacing: .04em; margin: 14px 0 8px;
 }
+h4.section-label:first-of-type { margin-top: 4px; }
+
+/* ── 홈 소개 목록 ── */
+.intro-list { list-style: none; padding: 0; font-size: .85rem; }
+.intro-list li { padding: 6px 2px; border-bottom: 1px solid var(--border); }
+.intro-list li:last-child { border-bottom: none; }
+
+/* ── 지수 스탯 타일 (자본시장 데이터) ── */
+.market-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
+.stat-tile {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px;
+}
+.stat-tile .st-label { color: var(--muted); font-size: .72rem; margin-bottom: 6px; }
+.stat-tile .st-value { font-size: 1.3rem; font-weight: 700; color: var(--fg); }
+.stat-tile .st-delta { font-size: .8rem; font-weight: 600; margin-top: 4px; }
+.stat-tile .st-delta.up { color: var(--price-up); }
+.stat-tile .st-delta.down { color: var(--accent); }
+.stat-tile .st-asof { color: var(--muted); font-size: .7rem; margin-top: 6px; }
+
+/* ── 정책 동향 (정책 탭) ── */
+.policy-list { display: flex; flex-direction: column; gap: 10px; }
+.policy-item {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  background: var(--bg2); transition: border-color .15s;
+}
+.policy-item:hover { border-color: var(--accent); }
+.policy-item .pi-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+}
+.policy-item .org-badge {
+  font-size: .7rem; font-weight: 700; color: var(--accent); background: var(--accent-bg);
+  border: 1px solid var(--border); border-radius: 5px; padding: 2px 7px;
+}
+.policy-item .pi-date { color: var(--muted); font-size: .72rem; }
+.policy-item .pi-title { font-weight: 600; margin-bottom: 4px; }
+.policy-item .pi-title a { color: var(--fg); text-decoration: none; }
+.policy-item .pi-title a:hover { color: var(--accent); }
+.policy-item .pi-summary { color: var(--muted); font-size: .82rem; line-height: 1.6; }
+.policy-item .tag.source-tag { color: var(--accent); border-color: var(--accent); }

@@ -2,10 +2,12 @@ import argparse
 
 from google.genai import Client
 
-from config import get_settings
-from naver_news import search_news
-from summarizer import summarize_articles
-from supabase_client import get_supabase_client, save_summary
+from main.config import get_settings
+from main.supabase_client import get_supabase_client
+
+from .naver_news import search_news
+from .summarizer import summarize_articles
+from .supabase_client import save_summary
 
 
 def parse_args() -> argparse.Namespace:

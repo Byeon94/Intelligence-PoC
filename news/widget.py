@@ -5,14 +5,22 @@ from flask import Blueprint, jsonify, request
 from google.genai import Client
 from google.genai import errors as genai_errors
 
-from config import get_settings
-from naver_news import search_news
-from summarizer import summarize_with_fallback
-from supabase_client import get_supabase_client, get_today_summary, save_summary
+from main.config import get_settings
+from main.supabase_client import get_supabase_client
+
+from .naver_news import search_news
+from .summarizer import summarize_with_fallback
+from .supabase_client import get_today_summary, save_summary
 
 ARTICLE_DISPLAY_COUNT = 5
 
-news_summary_bp = Blueprint("news_summary", __name__, url_prefix="/api/widgets/news-summary")
+news_summary_bp = Blueprint(
+    "news_summary",
+    __name__,
+    template_folder="templates",
+    static_folder="static",
+    static_url_path="/static/news",
+)
 
 settings = get_settings()
 gemini_clients = [Client(api_key=settings.gemini_api_key)]
@@ -21,7 +29,7 @@ if settings.gemini_api_key_2:
 supabase_client = get_supabase_client(settings.supabase_url, settings.supabase_key)
 
 
-@news_summary_bp.route("/articles", methods=["POST"])
+@news_summary_bp.route("/api/widgets/news-summary/articles", methods=["POST"])
 def articles():
     keyword = (request.get_json(silent=True) or {}).get("keyword", "").strip()
     if not keyword:
@@ -51,7 +59,7 @@ def articles():
     return jsonify({"keyword": keyword, "articles": found_articles, "cached": False})
 
 
-@news_summary_bp.route("/summary", methods=["POST"])
+@news_summary_bp.route("/api/widgets/news-summary/summary", methods=["POST"])
 def summary():
     body = request.get_json(silent=True) or {}
     keyword = body.get("keyword", "").strip()
