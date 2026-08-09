@@ -19,6 +19,9 @@ def indices():
     except Exception:
         return jsonify({"error": "지수 데이터를 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
 
+    if not data:
+        return jsonify({"error": "지수 데이터를 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
+
     return jsonify({"indices": data})
 
 

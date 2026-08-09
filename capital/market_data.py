@@ -63,8 +63,14 @@ def get_market_indices(use_cache: bool = True) -> list[dict]:
 
     results = []
 
-    krx_data = _fetch_krx_indices()
+    try:
+        krx_data = _fetch_krx_indices()
+    except (requests.exceptions.RequestException, KeyError, ValueError):
+        krx_data = {}
+
     for idx in KRX_INDICES:
+        if idx["code"] not in krx_data:
+            continue
         value, change, change_pct, as_of = krx_data[idx["code"]]
         results.append(
             {
@@ -78,7 +84,10 @@ def get_market_indices(use_cache: bool = True) -> list[dict]:
         )
 
     for idx in US_INDICES:
-        value, change, change_pct, as_of = _fetch_us_index(idx["ticker"])
+        try:
+            value, change, change_pct, as_of = _fetch_us_index(idx["ticker"])
+        except Exception:
+            continue
         results.append(
             {
                 "name": idx["name"],
@@ -90,6 +99,7 @@ def get_market_indices(use_cache: bool = True) -> list[dict]:
             }
         )
 
-    _cache["data"] = results
-    _cache["ts"] = now
+    if results:
+        _cache["data"] = results
+        _cache["ts"] = now
     return results
