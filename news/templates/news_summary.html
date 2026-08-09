@@ -1,17 +1,37 @@
-<div class="card widget wide" id="widget-news-summary">
-  <h3>📰 뉴스 요약</h3>
-  <div class="page-note">키워드를 입력하면 네이버 뉴스에서 최신 기사를 모아 AI가 핵심만 요약해줍니다.</div>
-  <div class="srch-box">
-    <input id="ns-keyword" type="text" placeholder="검색할 키워드를 입력하세요 (예: 반도체)">
-    <button id="ns-submit">요약하기</button>
+<div class="card widget wide" id="widget-news-briefing">
+  <h3>🗞️ 오늘의 포인트 뉴스</h3>
+  <div class="page-note">아래 카테고리별 뉴스 중 AI가 오늘 가장 주목할 만한 이슈를 정리합니다.</div>
+  <div id="nf-briefing-status" class="status"></div>
+  <div class="summary-card" id="nf-briefing-card">
+    <span class="s-label">🤖 AI 요약</span>
+    <div id="nf-briefing-body"></div>
   </div>
-  <div class="chip-row" id="ns-quick-chips">
-    <span class="chip" data-kw="반도체">반도체</span>
-    <span class="chip" data-kw="금리">금리</span>
-    <span class="chip" data-kw="환율">환율</span>
-    <span class="chip" data-kw="증권사">증권사</span>
-    <span class="chip" data-kw="IPO">IPO</span>
-  </div>
-  <div id="ns-status" class="status"></div>
-  <div id="ns-result"></div>
+</div>
+
+<div class="card widget" id="widget-news-ksfc">
+  <h3>🏦 한국증권금융 뉴스</h3>
+  <div class="page-note">투자자예탁금·우리사주·공매도·융자·대주 관련 최신 기사</div>
+  <div id="nf-ksfc-status" class="status"></div>
+  <div id="nf-ksfc"></div>
+</div>
+
+<div class="card widget" id="widget-news-finance">
+  <h3>🏛️ 금융 뉴스</h3>
+  <div class="page-note">주식시장·채권시장·증권시장 관련 최신 기사</div>
+  <div id="nf-finance-status" class="status"></div>
+  <div id="nf-finance"></div>
+</div>
+
+<div class="card widget" id="widget-news-investment">
+  <h3>💼 투자 뉴스</h3>
+  <div class="page-note">상속·대출·IPO·매각·PEF·유상증자 등 투자 관련 최신 기사</div>
+  <div id="nf-investment-status" class="status"></div>
+  <div id="nf-investment"></div>
+</div>
+
+<div class="card widget" id="widget-news-it">
+  <h3>💻 IT관련 뉴스</h3>
+  <div class="page-note">AI·코인·IT감사·정보보호 관련 최신 기사</div>
+  <div id="nf-it-status" class="status"></div>
+  <div id="nf-it"></div>
 </div>

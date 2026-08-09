@@ -14,6 +14,7 @@ class Settings:
     gemini_api_key_2: str | None
     supabase_url: str
     supabase_key: str
+    dart_api_key: str
 
 
 def get_settings() -> Settings:
@@ -23,6 +24,7 @@ def get_settings() -> Settings:
         "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
         "SUPABASE_URL": os.getenv("SUPABASE_URL"),
         "SUPABASE_KEY": os.getenv("SUPABASE_KEY"),
+        "DART_API_KEY": os.getenv("DART_API_KEY"),
     }
 
     missing = [key for key, value in required.items() if not value]
@@ -36,4 +38,5 @@ def get_settings() -> Settings:
         gemini_api_key_2=os.getenv("GEMINI_API_KEY_2") or None,
         supabase_url=required["SUPABASE_URL"],
         supabase_key=required["SUPABASE_KEY"],
+        dart_api_key=required["DART_API_KEY"],
     )

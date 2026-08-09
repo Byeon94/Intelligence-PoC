@@ -21,6 +21,23 @@ def get_today_updates(client: Client) -> list[dict]:
     return response.data or []
 
 
+def get_latest_updates(client: Client) -> list[dict]:
+    response = (
+        client.table("policy_updates")
+        .select(
+            "category, org_code, org_name, title, summary, tags, "
+            "source_label, source_url, published_label, fetched_date"
+        )
+        .order("fetched_date", desc=True)
+        .execute()
+    )
+    rows = response.data or []
+    if not rows:
+        return []
+    latest_date = rows[0]["fetched_date"]
+    return [r for r in rows if r["fetched_date"] == latest_date]
+
+
 def save_updates(client: Client, updates: list[dict]) -> None:
     if not updates:
         return

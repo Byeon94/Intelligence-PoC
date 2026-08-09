@@ -102,9 +102,12 @@
         if (target) target.list.appendChild(buildItem(update));
       }
 
-      const doneMessage = data.cached
-        ? "오늘 수집한 결과를 보여드려요 (하루 1회 갱신)."
-        : "방금 새로 수집했습니다.";
+      let doneMessage = "방금 새로 수집했습니다.";
+      if (data.stale) {
+        doneMessage = "오늘 수집에 실패해 최근에 수집한 결과를 보여드려요.";
+      } else if (data.cached) {
+        doneMessage = "오늘 수집한 결과를 보여드려요 (하루 1회 갱신).";
+      }
 
       for (const c of Object.values(cats)) {
         if (c.list.children.length === 0) {

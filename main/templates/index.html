@@ -15,6 +15,8 @@
       <button class="tab-btn" data-tab="news">📰 뉴스</button>
       <button class="tab-btn" data-tab="policy">📜 정책</button>
       <button class="tab-btn" data-tab="capital">📈 자본시장 데이터</button>
+      <button class="tab-btn" data-tab="dart">🗂️ DART 공시</button>
+      <button class="tab-btn" data-tab="calendar">📅 캘린더</button>
     </div>
     <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ 라이트</button>
   </div>
@@ -28,9 +30,11 @@
 
       <h4 class="section-label">기능</h4>
       <ul class="intro-list">
-        <li>📰 뉴스 — 키워드로 네이버 뉴스를 검색하고 AI가 핵심만 요약</li>
+        <li>📰 뉴스 — 오늘의 포인트 뉴스 AI 브리핑과 카테고리별(증권금융/금융/투자/IT) 최신 기사</li>
         <li>📜 정책 — 금융당국·유관기관 동향, 국회 법안, 연구·논문을 AI가 하루 한 번 수집</li>
         <li>📈 자본시장 데이터 — 국내외 주요 지수, 자금동향 지표</li>
+        <li>🗂️ DART 공시 — 담보대출·우리사주 금융 수요와 연관될 수 있는 공시를 하루 한 번 수집</li>
+        <li>📅 캘린더 — 공모주·주요 권리일정 관련 DART 공시 제출일을 월별로 표시</li>
       </ul>
 
       <h4 class="section-label">환경</h4>
@@ -39,12 +43,14 @@
         <li>🗄️ 데이터베이스: Supabase</li>
         <li>🐙 소스관리: GitHub</li>
         <li>🚀 배포: Render</li>
+        <li>💻 IDE: Visual Studio</li>
       </ul>
 
       <h4 class="section-label">연결</h4>
       <ul class="intro-list">
         <li>📊 라이브러리: yfinance(미국지수)</li>
-        <li>🔌 API: 네이버(뉴스·금융), Google Gemini</li>
+        <li>🔌 API: 네이버 뉴스 API, 네이버 금융 API(국내지수), 금융감독원 Dart API</li>
+        <li>🤖 AI: Google AI Studio(Gemini)</li>
       </ul>
     </div>
   </div>
@@ -64,6 +70,18 @@
   <div class="tab-panel" data-panel="capital">
     <div class="widget-grid">
       {% include "market_summary.html" %}
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="dart">
+    <div class="widget-grid">
+      {% include "dart.html" %}
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="calendar">
+    <div class="widget-grid">
+      {% include "calendar_tab.html" %}
     </div>
   </div>
 </main>
@@ -102,5 +120,7 @@ applyTab(location.hash.slice(1) || '');
 <script src="{{ url_for('static', filename='news/news_summary.js') }}"></script>
 <script src="{{ url_for('static', filename='capital/market_summary.js') }}"></script>
 <script src="{{ url_for('static', filename='policy/policy.js') }}"></script>
+<script src="{{ url_for('static', filename='dart/dart.js') }}"></script>
+<script src="{{ url_for('static', filename='dart/calendar.js') }}"></script>
 </body>
 </html>

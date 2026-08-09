@@ -1,0 +1,37 @@
+<div class="card widget wide" id="widget-dart-calendar-ipo">
+  <h3>🗓️ 공모주 캘린더</h3>
+  <div class="page-note">
+    지분증권 증권신고서가 DART에 제출된 날짜를 월별로 보여줍니다. 실제 청약·상장 예정일이 아니라
+    공시 제출일 기준입니다.
+  </div>
+  <div class="cal-nav">
+    <button class="chip" data-cal="ipo" data-dir="-1">‹ 이전달</button>
+    <span class="cal-title" id="cal-ipo-title"></span>
+    <button class="chip" data-cal="ipo" data-dir="1">다음달 ›</button>
+  </div>
+  <div id="cal-ipo-status" class="status"></div>
+  <div class="cal-grid" id="cal-ipo-grid"></div>
+</div>
+
+<div class="card widget wide" id="widget-dart-calendar-rights">
+  <h3>📌 주요 권리일정</h3>
+  <div class="page-note">
+    유상증자·무상증자·감자·자기주식취득/처분·배당 관련 주요사항보고서가 DART에 제출된 날짜를
+    월별로 보여줍니다.
+  </div>
+  <div class="cal-nav">
+    <button class="chip" data-cal="rights" data-dir="-1">‹ 이전달</button>
+    <span class="cal-title" id="cal-rights-title"></span>
+    <button class="chip" data-cal="rights" data-dir="1">다음달 ›</button>
+  </div>
+  <div class="cal-legend">
+    <span class="cal-legend-item"><i class="cal-legend-swatch cal-item-paid_capital"></i>유상증자</span>
+    <span class="cal-legend-item"><i class="cal-legend-swatch cal-item-free_capital"></i>무상증자</span>
+    <span class="cal-legend-item"><i class="cal-legend-swatch cal-item-capital_reduction"></i>감자</span>
+    <span class="cal-legend-item"><i class="cal-legend-swatch cal-item-treasury_buy"></i>자기주식취득</span>
+    <span class="cal-legend-item"><i class="cal-legend-swatch cal-item-treasury_sell"></i>자기주식처분</span>
+    <span class="cal-legend-item"><i class="cal-legend-swatch cal-item-dividend"></i>배당</span>
+  </div>
+  <div id="cal-rights-status" class="status"></div>
+  <div class="cal-grid" id="cal-rights-grid"></div>
+</div>

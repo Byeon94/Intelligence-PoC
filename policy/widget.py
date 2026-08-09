@@ -5,7 +5,7 @@ from main.config import get_settings
 from main.supabase_client import get_supabase_client
 
 from .policy_data import fetch_policy_updates
-from .store import get_today_updates, save_updates
+from .store import get_latest_updates, get_today_updates, save_updates
 
 policy_bp = Blueprint(
     "policy",
@@ -35,6 +35,12 @@ def updates():
     try:
         fresh = fetch_policy_updates(gemini_clients)
     except Exception:
+        try:
+            stale = get_latest_updates(supabase_client)
+        except Exception:
+            stale = []
+        if stale:
+            return jsonify({"updates": stale, "cached": True, "stale": True})
         return jsonify({"error": "정책 동향 데이터를 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
 
     try:

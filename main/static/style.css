@@ -2,11 +2,15 @@
   --bg: #0d1117; --bg2: #010409; --card: #161b22; --border: #30363d;
   --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --accent-bg: rgba(88,166,255,.12);
   --price-up: #f85149;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+  --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
 }
 [data-theme="light"] {
   --bg: #f6f8fa; --bg2: #ffffff; --card: #ffffff; --border: #d0d7de;
   --fg: #1f2328; --muted: #59636e; --accent: #0969da; --accent-bg: rgba(9,105,218,.08);
   --price-up: #cf222e;
+  --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
+  --series-4: #eda100; --series-5: #e87ba4; --series-6: #008300;
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -173,3 +177,45 @@ h4.section-label:first-of-type { margin-top: 4px; }
 .policy-item .pi-title a:hover { color: var(--accent); }
 .policy-item .pi-summary { color: var(--muted); font-size: .82rem; line-height: 1.6; }
 .policy-item .tag.source-tag { color: var(--accent); border-color: var(--accent); }
+
+/* ── 캘린더 (캘린더 탭) ── */
+.cal-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.cal-nav .chip { cursor: pointer; }
+.cal-title { font-weight: 700; font-size: .85rem; min-width: 90px; text-align: center; }
+
+.cal-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: .74rem; color: var(--muted); }
+.cal-legend-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; border-left: none !important; }
+.cal-legend-swatch.cal-item-paid_capital { background: var(--series-1); }
+.cal-legend-swatch.cal-item-free_capital { background: var(--series-2); }
+.cal-legend-swatch.cal-item-capital_reduction { background: var(--series-3); }
+.cal-legend-swatch.cal-item-treasury_buy { background: var(--series-4); }
+.cal-legend-swatch.cal-item-treasury_sell { background: var(--series-5); }
+.cal-legend-swatch.cal-item-dividend { background: var(--series-6); }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow { text-align: center; font-size: .72rem; color: var(--muted); padding: 4px 0; }
+.cal-day {
+  min-height: 74px; border: 1px solid var(--border); border-radius: 8px;
+  padding: 4px; background: var(--bg2);
+}
+.cal-day.empty { border: none; background: none; }
+.cal-day-num { font-size: .72rem; color: var(--muted); margin-bottom: 2px; }
+.cal-item {
+  display: block; font-size: .68rem; color: var(--fg); background: var(--accent-bg);
+  border-radius: 4px; padding: 1px 4px 1px 6px; margin-bottom: 2px; text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-item:hover { color: var(--accent); }
+
+/* 권리유형별 색상 (고정 순서: 유상증자·무상증자·감자·자기주식취득·자기주식처분·배당) */
+.cal-item-paid_capital      { background: color-mix(in srgb, var(--series-1) 22%, transparent); border-left: 3px solid var(--series-1); }
+.cal-item-free_capital      { background: color-mix(in srgb, var(--series-2) 22%, transparent); border-left: 3px solid var(--series-2); }
+.cal-item-capital_reduction { background: color-mix(in srgb, var(--series-3) 22%, transparent); border-left: 3px solid var(--series-3); }
+.cal-item-treasury_buy      { background: color-mix(in srgb, var(--series-4) 22%, transparent); border-left: 3px solid var(--series-4); }
+.cal-item-treasury_sell     { background: color-mix(in srgb, var(--series-5) 22%, transparent); border-left: 3px solid var(--series-5); }
+.cal-item-dividend          { background: color-mix(in srgb, var(--series-6) 22%, transparent); border-left: 3px solid var(--series-6); }
+@media (max-width: 760px) {
+  .cal-day { min-height: 54px; }
+  .cal-item { font-size: .6rem; }
+}
