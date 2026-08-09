@@ -98,3 +98,9 @@ create table if not exists dart_calendar_items (
 
 create index if not exists dart_calendar_items_year_month_idx
     on dart_calendar_items (year_month);
+
+-- 캘린더 탭: 월별로 DART에서 마지막으로 갱신한 날짜 (하루 한 번만 재조회하기 위한 마커)
+create table if not exists dart_calendar_refresh (
+    year_month text primary key,
+    fetched_date date not null
+);

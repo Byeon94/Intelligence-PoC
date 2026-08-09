@@ -49,3 +49,22 @@ def save_month(client: Client, year_month: str, items: list[dict]) -> None:
         [{**item, "year_month": year_month} for item in items],
         on_conflict="rcept_no",
     ).execute()
+
+
+def get_calendar_refresh_date(client: Client, year_month: str) -> str | None:
+    response = (
+        client.table("dart_calendar_refresh")
+        .select("fetched_date")
+        .eq("year_month", year_month)
+        .limit(1)
+        .execute()
+    )
+    rows = response.data or []
+    return rows[0]["fetched_date"] if rows else None
+
+
+def mark_calendar_refreshed(client: Client, year_month: str, fetched_date: str) -> None:
+    client.table("dart_calendar_refresh").upsert(
+        {"year_month": year_month, "fetched_date": fetched_date},
+        on_conflict="year_month",
+    ).execute()

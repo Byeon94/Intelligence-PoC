@@ -72,5 +72,50 @@
     }
   }
 
+  function buildStatTile(label, value, asOf) {
+    const tile = document.createElement("div");
+    tile.className = "stat-tile";
+
+    const labelEl = document.createElement("div");
+    labelEl.className = "st-label";
+    labelEl.textContent = label;
+    tile.appendChild(labelEl);
+
+    const valueEl = document.createElement("div");
+    valueEl.className = "st-value";
+    valueEl.textContent = value.toLocaleString("ko-KR") + "건";
+    tile.appendChild(valueEl);
+
+    const asOfEl = document.createElement("div");
+    asOfEl.className = "st-asof";
+    asOfEl.textContent = `${asOf} 기준`;
+    tile.appendChild(asOfEl);
+
+    return tile;
+  }
+
+  async function loadDartStats() {
+    const statusEl = document.getElementById("dart-stats-status");
+    const gridEl = document.getElementById("dart-stats-grid");
+    if (!statusEl || !gridEl) return;
+
+    statusEl.textContent = "공시 현황을 불러오는 중입니다...";
+    gridEl.innerHTML = "";
+
+    try {
+      const res = await fetch("/api/widgets/dart/stats");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "공시 현황을 가져오지 못했습니다.");
+
+      for (const s of data.stats || []) {
+        gridEl.appendChild(buildStatTile(s.label, s.count, data.date));
+      }
+      statusEl.textContent = "";
+    } catch (err) {
+      statusEl.textContent = err.message;
+    }
+  }
+
   loadDartFilings();
+  loadDartStats();
 })();

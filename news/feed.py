@@ -20,27 +20,21 @@ NEWS_CATEGORIES = [
     },
     {
         "code": "it",
-        "label": "IT관련 뉴스",
-        "keywords": ["AI", "코인", "IT감사", "정보보호"],
+        "label": "IT 뉴스",
+        "keywords": ["AI", "IT감사", "정보보호"],
     },
 ]
-
-ARTICLES_PER_CATEGORY = 3
 
 
 def _pick_category_articles(category: dict, client_id: str, client_secret: str) -> list[dict]:
     seen_links = set()
     picked = []
     for keyword in category["keywords"]:
-        if len(picked) >= ARTICLES_PER_CATEGORY:
-            break
         try:
             articles = search_news(keyword, client_id=client_id, client_secret=client_secret, display=3)
         except requests.exceptions.RequestException:
             continue
         for article in articles:
-            if len(picked) >= ARTICLES_PER_CATEGORY:
-                break
             if article["link"] in seen_links:
                 continue
             seen_links.add(article["link"])
@@ -54,6 +48,7 @@ def _pick_category_articles(category: dict, client_id: str, client_secret: str) 
                     "published_label": article["pubDate"],
                 }
             )
+            break  # 키워드당 1건만
     return picked
 
 

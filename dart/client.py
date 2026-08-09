@@ -15,6 +15,7 @@ def _request(
     pblntf_detail_ty: str | None,
     page_no: int,
     page_count: int,
+    corp_cls: str | None = None,
 ) -> dict:
     params = {
         "crtfc_key": api_key,
@@ -27,6 +28,8 @@ def _request(
         params["pblntf_ty"] = pblntf_ty
     if pblntf_detail_ty:
         params["pblntf_detail_ty"] = pblntf_detail_ty
+    if corp_cls:
+        params["corp_cls"] = corp_cls
 
     response = requests.get(DART_LIST_URL, params=params, timeout=10)
     response.raise_for_status()
@@ -67,6 +70,19 @@ def search_all_disclosures(
             break
         page_no += 1
     return items
+
+
+def count_disclosures(
+    api_key: str,
+    bgn_de: str,
+    end_de: str,
+    corp_cls: str | None = None,
+    pblntf_ty: str | None = None,
+) -> int:
+    data = _request(
+        api_key, bgn_de, end_de, pblntf_ty, None, page_no=1, page_count=1, corp_cls=corp_cls
+    )
+    return data.get("total_count", 0)
 
 
 def viewer_url(rcept_no: str) -> str:
