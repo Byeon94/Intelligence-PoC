@@ -21,7 +21,7 @@ NEWS_CATEGORIES = [
     {
         "code": "it",
         "label": "IT 뉴스",
-        "keywords": ["AI", "IT감사", "정보보호"],
+        "keywords": ["AI", "혁신금융서비스", "정보보호"],
     },
 ]
 
