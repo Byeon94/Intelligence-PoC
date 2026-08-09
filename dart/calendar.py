@@ -1,8 +1,11 @@
 import calendar as calendar_module
+import logging
 
 import requests
 
 from .client import search_all_disclosures, viewer_url
+
+logger = logging.getLogger(__name__)
 
 # "공모주 캘린더"는 실제 청약/상장 예정일이 아니라, 지분증권 증권신고서가 DART에 "제출된 날"을 보여준다.
 # (실제 청약 일정은 제3자배정 등 방식에 따라 없는 경우가 많고, DART 목록 API만으로는 신뢰성 있게
@@ -69,6 +72,7 @@ def fetch_month(api_key: str, year_month: str) -> list[dict]:
                 max_pages=MAX_PAGES,
             )
         except (requests.exceptions.RequestException, RuntimeError):
+            logger.exception("DART 캘린더 카테고리 조회 실패: %s (%s)", category["code"], year_month)
             continue
 
         for d in disclosures:

@@ -1,3 +1,4 @@
+import logging
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -6,6 +7,8 @@ from flask import Blueprint, jsonify, request
 
 from main.config import get_settings
 from main.supabase_client import get_supabase_client
+
+logger = logging.getLogger(__name__)
 
 from .calendar import fetch_month
 from .feed import fetch_all_categories
@@ -45,6 +48,7 @@ def stats():
     try:
         data = fetch_market_stats(settings.dart_api_key)
     except Exception:
+        logger.exception("DART 공시 현황(시장별 건수) 조회 실패")
         return jsonify({"error": "공시 현황을 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
 
     _stats_cache["data"] = data
@@ -100,18 +104,25 @@ def calendar_view():
     try:
         items = fetch_month(settings.dart_api_key, year_month)
     except Exception:
+        logger.exception("DART 캘린더 조회 실패: %s", year_month)
+        items = None
+
+    # DART 조회가 예외 없이 끝났어도 결과가 비어 있으면(부분 실패 포함) 이전 캐시가 있는 쪽을 신뢰한다.
+    if not items:
         try:
             cached = get_month(supabase_client, year_month)
         except Exception:
             cached = None
         if cached:
             return jsonify({"month": year_month, "items": cached, "cached": True, "stale": True})
+        if items == []:
+            return jsonify({"month": year_month, "items": [], "cached": False})
         return jsonify({"error": "DART 공시 조회에 실패했습니다. 잠시 후 다시 시도해주세요."}), 502
 
     try:
         save_month(supabase_client, year_month, items)
         mark_calendar_refreshed(supabase_client, year_month, today)
     except Exception:
-        pass
+        logger.exception("DART 캘린더 저장 실패: %s", year_month)
 
     return jsonify({"month": year_month, "items": items, "cached": False})

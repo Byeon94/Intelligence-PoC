@@ -1,9 +1,12 @@
+import logging
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import requests
 
 from .client import search_disclosures, viewer_url
+
+logger = logging.getLogger(__name__)
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -52,6 +55,7 @@ def fetch_all_categories(api_key: str) -> list[dict]:
             try:
                 disclosures = search_disclosures(api_key, bgn_de, end_de, pblntf_ty=pblntf_ty)
             except (requests.exceptions.RequestException, RuntimeError):
+                logger.exception("DART 공시 조회 실패: %s / %s", category["code"], pblntf_ty)
                 continue
 
             for d in disclosures:
