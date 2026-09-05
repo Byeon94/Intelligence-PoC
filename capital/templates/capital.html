@@ -1,0 +1,93 @@
+<div class="capital" id="capital-root">
+  <div class="subtabs" id="capital-subtabs" role="tablist">
+    <button class="subtab-btn active" data-sub="liquidity">증시자금·유동성</button>
+    <button class="subtab-btn" data-sub="cma">CMA·단기수신</button>
+    <button class="subtab-btn" data-sub="issuance">발행시장</button>
+  </div>
+
+  <!-- ── 증시자금 · 유동성 ── -->
+  <div class="sub-panel" data-sub="liquidity">
+    <section class="block">
+      <div class="block-head">
+        <h3>증시 대기·레버리지 자금</h3>
+        <span class="asof" id="liq-asof"></span>
+      </div>
+      <div class="kpi-grid" id="liq-kpis"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>투자자예탁금 · 신용공여 · CMA 추이</h3>
+        <span class="unit-tag">조원 · 월말</span>
+      </div>
+      <div class="chart-wrap" id="liq-trend"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>국내 주식시장 거래대금</h3>
+        <span class="asof" id="turnover-asof"></span>
+      </div>
+      <div class="kpi-grid" id="turnover-kpis"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>거래대금 추이</h3>
+        <span class="unit-tag">조원 · 월 누계</span>
+      </div>
+      <div class="chart-wrap" id="turnover-trend"></div>
+    </section>
+  </div>
+
+  <!-- ── CMA · 단기수신 ── -->
+  <div class="sub-panel" data-sub="cma" hidden>
+    <section class="block">
+      <div class="block-head">
+        <h3>CMA 잔고 현황</h3>
+        <span class="asof" id="cma-asof"></span>
+      </div>
+      <div class="kpi-grid" id="cma-kpis"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>CMA 유형별 점유율</h3>
+        <span class="unit-tag">잔고 기준</span>
+      </div>
+      <div class="donut-wrap" id="cma-mix"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>증권사별 CMA 금리</h3>
+        <span class="asof" id="cma-rate-asof"></span>
+      </div>
+      <div class="table-wrap" id="cma-rates"></div>
+      <p class="page-note" id="cma-rate-note"></p>
+    </section>
+  </div>
+
+  <!-- ── 발행시장 ── -->
+  <div class="sub-panel" data-sub="issuance" hidden>
+    <section class="block">
+      <div class="block-head"><h3>💡 발행시장 브리핑</h3>
+        <button type="button" class="brief-regen" id="iss-regen">↻ 재생성</button></div>
+      <div class="brief-card" id="iss-brief"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>IPO·발행시장 캘린더 <span id="iss-month" style="color:var(--muted);font-weight:600"></span></h3>
+        <span class="asof" id="iss-asof"></span>
+      </div>
+      <div class="cal-legend">
+        <span class="cl-item"><i style="background:var(--c1)"></i>수요예측</span>
+        <span class="cl-item"><i style="background:var(--c3)"></i>청약</span>
+        <span class="cl-item"><i style="background:var(--c2)"></i>상장</span>
+        <span class="cl-item"><i style="background:var(--c4)"></i>유상증자</span>
+      </div>
+      <div id="iss-calendar"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+  </div>
+</div>

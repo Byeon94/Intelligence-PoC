@@ -1,124 +1,175 @@
+/* 정책·규제 탭: AI 브리핑(3줄 요약 + 재생성) + 기관별 보도자료 */
 (function () {
-  const ORG_BADGES = {
-    FSC: "금융위",
-    BOK: "한은",
-    MOEF: "재경부",
-    FSS: "금감원",
-    KRX: "거래소",
-    KSD: "예탁원",
-    KOFIA: "금투협",
-    CAPMKT: "자본시장법",
-    DIGIASSET: "디지털자산기본법",
-    KCMI: "자본연",
-    KIF: "금융연",
-  };
+  "use strict";
 
-  const CATEGORY_META = {
-    authority: { list: "pl-authority", status: "pl-authority-status" },
-    affiliate: { list: "pl-affiliate", status: "pl-affiliate-status" },
-    assembly: { list: "pl-assembly", status: "pl-assembly-status" },
-    research: { list: "pl-research", status: "pl-research-status" },
-  };
+  var CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
 
-  function buildItem(update) {
-    const item = document.createElement("div");
-    item.className = "policy-item";
-
-    const head = document.createElement("div");
-    head.className = "pi-head";
-
-    const badge = document.createElement("span");
-    badge.className = "org-badge";
-    badge.textContent = ORG_BADGES[update.org_code] || update.org_name;
-    head.appendChild(badge);
-
-    const date = document.createElement("span");
-    date.className = "pi-date";
-    date.textContent = update.published_label || "";
-    head.appendChild(date);
-
-    item.appendChild(head);
-
-    const title = document.createElement("div");
-    title.className = "pi-title";
-    if (update.source_url) {
-      const link = document.createElement("a");
-      link.href = update.source_url;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = update.title;
-      title.appendChild(link);
-    } else {
-      title.textContent = update.title;
-    }
-    item.appendChild(title);
-
-    if (update.summary) {
-      const summary = document.createElement("div");
-      summary.className = "pi-summary";
-      summary.textContent = update.summary;
-      item.appendChild(summary);
-    }
-
-    const tags = document.createElement("div");
-    tags.className = "tags";
-    for (const t of update.tags || []) {
-      const tag = document.createElement("span");
-      tag.className = "tag";
-      tag.textContent = t;
-      tags.appendChild(tag);
-    }
-    const sourceTag = document.createElement("span");
-    sourceTag.className = "tag source-tag";
-    sourceTag.textContent = "출처 " + update.source_label;
-    tags.appendChild(sourceTag);
-    item.appendChild(tags);
-
-    return item;
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
   }
 
-  async function loadPolicyUpdates() {
-    const cats = {};
-    for (const [category, meta] of Object.entries(CATEGORY_META)) {
-      cats[category] = {
-        list: document.getElementById(meta.list),
-        status: document.getElementById(meta.status),
-      };
+  function renderBriefing(d) {
+    var box = document.getElementById("pol-brief");
+    if (!box) return;
+
+    var when = d.briefing_at || d.generated_at || d.date || "";
+    var head =
+      '<div class="brief-head">' +
+        '<span class="brief-label">💬 AI 정책 브리핑</span>' +
+        '<span class="brief-when">' + esc(when) + " 생성</span>" +
+        '<button type="button" class="brief-regen" id="pol-regen">↻ 재생성</button>' +
+      "</div>";
+
+    if (!d.briefing) {
+      box.innerHTML = head +
+        '<div class="brief-note">' + esc(d.briefing_note || "AI 브리핑을 사용할 수 없습니다.") + "</div>";
+      bindRegen();
+      return;
     }
-    if (Object.values(cats).some((c) => !c.list || !c.status)) return;
+    var bullets = d.briefing
+      .split("\n")
+      .map(function (l) { return l.replace(/^\s*[-•*]\s*/, "").trim(); })
+      .filter(Boolean)
+      .slice(0, 3);
 
-    for (const c of Object.values(cats)) {
-      c.status.textContent = "정책 동향을 불러오는 중입니다...";
-      c.list.innerHTML = "";
+    box.innerHTML = head +
+      '<ol class="brief-list">' +
+        bullets.map(function (b, i) {
+          return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + "</span>" +
+                 '<span class="bl-tx">' + esc(b) + "</span></li>";
+        }).join("") +
+      "</ol>" +
+      (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
+      '<div class="brief-meta">📌 위 요약은 당일 수집된 공식 보도자료를 기반으로 AI가 자동 생성합니다.' +
+        (d.stale ? " · 이전 자료" : "") + "</div>";
+    bindRegen();
+  }
+
+  function bindRegen() {
+    var btn = document.getElementById("pol-regen");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      btn.disabled = true;
+      btn.textContent = "재생성 중…";
+      fetchDigest(true);
+    });
+  }
+
+  var ORG_NAMES = {
+    FSC: "금융위", FSS: "금감원", BOK: "한국은행", MOEF: "기재부",
+    KRX: "한국거래소", KDIC: "예보", KSD: "예탁결제원", KOFIA: "금투협",
+  };
+
+  function renderGroups(d) {
+    renderGroupsInto("pol-groups", d.groups || [], d.failed, ["FSC", "FSS", "BOK", "MOEF"]);
+    renderGroupsInto("pol-aff-groups", d.affiliate_groups || [], d.failed, ["KRX", "KDIC", "KSD", "KOFIA"]);
+  }
+
+  function renderGroupsInto(elId, groups, failed, scope) {
+    var wrap = document.getElementById(elId);
+    if (!wrap) return;
+    if (!groups.length) {
+      wrap.innerHTML = '<div class="chart-error">보도자료를 가져오지 못했습니다.</div>';
+      return;
     }
-
-    try {
-      const res = await fetch("/api/widgets/policy/updates");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "정책 동향을 가져오지 못했습니다.");
-
-      for (const update of data.updates) {
-        const target = cats[update.category];
-        if (target) target.list.appendChild(buildItem(update));
-      }
-
-      let doneMessage = "방금 새로 수집했습니다.";
-      if (data.stale) {
-        doneMessage = "오늘 수집에 실패해 최근에 수집한 결과를 보여드려요.";
-      } else if (data.cached) {
-        doneMessage = "오늘 수집한 결과를 보여드려요 (하루 1회 갱신).";
-      }
-
-      for (const c of Object.values(cats)) {
-        if (c.list.children.length === 0) {
-          c.list.innerHTML = '<div class="page-note">표시할 항목이 없습니다.</div>';
+    wrap.innerHTML = groups.map(function (g) {
+      var rows = (g.items || []).map(function (it) {
+        if (it.link_only) {
+          return (
+            '<a class="pol-item pol-link" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+              '<div class="pi-title">🔗 ' + esc(it.title) + "</div>" +
+            "</a>"
+          );
         }
-        c.status.textContent = doneMessage;
-      }
-    } catch (err) {
-      for (const c of Object.values(cats)) c.status.textContent = err.message;
+        return (
+          '<a class="pol-item" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+            '<div class="pi-top"><span class="pi-date">' + esc(it.date || "") + "</span>" +
+              (it.dept ? '<span class="pi-dept">' + esc(it.dept) + "</span>" : "") + "</div>" +
+            '<div class="pi-title">' + esc(it.title) + "</div>" +
+          "</a>"
+        );
+      }).join("");
+      return (
+        '<div class="pol-group">' +
+          '<div class="pg-head"><span class="pg-badge">' + esc(g.badge) + "</span>" +
+            '<span class="pg-name">' + esc(g.org_name) + "</span></div>" +
+          rows +
+        "</div>"
+      );
+    }).join("");
+
+    var miss = (failed || []).filter(function (f) { return scope.indexOf(f) >= 0; });
+    if (miss.length) {
+      wrap.insertAdjacentHTML("beforeend",
+        '<div class="brief-note">일부 기관을 불러오지 못했습니다: ' +
+        miss.map(function (f) { return ORG_NAMES[f] || f; }).join(", ") + "</div>");
     }
   }
 
-  loadPolicyUpdates();
+  function fetchDigest(refresh) {
+    var url = "/api/policy/digest" + (refresh ? "?refresh=1" : "");
+    fetch(url)
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; }); })
+      .then(function (d) {
+        var sum = document.getElementById("pol-summary");
+        if (sum) {
+          var n = (d.press_count != null ? d.press_count : "-");
+          sum.innerHTML =
+            "조회 기준일 <b>" + esc(d.as_of || d.date || "-") + "</b>" +
+            ' <span class="ps-sep">·</span> 금융당국 보도자료 <b>' + esc(n) + "건</b>" +
+            ' <span class="ps-sep">·</span> 유관기관 <b>' + esc(d.affiliate_count != null ? d.affiliate_count : "-") + "건</b>" +
+            ' <span class="ps-sep">·</span> ' + esc(d.generated_at || "") + " 수집" +
+            (d.stale ? ' <span class="ps-sep">·</span> 이전 자료' : "");
+        }
+        var asof = document.getElementById("pol-asof");
+        if (asof) asof.textContent = "";
+        renderBriefing(d);
+        renderGroups(d);
+      })
+      .catch(function (e) {
+        var box = document.getElementById("pol-brief");
+        if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      });
+  }
+
+  function initSubtabs() {
+    var bar = document.getElementById("pol-subtabs");
+    if (!bar || bar.dataset.bound) return;
+    bar.dataset.bound = "1";
+    bar.addEventListener("click", function (e) {
+      var btn = e.target.closest(".subtab-btn");
+      if (!btn) return;
+      var sub = btn.dataset.sub;
+      bar.querySelectorAll(".subtab-btn").forEach(function (b) {
+        b.classList.toggle("active", b === btn);
+      });
+      document.querySelectorAll('#policy-root .sub-panel').forEach(function (p) {
+        p.hidden = p.dataset.sub !== sub;
+      });
+    });
+  }
+
+  var loaded = false;
+  function load() {
+    if (loaded) return;
+    loaded = true;
+    initSubtabs();
+    fetchDigest(false);
+  }
+
+  function visible() {
+    var p = document.querySelector('.tab-panel[data-panel="policy"]');
+    return p && !p.hidden;
+  }
+  function maybe() { if (visible()) load(); }
+
+  function boot() {
+    maybe();
+    var tabs = document.getElementById("main-tabs");
+    if (tabs) tabs.addEventListener("click", function () { setTimeout(maybe, 0); });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();

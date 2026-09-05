@@ -1,7 +1,8 @@
 flask
 requests
-google-genai
-supabase
 python-dotenv
 gunicorn
 tzdata
+beautifulsoup4
+google-genai
+supabase

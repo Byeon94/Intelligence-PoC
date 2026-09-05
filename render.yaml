@@ -1,0 +1,33 @@
+# Render Blueprint — Dashboard에서 "New +" → "Blueprint" → 이 저장소 선택 시 자동 구성.
+# 아래 sync:false 항목은 배포 중에 값 입력을 요청합니다(.env 값 그대로 붙여넣기).
+services:
+  - type: web
+    name: intelligence-poc
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main.app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: POLICY_MAX_GEMINI_CALLS_PER_DAY
+        value: "3"
+      - key: DATA_GO_KR_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
+        sync: false
+      - key: DART_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

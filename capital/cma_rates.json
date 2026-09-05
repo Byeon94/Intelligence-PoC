@@ -1,0 +1,18 @@
+{
+  "as_of": "2026-09-06",
+  "note": "웹 공개 자료(비교공시·각 사 안내·금융상품한눈에) 기준 근사치입니다. AI 자동 갱신(하루 1회)이 정상화되면 최신값으로 대체됩니다. 정확한 금리는 각 증권사 공시를 확인하세요. 단위: 연 %, 세전, 기본(대량예치 우대 제외).",
+  "companies": [
+    { "company": "NH투자증권",     "rp_rate": 3.55, "note_rate": 3.45 },
+    { "company": "미래에셋증권",   "rp_rate": 3.55, "note_rate": 3.40 },
+    { "company": "한국투자증권",  "rp_rate": 3.50, "note_rate": 3.45 },
+    { "company": "KB증권",        "rp_rate": 3.50, "note_rate": 3.40 },
+    { "company": "키움증권",       "rp_rate": 3.40, "note_rate": null },
+    { "company": "대신증권",       "rp_rate": 3.35, "note_rate": null },
+    { "company": "삼성증권",       "rp_rate": 3.30, "note_rate": null },
+    { "company": "신한투자증권",   "rp_rate": 3.30, "note_rate": null },
+    { "company": "하나증권",       "rp_rate": 3.30, "note_rate": null },
+    { "company": "유안타증권",     "rp_rate": 3.30, "note_rate": null },
+    { "company": "메리츠증권",     "rp_rate": 3.25, "note_rate": null },
+    { "company": "SK증권",         "rp_rate": 3.20, "note_rate": null }
+  ]
+}

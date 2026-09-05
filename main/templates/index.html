@@ -1,126 +1,196 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="dark">
+<html lang="ko" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>업무 인텔리전스 홈</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<!-- 페이지가 자체 테마를 관리함을 알려 브라우저(안드로이드 크롬 등)의 강제 다크모드를 억제 -->
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>증금 인텔리전스 플랫폼</title>
+<script>
+// 새로 열면 항상 라이트(화이트)로 시작. 다크는 현재 탭 세션에서만 유지.
+(function () {
+  var saved = null;
+  try { saved = sessionStorage.getItem('theme'); } catch (e) {}
+  document.documentElement.setAttribute('data-theme', saved === 'dark' ? 'dark' : 'light');
+})();
+</script>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-inner">
-    <a class="logo" href="{{ url_for('home') }}" id="home-link">업무 인텔리전스 홈<span class="poc-badge">POC</span></a>
-    <div class="tabs" id="main-tabs">
-      <button class="tab-btn" data-tab="news">📰 뉴스</button>
-      <button class="tab-btn" data-tab="policy">📜 정책</button>
-      <button class="tab-btn" data-tab="capital">📈 자본시장 데이터</button>
-      <button class="tab-btn" data-tab="dart">🗂️ DART 공시</button>
-      <button class="tab-btn" data-tab="calendar">📅 캘린더</button>
-    </div>
-    <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️ 라이트</button>
+<header class="topbar">
+  <div class="topbar-row topbar-brand">
+    <a class="logo" href="#capital" id="home-link">
+      증금 인텔리전스<span class="poc-badge">PoC</span>
+    </a>
+    <button class="ghost-btn" id="intro-btn" type="button">소개</button>
+    <button class="ghost-btn theme-btn" id="theme-btn" type="button" onclick="toggleTheme()">🌙 다크</button>
   </div>
-</div>
+  <nav class="tabs" id="main-tabs" aria-label="주요 메뉴">
+    <button class="tab-btn" data-tab="capital">📈 자본시장</button>
+    <button class="tab-btn" data-tab="policy">📜 정책·규제</button>
+    <button class="tab-btn" data-tab="research">📰 리서치·뉴스</button>
+    <button class="tab-btn" data-tab="credit">🏦 여신·심사</button>
+    <button class="tab-btn" data-tab="ib">💼 투자금융</button>
+    <button class="tab-btn" data-tab="custody">🔐 수탁</button>
+    <button class="tab-btn" data-tab="funding">💱 자금·외화</button>
+    <button class="tab-btn" data-tab="lending">🔄 증권대차</button>
+  </nav>
+</header>
 
 <main>
-  <div class="tab-panel" data-panel="">
-    <div class="card widget wide">
-      <h3>👋 업무 인텔리전스 홈 소개</h3>
-      <div class="page-note">사내 업무에 필요한 정보를 한 곳에 모아 보여주는 사내 정보 포털 POC입니다.</div>
+  <!-- 소개 -->
+  <section class="tab-panel" data-panel="intro" hidden>
+    <div class="card intro-card">
+      <h2>👋 증금 인텔리전스 플랫폼</h2>
+      <p class="page-note">
+        증권금융 임직원이 업무에 필요한 시장·정책·내부 지표를 한 화면에서 보도록 만든
+        사내 정보 포털 PoC입니다. QR로 접속해 모바일에서도 바로 확인할 수 있게 설계했습니다.
+      </p>
 
-      <h4 class="section-label">기능</h4>
+      <h3 class="section-label">메뉴 구성</h3>
       <ul class="intro-list">
-        <li>📰 뉴스 — 오늘의 포인트 뉴스 AI 브리핑과 카테고리별(증권금융/금융/투자/IT) 최신 기사</li>
-        <li>📜 정책 — 금융당국·유관기관 동향, 국회 법안, 연구·논문을 AI가 하루 한 번 수집</li>
-        <li>📈 자본시장 데이터 — 국내외 주요 지수, 자금동향 지표</li>
-        <li>🗂️ DART 공시 — 담보대출·우리사주 금융 수요와 연관될 수 있는 공시를 하루 한 번 수집</li>
-        <li>📅 캘린더 — 공모주·주요 권리일정 관련 DART 공시 제출일을 월별로 표시</li>
+        <li>📈 <b>자본시장</b> — 증시자금·유동성, CMA·단기수신 지표</li>
+        <li>📜 <b>정책·규제</b> — 금융위·금감원·한국은행·기재부 보도자료 + AI 브리핑</li>
+        <li>📰 <b>리서치·뉴스</b> — 네이버 뉴스에서 KSFC 업무 관련 기사 AI 선별·태깅 + 브리핑</li>
+        <li>🏦 <b>여신·심사</b> — 담보대출·신용공여 수요와 심사 지표 <span class="soon-tag">준비 중</span></li>
+        <li>💼 <b>투자금융</b> — IB·인수·발행시장 동향 <span class="soon-tag">준비 중</span></li>
+        <li>🔐 <b>수탁</b> — 신탁·수탁고 및 자산관리 지표 <span class="soon-tag">준비 중</span></li>
+        <li>💱 <b>자금·외화</b> — 조달·운용·외화 유동성 <span class="soon-tag">준비 중</span></li>
+        <li>🔄 <b>증권대차</b> — 대차잔고·공매도·이용률 <span class="soon-tag">준비 중</span></li>
       </ul>
 
-      <h4 class="section-label">환경</h4>
+      <h3 class="section-label">환경</h3>
       <ul class="intro-list">
-        <li>⚙️ 프레임워크: Flask (Python)</li>
-        <li>🗄️ 데이터베이스: Supabase</li>
-        <li>🐙 소스관리: GitHub</li>
-        <li>🚀 배포: Render</li>
-        <li>💻 IDE: Visual Studio</li>
+        <li>⚙️ 프레임워크: Flask (Python) · 프런트는 순수 HTML·CSS·JS (인라인 SVG 차트)</li>
+        <li>🚀 배포: <b>Render</b> (웹 서비스) · 🐙 소스관리: GitHub</li>
+        <li>🗄️ 데이터베이스: <b>Supabase</b> (정책·리서치·발행시장·CMA금리의 일일 스냅샷 보관)</li>
       </ul>
 
-      <h4 class="section-label">연결</h4>
+      <h3 class="section-label">데이터 소스</h3>
+      <div class="table-wrap">
+        <table class="api-table">
+          <thead>
+            <tr><th>영역</th><th>사용 데이터</th><th>제공처</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>자본시장 — 증시자금·유동성</td>
+              <td>투자자예탁금, 신용공여 잔고, CMA 총잔고·유형별, 월별 추이</td>
+              <td>공공데이터포털(data.go.kr) · 금융투자협회 종합통계 (원천: FreeSIS)</td>
+            </tr>
+            <tr>
+              <td>자본시장 — 거래대금</td>
+              <td>코스피·코스닥 일별 거래대금 → 월·일평균·추이</td>
+              <td>공공데이터포털(data.go.kr) · 지수시세정보 (원천: 한국거래소)</td>
+            </tr>
+            <tr>
+              <td>자본시장 — 증권사 CMA 금리</td>
+              <td>RP형·발행어음형 금리, 최고금리 증권사</td>
+              <td>AI 웹검색으로 하루 1회 갱신 (기준값: 비교공시·각 사 공시)</td>
+            </tr>
+            <tr>
+              <td>자본시장 — 발행시장</td>
+              <td>IPO 수요예측·청약·상장 일정, 유상증자 공시</td>
+              <td>38커뮤니케이션 · 금융감독원 DART</td>
+            </tr>
+            <tr>
+              <td>정책·규제</td>
+              <td>금융당국 4곳·유관기관 4곳 보도자료 + AI 브리핑</td>
+              <td>각 기관 공식 홈페이지 · Google AI Studio(Gemini)</td>
+            </tr>
+            <tr>
+              <td>리서치·뉴스</td>
+              <td>당일 업무 관련 기사 AI 선별·태깅 + 브리핑</td>
+              <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <ul class="intro-list">
-        <li>🔌 API: 네이버 뉴스 API, 네이버 금융 API(국내외 지수), 금융감독원 Dart API</li>
-        <li>🤖 AI: Google AI Studio(Gemini)</li>
-        <li>🔗 참고사이트: 금융투자협회 자본시장 통계</li>
+        <li>🕒 정책·리서치·발행시장·CMA금리는 <b>하루 1회</b>만 수집·생성하고 DB 스냅샷으로 재사용합니다 (각 화면의 <b>재생성</b> 버튼으로 수동 갱신)</li>
+        <li>🟢 <b>연결됨</b> 배지는 실데이터, <b>샘플·큐레이션</b> 배지는 원천 일시 오류 시 대체 데이터입니다</li>
+        <li>🔗 참고: 금융투자협회 FreeSIS, KRX 정보데이터시스템, KOFIA 비교공시</li>
       </ul>
+      <p class="page-note" id="intro-close-hint">아무 탭이나 눌러 지표 화면으로 이동하세요.</p>
     </div>
-  </div>
+  </section>
 
-  <div class="tab-panel" data-panel="news">
-    <div class="widget-grid">
-      {% include "news_summary.html" %}
-    </div>
-  </div>
+  <section class="tab-panel" data-panel="capital">
+    {% include "capital.html" %}
+  </section>
 
-  <div class="tab-panel" data-panel="policy">
-    <div class="widget-grid">
-      {% include "policy.html" %}
-    </div>
-  </div>
+  <section class="tab-panel" data-panel="policy" hidden>
+    {% include "policy.html" %}
+  </section>
 
-  <div class="tab-panel" data-panel="capital">
-    <div class="widget-grid">
-      {% include "market_summary.html" %}
-    </div>
-  </div>
+  <section class="tab-panel" data-panel="research" hidden>
+    {% include "research.html" %}
+  </section>
 
-  <div class="tab-panel" data-panel="dart">
-    <div class="widget-grid">
-      {% include "dart.html" %}
+  {% for tab, name in [
+      ('credit', '여신·심사'),
+      ('ib', '투자금융'),
+      ('custody', '수탁'),
+      ('funding', '자금·외화'),
+      ('lending', '증권대차')
+  ] %}
+  <section class="tab-panel" data-panel="{{ tab }}" hidden>
+    <div class="card placeholder-card">
+      <div class="placeholder-emoji">🚧</div>
+      <h2>{{ name }}</h2>
+      <p class="page-note">준비중입니다. 추후 공개 예정중이니 참고 부탁드립니다.</p>
     </div>
-  </div>
-
-  <div class="tab-panel" data-panel="calendar">
-    <div class="widget-grid">
-      {% include "calendar_tab.html" %}
-    </div>
-  </div>
+  </section>
+  {% endfor %}
 </main>
 
 <script>
+function themeLabel(t) { return t === 'dark' ? '☀️ 라이트' : '🌙 다크'; }
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️ 라이트' : '🌙 다크';
-  localStorage.setItem('theme', t);
+  document.getElementById('theme-btn').textContent = themeLabel(t);
+  try { sessionStorage.setItem('theme', t); } catch (e) {}
 }
 function toggleTheme() {
   applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 }
-applyTheme(localStorage.getItem('theme') || 'dark');
+// 테마는 <head> 인라인 스크립트가 이미 결정함. 여기선 버튼 라벨만 맞춘다.
+document.getElementById('theme-btn').textContent =
+  themeLabel(document.documentElement.dataset.theme || 'light');
+
+var TABS = ['capital','policy','research','credit','ib','custody','funding','lending'];
 
 function applyTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach((btn) => {
+  var isIntro = tab === 'intro';
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
-  document.querySelectorAll('.tab-panel').forEach((panel) => {
+  document.querySelectorAll('.tab-panel').forEach(function (panel) {
     panel.hidden = panel.dataset.panel !== tab;
   });
-  history.replaceState(null, '', tab ? '#' + tab : location.pathname);
+  document.getElementById('intro-btn').classList.toggle('active', isIntro);
+  history.replaceState(null, '', '#' + tab);
+  window.scrollTo(0, 0);
 }
-document.getElementById('main-tabs').addEventListener('click', (e) => {
-  const tab = e.target.dataset.tab;
-  if (tab) applyTab(tab);
+document.getElementById('main-tabs').addEventListener('click', function (e) {
+  var btn = e.target.closest('.tab-btn');
+  if (btn) applyTab(btn.dataset.tab);
 });
-document.getElementById('home-link').addEventListener('click', (e) => {
-  e.preventDefault();
-  applyTab('');
+document.getElementById('intro-btn').addEventListener('click', function () { applyTab('intro'); });
+document.getElementById('home-link').addEventListener('click', function (e) {
+  e.preventDefault(); applyTab('capital');
 });
-// 첫 진입 시 항상 소개 화면(main)으로 시작한다. URL 해시가 있으면 그 탭을 연다.
-applyTab(location.hash.slice(1) || '');
+
+var start = location.hash.slice(1);
+applyTab(start === 'intro' || TABS.indexOf(start) >= 0 ? start : 'capital');
 </script>
-<script src="{{ url_for('static', filename='news/news_summary.js') }}"></script>
-<script src="{{ url_for('static', filename='capital/market_summary.js') }}"></script>
-<script src="{{ url_for('static', filename='policy/policy.js') }}"></script>
-<script src="{{ url_for('static', filename='dart/dart.js') }}"></script>
-<script src="{{ url_for('static', filename='dart/calendar.js') }}"></script>
+<script src="{{ url_for('capital.static', filename='charts.js') }}"></script>
+<script src="{{ url_for('issuance.static', filename='issuance.js') }}"></script>
+<script src="{{ url_for('capital.static', filename='capital.js') }}"></script>
+<script src="{{ url_for('policy.static', filename='policy.js') }}"></script>
+<script src="{{ url_for('research.static', filename='research.js') }}"></script>
 </body>
 </html>
