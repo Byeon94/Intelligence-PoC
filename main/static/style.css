@@ -19,9 +19,15 @@
 }
 
 * { box-sizing: border-box; margin: 0; }
-html { -webkit-text-size-adjust: 100%; }
+/* html 배경도 명시: body가 화면을 다 못 채우거나 오버스크롤(바운스) 시
+   그 뒤로 OS 다크색(검정)이 비쳐 보이던 문제 방지 */
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+}
 body {
   background: var(--bg); color: var(--fg); line-height: 1.55;
+  min-height: 100vh; min-height: 100dvh;
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
     "Malgun Gothic", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;

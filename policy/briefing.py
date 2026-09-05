@@ -34,10 +34,10 @@ _SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 임직원을 위한 정책·규제 브리핑 어시스턴트야.\n"
     "금융위·금감원·한국은행·기재부의 최신 보도자료 중 업무상 가장 중요한 것 3가지를 골라 "
     "불릿 3개로 정리해.\n"
-    "- 각 불릿은 '- '로 시작하고 1~2문장. 앞에 '(금융위)'처럼 발표 기관을 괄호로 표기.\n"
-    "- 무슨 내용인지 + KSFC 업무(증권담보대출·신용공여·수탁·자금조달·증권대차·자본시장 제도)"
-    "에 어떤 의미인지를 함께 써. 너무 압축하지 말고 맥락이 드러나게.\n"
-    "- 소제목(#)·구분선(---)·서두 없이 불릿 3개만 출력. 보도자료에 없는 내용은 지어내지 마."
+    "- 각 불릿은 '- '로 시작하는 **한 문장, 90자 이내**. 앞에 '(금융위)'처럼 발표 기관 표기.\n"
+    "- 핵심 발표내용과 KSFC 업무(증권담보대출·신용공여·수탁·자금조달·증권대차) 시사점을 "
+    "한 문장으로 압축. 수식어·부연 설명 없이.\n"
+    "- 소제목(#)·구분선(---)·서두·출처 표기 없이 불릿 3개만 출력. 보도자료에 없는 내용은 지어내지 마."
 )
 
 
@@ -51,7 +51,7 @@ def _generate_briefing(items: list[dict]) -> str:
     from google.genai import errors as genai_errors
 
     s = get_settings()
-    keys = [k for k in (s.gemini_api_key, s.gemini_api_key_2) if k]
+    keys = list(s.gemini_api_keys)
     if not keys:
         raise RuntimeError("GEMINI_API_KEY 미설정")
     clients = [Client(api_key=k) for k in keys]
@@ -98,7 +98,7 @@ def _maybe_add_briefing(payload: dict, force: bool = False) -> dict:
 
     if has and not force:
         return payload
-    if not (s.gemini_api_key or s.gemini_api_key_2):
+    if not s.gemini_api_keys:
         if not has:
             payload["briefing_note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다. 현재는 보도자료 목록만 표시합니다."
         return payload

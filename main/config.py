@@ -12,9 +12,9 @@ class Settings:
     # 비어 있으면 각 데이터 모듈이 샘플(mock) 데이터로 응답한다.
     data_go_kr_api_key: str | None
 
-    # Google AI Studio (Gemini) — 정책/규제 탭 AI 브리핑용.
-    gemini_api_key: str | None
-    gemini_api_key_2: str | None
+    # Google AI Studio (Gemini) — 각 탭 AI 브리핑용. 429 시 순서대로 폴백.
+    # GEMINI_API_KEY, GEMINI_API_KEY_2 … _5 를 순서대로 읽어 중복 제거한 튜플.
+    gemini_api_keys: tuple[str, ...]
     gemini_model: str
     policy_max_gemini_calls_per_day: int
 
@@ -42,11 +42,20 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+def _gemini_keys() -> tuple[str, ...]:
+    names = ["GEMINI_API_KEY"] + [f"GEMINI_API_KEY_{i}" for i in range(2, 6)]
+    out: list[str] = []
+    for n in names:
+        v = _env(n)
+        if v and v not in out:   # 같은 값을 두 슬롯에 넣어도 중복 제거
+            out.append(v)
+    return tuple(out)
+
+
 def get_settings() -> Settings:
     return Settings(
         data_go_kr_api_key=_env("DATA_GO_KR_API_KEY"),
-        gemini_api_key=_env("GEMINI_API_KEY"),
-        gemini_api_key_2=_env("GEMINI_API_KEY_2"),
+        gemini_api_keys=_gemini_keys(),
         gemini_model=_env("GEMINI_MODEL") or "gemini-3.5-flash",
         policy_max_gemini_calls_per_day=_int("POLICY_MAX_GEMINI_CALLS_PER_DAY", 3),
         naver_client_id=_env("NAVER_CLIENT_ID"),

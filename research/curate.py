@@ -48,7 +48,7 @@ def _gemini_curate(candidates: list[dict]) -> dict:
     from google.genai import errors as genai_errors
 
     s = get_settings()
-    keys = [k for k in (s.gemini_api_key, s.gemini_api_key_2) if k]
+    keys = list(s.gemini_api_keys)
     if not keys:
         raise RuntimeError("GEMINI_API_KEY 미설정")
     clients = [Client(api_key=k) for k in keys]
@@ -131,7 +131,7 @@ def _maybe_curate(payload: dict, force: bool = False) -> dict:
 
     if has and not force:
         return payload
-    if not (s.gemini_api_key or s.gemini_api_key_2):
+    if not s.gemini_api_keys:
         if not has:
             payload["briefing_note"] = "AI 선별은 GEMINI_API_KEY 등록 후 제공됩니다."
         return payload

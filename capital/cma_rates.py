@@ -71,7 +71,7 @@ def _ai_fetch() -> dict:
     from google.genai import errors as genai_errors
 
     s = get_settings()
-    keys = [k for k in (s.gemini_api_key, s.gemini_api_key_2) if k]
+    keys = list(s.gemini_api_keys)
     if not keys:
         raise RuntimeError("GEMINI_API_KEY 미설정")
 
@@ -130,7 +130,7 @@ def rate_table() -> dict:
         return snap
 
     s = get_settings()
-    if (s.gemini_api_key or s.gemini_api_key_2) and today not in _attempted:
+    if s.gemini_api_keys and today not in _attempted:
         _attempted.add(today)  # 성공하면 스냅샷으로 캐시되고, 실패해도 이 프로세스에선 재시도 안 함
         try:
             result = _ai_fetch()

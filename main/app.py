@@ -11,6 +11,8 @@ from policy.widget import policy_bp
 from research.widget import research_bp
 
 app = Flask(__name__)
+# PoC: 정적 파일(css/js)도 캐시하지 않아 기기 간 최신본이 바로 반영되게 한다.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.register_blueprint(capital_bp)
 app.register_blueprint(policy_bp)
 app.register_blueprint(research_bp)
@@ -23,9 +25,9 @@ def home():
 
 
 @app.after_request
-def _no_store_html(resp):
-    # HTML은 캐시하지 않아 기기 간(특히 모바일) 최신 마크업이 바로 반영되게 한다.
-    if resp.mimetype == "text/html":
+def _no_store(resp):
+    # HTML·CSS·JS 모두 캐시하지 않아 기기 간(특히 모바일) 최신본이 바로 반영되게 한다.
+    if resp.mimetype in ("text/html", "text/css", "application/javascript", "text/javascript"):
         resp.headers["Cache-Control"] = "no-store"
     return resp
 
