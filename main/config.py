@@ -56,7 +56,7 @@ def get_settings() -> Settings:
     return Settings(
         data_go_kr_api_key=_env("DATA_GO_KR_API_KEY"),
         gemini_api_keys=_gemini_keys(),
-        gemini_model=_env("GEMINI_MODEL") or "gemini-3.5-flash",
+        gemini_model=_env("GEMINI_MODEL") or "gemini-3.6-flash",
         policy_max_gemini_calls_per_day=_int("POLICY_MAX_GEMINI_CALLS_PER_DAY", 3),
         naver_client_id=_env("NAVER_CLIENT_ID"),
         naver_client_secret=_env("NAVER_CLIENT_SECRET"),

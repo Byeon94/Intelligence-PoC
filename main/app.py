@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from flask import Flask, render_template
 
 from capital.widget import capital_bp
-from issuance.widget import issuance_bp
+from capital.issuance.widget import issuance_bp
 from policy.widget import policy_bp
 from research.widget import research_bp
 
@@ -33,4 +33,7 @@ def _no_store(resp):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # threaded=True: 개발 서버도 탭이 동시에 던지는 여러 API 호출을 병렬 처리
+    # (프로덕션은 gunicorn --workers 2). 미설정 시 요청이 직렬화돼 느린 1건이
+    # 형제 요청의 'Failed to fetch' 를 유발할 수 있다.
+    app.run(debug=True, port=5000, threaded=True)

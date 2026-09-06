@@ -15,6 +15,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from main.config import get_settings
+from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
 
 logger = logging.getLogger(__name__)
@@ -67,45 +68,26 @@ def _norm(companies: list[dict]) -> list[dict]:
 
 
 def _ai_fetch() -> dict:
-    from google.genai import Client, types
-    from google.genai import errors as genai_errors
+    from google.genai import types
 
-    s = get_settings()
-    keys = list(s.gemini_api_keys)
-    if not keys:
-        raise RuntimeError("GEMINI_API_KEY 미설정")
-
-    last_err: Exception | None = None
-    for i, key in enumerate([Client(api_key=k) for k in keys]):
-        try:
-            resp = key.models.generate_content(
-                model=s.gemini_model,
-                config={
-                    "tools": [types.Tool(google_search=types.GoogleSearch())],
-                    "max_output_tokens": 2048,
-                },
-                contents=_PROMPT,
-            )
-            text = (resp.text or "").strip()
-            a, b = text.find("{"), text.rfind("}")
-            if a < 0 or b < 0:
-                raise ValueError("JSON 응답 없음")
-            obj = json.loads(text[a : b + 1])
-            companies = _norm(obj.get("companies") or [])
-            if len(companies) < 4:
-                raise ValueError("유효 항목 부족")
-            return {
-                "as_of": (obj.get("as_of") or datetime.now(KST).date().isoformat())[:10],
-                "companies": companies,
-                "note": "AI가 웹에서 조사한 값입니다. 정확한 금리는 각 증권사 공시를 확인하세요.",
-                "source": "ai_search",
-            }
-        except genai_errors.APIError as exc:
-            last_err = exc
-            if getattr(exc, "code", None) == 429 and i < len(keys) - 1:
-                continue
-            raise
-    raise last_err or RuntimeError("CMA 금리 AI 조사 실패")
+    text = generate_text(
+        _PROMPT,
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+        max_output_tokens=2048,
+    )
+    a, b = text.find("{"), text.rfind("}")
+    if a < 0 or b < 0:
+        raise ValueError("JSON 응답 없음")
+    obj = json.loads(text[a : b + 1])
+    companies = _norm(obj.get("companies") or [])
+    if len(companies) < 4:
+        raise ValueError("유효 항목 부족")
+    return {
+        "as_of": (obj.get("as_of") or datetime.now(KST).date().isoformat())[:10],
+        "companies": companies,
+        "note": "AI가 웹에서 조사한 값입니다. 정확한 금리는 각 증권사 공시를 확인하세요.",
+        "source": "ai_search",
+    }
 
 
 def _curated() -> dict:

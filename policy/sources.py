@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib.parse import urljoin
 
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36"
 _TIMEOUT = 15
+_BODY_TIMEOUT = 12   # 상세페이지(본문) 요청 타임아웃
 _TOP_N = 3        # 화면 표시(기관당)
 _FETCH_N = 10     # 기준일 총 건수 집계를 위해 넉넉히 수집
 
@@ -40,8 +42,8 @@ ORGS = AUTHORITY_ORGS  # 하위호환
 _META = {o["org"]: o for o in AUTHORITY_ORGS + AFFILIATE_ORGS}
 
 
-def _get(url: str, **kw) -> requests.Response:
-    resp = requests.get(url, headers={"User-Agent": _UA}, timeout=_TIMEOUT, **kw)
+def _get(url: str, *, timeout: int = _TIMEOUT, **kw) -> requests.Response:
+    resp = requests.get(url, headers={"User-Agent": _UA}, timeout=timeout, **kw)
     resp.raise_for_status()
     resp.encoding = "utf-8"
     return resp
@@ -256,6 +258,67 @@ def fetch_all() -> tuple[list[dict], list[str]]:
 def fetch_affiliates() -> tuple[list[dict], list[str]]:
     """유관기관 4곳."""
     return _run(_AFFILIATE_FETCHERS)
+
+
+# ── 상세페이지 본문 추출 ──────────────────────────────────────────
+# FSC·KDIC·KOFIA 는 HTML 에 본문 전문이 있다. FSS·BOK·MOEF 는 본문이 HWP/PDF
+# 첨부라서 아래 셀렉터로는 담당부서·키워드·요약 한 줄 정도만 잡힌다(그래도 제목보다 낫다).
+_BODY_SELECTORS = {
+    "FSC": ["div.cont", "div.content-body", "div.body"],
+    "FSS": ["div.krds-bd-view", "div.contents"],
+    "BOK": ["div.bd-view", "div.content"],
+    "MOEF": ["div.detailBoard", "div.body"],
+    "KDIC": ["div.detailTable", "div.contents"],
+    "KOFIA": ["#contentArea1", "#maincontent"],
+}
+_BODY_NOISE = re.compile(
+    r"공유하기|FaceBook|페이스북|X \(구\)트위터|트위터|NaverBlog|네이버 ?블로그|카카오톡"
+    r"|URL ?복사|인쇄하기|해당 페이지 (공유|인쇄)|파일 ?다운로드|다운로드 수|다운로드|미리보기"
+    r"|바로보기|자료열기|자료 바로 열기|첨부파일창 열기|문서뷰어|뷰어 ?Ta|아이콘|close|닫기"
+    r"|조회\s*수?\s*[:\s]?\s*[\d,]+|파일크기\s*:?\s*[\d,]+\s*KB|다운받기\(\d+\)"
+)
+
+
+def fetch_body(org: str, url: str, max_chars: int = 3000) -> str:
+    """상세페이지에서 본문 텍스트를 best-effort 로 뽑는다. 실패 시 빈 문자열."""
+    selectors = _BODY_SELECTORS.get(org)
+    if not selectors or not url:
+        return ""
+    try:
+        html = _get(url, timeout=_BODY_TIMEOUT).text
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("본문 요청 실패 %s %s: %s", org, url, exc)
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    best = ""
+    for sel in selectors:
+        for el in soup.select(sel):
+            t = el.get_text(" ", strip=True)
+            if len(t) > len(best):
+                best = t
+    body = _BODY_NOISE.sub(" ", best)
+    body = re.sub(r"\s+", " ", body).strip()
+    return body[:max_chars]
+
+
+def attach_bodies(groups: list[dict], max_chars: int = 3000, workers: int = 6) -> None:
+    """groups 안의 각 item 에 'body' 필드를 채운다(실패·미지원 기관은 ""). in-place."""
+    targets = [
+        it
+        for g in groups
+        for it in g.get("items", [])
+        if not it.get("link_only") and it.get("url") and it.get("org") in _BODY_SELECTORS
+    ]
+    if not targets:
+        return
+
+    def _work(it: dict) -> None:
+        it["body"] = fetch_body(it["org"], it["url"], max_chars)
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        list(ex.map(_work, targets))
+    got = sum(1 for it in targets if it.get("body"))
+    logger.info("본문 수집: %d/%d 건 성공", got, len(targets))
 
 
 def group_by_org(items: list[dict], per_org: int = _TOP_N,

@@ -10,6 +10,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from main.config import get_settings
+from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
 
 from .sources import collect_ipo, collect_rights
@@ -55,38 +56,18 @@ def _this_month_events(events: list[dict]) -> list[dict]:
 
 
 def _briefing(events: list[dict]) -> list[str]:
-    from google.genai import Client
-    from google.genai import errors as genai_errors
-
-    s = get_settings()
-    keys = list(s.gemini_api_keys)
-    if not keys:
-        raise RuntimeError("GEMINI_API_KEY 미설정")
-
     lines = "\n".join(
         f"- {e['date']} [{e['type']}] {e['company']} {e.get('detail', '')}" for e in events
     )
-    last_err: Exception | None = None
-    for i, client in enumerate([Client(api_key=k) for k in keys]):
-        try:
-            resp = client.models.generate_content(
-                model=s.gemini_model,
-                config={"system_instruction": _SYSTEM_PROMPT,
-                        "thinking_config": {"thinking_budget": 0},
-                        "max_output_tokens": 600},
-                contents=f"이번 달 발행시장 일정:\n\n{lines}\n\n브리핑 3줄을 작성해줘.",
-            )
-            txt = (resp.text or "").strip()
-            bullets = [b.strip(" -•*") for b in txt.split("\n") if b.strip(" -•*")]
-            if bullets:
-                return bullets[:3]
-            last_err = RuntimeError("빈 응답")
-        except genai_errors.APIError as exc:
-            last_err = exc
-            if getattr(exc, "code", None) == 429 and i < len(keys) - 1:
-                continue
-            raise
-    raise last_err or RuntimeError("브리핑 생성 실패")
+    txt = generate_text(
+        f"이번 달 발행시장 일정:\n\n{lines}\n\n브리핑 3줄을 작성해줘.",
+        system_instruction=_SYSTEM_PROMPT,
+        max_output_tokens=1500,   # Gemini 3.x 는 thinking 토큰이 출력 예산을 먹으므로 넉넉히
+    )
+    bullets = [b.strip(" -•*") for b in txt.split("\n") if b.strip(" -•*")]
+    if not bullets:
+        raise RuntimeError("빈 응답")
+    return bullets[:3]
 
 
 _TREND_TYPES = ["수요예측", "청약", "상장", "유상증자"]

@@ -11,6 +11,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from main.config import get_settings
+from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
 
 from .sources import collect_candidates
@@ -44,40 +45,15 @@ def _today() -> str:
 
 
 def _gemini_curate(candidates: list[dict]) -> dict:
-    from google.genai import Client
-    from google.genai import errors as genai_errors
-
-    s = get_settings()
-    keys = list(s.gemini_api_keys)
-    if not keys:
-        raise RuntimeError("GEMINI_API_KEY 미설정")
-    clients = [Client(api_key=k) for k in keys]
-
     listing = "\n".join(
         f"{i}. [{c['published']}] {c['title']} — {c['summary'][:120]}"
         for i, c in enumerate(candidates[:60])
     )
     contents = f"후보 기사 목록:\n\n{listing}\n\n위에서 10건을 선별해 JSON으로 답해줘."
-
-    last_err: Exception | None = None
-    for i, client in enumerate(clients):
-        try:
-            resp = client.models.generate_content(
-                model=s.gemini_model,
-                config={
-                    "system_instruction": _SYSTEM_PROMPT,
-                    "thinking_config": {"thinking_budget": 0},
-                    "max_output_tokens": 2048,
-                },
-                contents=contents,
-            )
-            return _parse(resp.text or "")
-        except genai_errors.APIError as exc:
-            last_err = exc
-            if getattr(exc, "code", None) == 429 and i < len(clients) - 1:
-                continue
-            raise
-    raise last_err or RuntimeError("큐레이션 실패")
+    text = generate_text(
+        contents, system_instruction=_SYSTEM_PROMPT, max_output_tokens=2048,
+    )
+    return _parse(text)
 
 
 def _parse(text: str) -> dict:
