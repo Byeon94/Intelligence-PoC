@@ -121,6 +121,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .subtab-btn.active { color: var(--fg); background: var(--card); border: 1px solid var(--border); }
 /* 자본시장 세부탭 라벨이 길어 조금 작게 */
 #capital-subtabs .subtab-btn { font-size: .78rem; padding: 8px 6px; }
+/* 서브탭 전환 시 sticky 헤더에 가리지 않도록 */
+.subtabs { scroll-margin-top: 104px; }
 .sub-panel[hidden] { display: none; }
 
 /* ── 블록 ── */
@@ -492,6 +494,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 #eq-rpt-kpis .k-value { font-size: 1.05rem; }
 @media (min-width: 720px) { #eq-rpt-kpis .k-value { font-size: 1.15rem; } }
 #eq-rpt-basis { margin-top: 10px; }
+/* 헤더의 긴 집계 문구가 h3 를 밀지 않게 (모바일에서 다음 줄로) */
+#eq-rpt-con-block .block-head { flex-wrap: wrap; gap: 2px 10px; }
+#eq-rpt-asof { white-space: normal; }
 
 /* 증권사 리포트 목록 */
 .rpt-list {

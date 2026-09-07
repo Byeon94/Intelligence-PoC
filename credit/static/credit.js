@@ -406,6 +406,8 @@
       });
       if (btn.dataset.sub === "filing") loadFilings();   // 열 때 로드(호출 절약)
       if (btn.dataset.sub === "report") loadReports();
+      // 서브탭 전환 시 새 패널 상단으로 (모바일에서 스크롤 위치가 남아 밀려 보이는 문제)
+      bar.scrollIntoView({ block: "start" });
     });
   }
 
