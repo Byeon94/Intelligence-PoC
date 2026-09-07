@@ -40,7 +40,7 @@
     loading("liq-kpis");
     get("/api/capital/liquidity/summary").then(function (d) {
       var it = d.items, u = "조원";
-      document.getElementById("liq-asof").textContent = (d.as_of || "") + " 기준";
+      document.getElementById("liq-asof-date").textContent = (d.as_of || "") + " 기준";
       document.getElementById("liq-kpis").innerHTML = [
         kpi({ label: "투자자예탁금", value: num(it.investor_deposits.value, 1), unit: u,
               delta: deltaHTML(it.investor_deposits.change, ""), source: d.source }),
