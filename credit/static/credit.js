@@ -344,6 +344,7 @@
       }
       empty.hidden = true;
       listB.hidden = false;
+      if (d.list_url) document.getElementById("eq-rpt-more").href = d.list_url;
 
       var C = d.consensus;
       if (C) {

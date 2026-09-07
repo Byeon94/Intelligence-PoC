@@ -149,5 +149,6 @@ def get_reports(code: str, limit: int = 20) -> dict:
         "year": str(year),
         "reports": items[:limit],
         "consensus": consensus,
+        "list_url": f"{_LIST_URL}?report_type=CO&search_text={code}",
         "source": "live",
     }
