@@ -163,13 +163,18 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 }
 .chart-wrap svg, .donut-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
-.chart-legend .lg { display: flex; align-items: center; gap: 6px; font-size: .76rem; color: var(--muted); }
+.chart-legend .lg { display: flex; align-items: center; gap: 6px; font-size: .74rem; color: var(--muted); }
 .chart-legend .lg i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
 .chart-loading, .chart-error { color: var(--muted); font-size: .82rem; padding: 24px 4px; text-align: center; }
 .chart-error { color: var(--down); }
 
+/* 데스크톱에서 추이 차트가 과도하게 커져 눈금·글씨가 벌어지는 것 방지 */
+@media (min-width: 720px) {
+  #capital-root .chart-wrap { max-width: 520px; }
+}
+
 .gridline { stroke: var(--border2); stroke-width: 1; }
-.axis-label { fill: var(--muted); font-size: 10px; }
+.axis-label { fill: var(--muted); font-size: 9px; }
 .bar-a { fill: var(--c1); }
 .bar-b { fill: var(--c2); }
 
