@@ -442,6 +442,20 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .perf-card .chart-legend { font-size: .72rem; }
 
 /* 공시 목록 (DART) */
+.fil-head { flex-wrap: wrap; gap: 8px 12px; }
+.dart-btn {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 7px 14px; border-radius: 999px;
+  font-size: .78rem; font-weight: 700; text-decoration: none;
+  color: #fff; background: var(--accent); border: 1px solid var(--accent);
+  box-shadow: var(--shadow); transition: transform .12s ease, filter .12s ease;
+}
+.dart-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.dart-btn:active { transform: translateY(0); filter: brightness(.96); }
+.dart-btn-ico { font-size: .9em; opacity: .9; }
+.fil-meta { font-size: .72rem; color: var(--muted); margin: 4px 0 12px; }
+.fil-hint { margin-left: 4px; }
+
 .fil-list {
   display: flex; flex-direction: column;
   border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
