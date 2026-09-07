@@ -37,7 +37,7 @@ def _fmt_date(yyyymmdd: str | None) -> str:
 
 
 @ttl_cache(60 * 30)
-def get_filings(code: str, months: int = 12, limit: int = 30) -> dict:
+def get_filings(code: str, months: int = 12, limit: int = 20) -> dict:
     key = get_settings().dart_api_key
     cc = corp_code(code) if key else None
     if not cc:

@@ -486,9 +486,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
   .fil-go { display: none; }
 }
 
-/* 리포트: 목표주가 컨센서스 차트 */
-#eq-rpt-chart { margin-top: 12px; }
-@media (min-width: 720px) { #eq-rpt-chart { max-width: 560px; } }
+/* 리포트: 컨센서스 요약 카드 — 값 글씨 축소 */
+#eq-rpt-kpis .k-value { font-size: 1.05rem; }
+@media (min-width: 720px) { #eq-rpt-kpis .k-value { font-size: 1.15rem; } }
+#eq-rpt-basis { margin-top: 10px; }
 
 /* 증권사 리포트 목록 */
 .rpt-list {

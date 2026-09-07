@@ -4,20 +4,18 @@
   컬럼: 발간일 · 제목 · 목표주가 · 투자의견 · 애널리스트 · 증권사 · PDF(report_idx)
   · 목표주가 '변동'(상향/하향/유지)은 같은 증권사의 직전 목표주가와 비교해 계산.
   · 컨센서스 요약(평균/최저/최고 목표주가, 리포트·증권사 수)은 리스트에서 집계.
-시계열 컨센서스 밴드는 무료 소스가 없어, 주가(data.go.kr) + 평균 목표주가 라인으로 근사.
+당해 연도 리포트만, 최신 20건.
 """
 from __future__ import annotations
 
 import html as _html
 import logging
 import re
-from datetime import date, timedelta
+from datetime import date
 
 import requests
 
 from capital._cache import ttl_cache
-
-from .equity import _daily_rows
 
 logger = logging.getLogger(__name__)
 
@@ -95,56 +93,43 @@ def _mark_changes(items: list[dict]) -> None:
         last[b] = tp
 
 
-def _price_series(code: str, points: int = 26) -> list[dict]:
-    try:
-        rows = _daily_rows(code, 220)
-    except Exception:  # noqa: BLE001
-        return []
-    rows = rows[-min(len(rows), 130):]
-    if not rows:
-        return []
-    step = max(1, len(rows) // points)
-    from capital._datago import pick, to_float
-    out = []
-    for r in rows[::step]:
-        d = str(pick(r, "basDt", "BAS_DT") or "")
-        c = to_float(pick(r, "clpr", "CLPR"))
-        if len(d) == 8 and c is not None:
-            out.append({"label": f"{d[2:4]}.{d[4:6]}", "close": c})
-    return out
-
-
 @ttl_cache(60 * 60)
-def get_reports(code: str, limit: int = 40) -> dict:
+def get_reports(code: str, limit: int = 20) -> dict:
+    year = date.today().year
+    sdate = f"{year}-01-01"
     edate = date.today().strftime("%Y-%m-%d")
-    sdate = (date.today() - timedelta(days=420)).strftime("%Y-%m-%d")
 
     items: list[dict] = []
     try:
-        for page in range(1, 5):
+        for page in range(1, 6):
             batch = _fetch_rows(code, page, sdate, edate)
             if not batch:
                 break
             items.extend(batch)
-            if len(items) >= limit:
+            if len(items) >= 100:
                 break
     except requests.RequestException as exc:
         logger.info("한경컨센서스 조회 실패(%s): %s", code, exc)
-        return {"code": code, "reports": [], "consensus": None, "price_series": [],
+        return {"code": code, "year": str(year), "reports": [], "consensus": None,
                 "source": "none", "note": "리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}
 
-    items = items[:limit]
+    items = [it for it in items if it["date"][:4] == str(year)]   # 당해 연도만
     if not items:
-        return {"code": code, "reports": [], "consensus": None, "price_series": [],
-                "source": "live", "note": "최근 증권사 리포트가 없습니다."}
+        return {"code": code, "year": str(year), "reports": [], "consensus": None,
+                "source": "live", "note": f"{year}년 발간된 증권사 리포트가 없습니다."}
 
     _mark_changes(items)
     items.sort(key=lambda x: x["date"], reverse=True)
 
-    targets = [it["target"] for it in items[:24] if it["target"]]
-    brokers = {it["broker"] for it in items[:24] if it["broker"] and it["target"]}
+    # 컨센서스: 당해 연도에 목표주가를 제시한 '증권사별 최신 리포트 1건'의 평균/최저/최고
+    latest_by_broker: dict[str, dict] = {}
+    for it in items:                       # items 는 최신순 → 각 증권사 첫 등장 = 최신
+        if it["target"] and it["broker"] and it["broker"] not in latest_by_broker:
+            latest_by_broker[it["broker"]] = it
+    targets = [it["target"] for it in latest_by_broker.values()]
+
     op_counts: dict[str, int] = {}
-    for it in items[:24]:
+    for it in items:
         if it["opinion"]:
             op_counts[it["opinion"]] = op_counts.get(it["opinion"], 0) + 1
 
@@ -154,15 +139,15 @@ def get_reports(code: str, limit: int = 40) -> dict:
             "avg": round(sum(targets) / len(targets)),
             "low": min(targets),
             "high": max(targets),
-            "n_reports": len(targets),
-            "n_brokers": len(brokers),
+            "n_brokers": len(targets),      # 평균에 들어간 증권사(값) 수
+            "n_reports": len(items),         # 당해 연도 전체 리포트 수
             "opinions": op_counts,
         }
 
     return {
         "code": code,
-        "reports": items,
+        "year": str(year),
+        "reports": items[:limit],
         "consensus": consensus,
-        "price_series": _price_series(code),
         "source": "live",
     }

@@ -349,7 +349,7 @@
       if (C) {
         conB.hidden = false;
         document.getElementById("eq-rpt-asof").textContent =
-          "리포트 " + C.n_reports + "건 · 증권사 " + C.n_brokers + "곳 · 한경컨센서스";
+          (d.year || "") + "년 · 리포트 " + C.n_reports + "건 · 증권사 " + C.n_brokers + "곳 · 한경컨센서스";
         var up = state.close ? (C.avg - state.close) / state.close * 100 : null;
         var opTxt = Object.keys(C.opinions || {}).map(function (k) {
           return k + " " + C.opinions[k];
@@ -357,24 +357,14 @@
         document.getElementById("eq-rpt-kpis").innerHTML = [
           kpi("평균 목표주가", nf(C.avg), "원", "", "live"),
           kpi("최저 · 최고", nf(C.low) + " ~ " + nf(C.high), "원", "", "live"),
-          kpi("투자의견", opTxt, "", "최근 " + C.n_reports + "건", "live"),
+          kpi("투자의견", opTxt, "", C.n_reports + "건 집계", "live"),
           kpi("현재가 대비", up == null ? "-" : (up >= 0 ? "+" : "") + nf(up, 1) + "%", "",
             up == null ? "" : (up >= 0 ? "상승 여력" : "목표주가 하회"), "live"),
         ].join("");
-
-        var ps = d.price_series || [];
-        if (ps.length > 1 && window.Charts) {
-          window.Charts.line(document.getElementById("eq-rpt-chart"), {
-            labels: ps.map(function (p) { return p.label; }),
-            series: [
-              { name: "주가", values: ps.map(function (p) { return p.close; }), varName: "--c1" },
-              { name: "평균 목표주가", values: ps.map(function () { return C.avg; }), varName: "--c4" },
-            ],
-          });
-        } else {
-          document.getElementById("eq-rpt-chart").innerHTML =
-            '<div class="chart-error">주가 시계열 없음</div>';
-        }
+        document.getElementById("eq-rpt-basis").textContent =
+          (d.year || "") + "년 발간 리포트 중 목표주가를 제시한 증권사의 최신 리포트 " + C.n_brokers +
+          "건 기준 · 평균/최저/최고는 그 목표주가들의 산술평균·최솟값·최댓값 · " +
+          "현재가 대비 = (평균 목표주가 − 종가) ÷ 종가";
       }
 
       document.getElementById("eq-rpt-list").innerHTML = d.reports.map(function (it) {
