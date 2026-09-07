@@ -87,12 +87,28 @@
     </section>
   </div>
 
-  <!-- ── 리포트 (준비 중) ── -->
+  <!-- ── 리포트 (한경컨센서스) ── -->
   <div class="sub-panel" data-sub="report" hidden>
-    <div class="card placeholder-card">
-      <div class="placeholder-emoji">🚧</div>
-      <h2>리포트</h2>
-      <p class="page-note">증권사 리포트 요약을 준비 중입니다.</p>
-    </div>
+    <div class="eq-empty" id="eq-rpt-empty">종목을 검색하면 증권사 리포트가 표시됩니다.</div>
+
+    <section class="block" id="eq-rpt-con-block" hidden>
+      <div class="block-head">
+        <h3>목표주가 컨센서스</h3>
+        <span class="asof" id="eq-rpt-asof"></span>
+      </div>
+      <div class="kpi-grid" id="eq-rpt-kpis"></div>
+      <div class="chart-wrap" id="eq-rpt-chart"></div>
+    </section>
+
+    <section class="block" id="eq-rpt-list-block" hidden>
+      <div class="block-head">
+        <h3>증권사 리포트</h3>
+        <span class="unit-tag">최신순</span>
+      </div>
+      <div class="rpt-list" id="eq-rpt-list"></div>
+      <p class="page-note fil-hint">
+        제목을 누르면 리포트 PDF(한경컨센서스)로 이동합니다 · 변동은 같은 증권사 직전 목표주가 대비
+      </p>
+    </section>
   </div>
 </div>

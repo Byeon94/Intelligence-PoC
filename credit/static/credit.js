@@ -77,7 +77,8 @@
   function choose(code, name) {
     state.code = code;
     state.name = name || code;
-    state.filFor = null;                 // 새 종목 → 공시 다시 로드 필요
+    state.filFor = null;                 // 새 종목 → 공시·리포트 다시 로드
+    state.rptFor = null;
     qEl.value = state.name + " (" + code + ")";
     sugEl.hidden = true;
     document.getElementById("eq-cur-name").textContent = state.name;
@@ -87,6 +88,7 @@
     loadBasics();
     loadFinancials();
     if (filingSubtabActive()) loadFilings();
+    if (reportSubtabActive()) loadReports();
   }
 
   /* ── 기초정보 + 가격범위 ── */
@@ -104,6 +106,7 @@
       empty.hidden = true;
       bBlock.hidden = false;
       rBlock.hidden = false;
+      state.close = d.close;
 
       // 헤더 태그 (시장 / 업종 / 결산·설립)
       var tags = [];
@@ -313,6 +316,90 @@
     });
   }
 
+  /* ── 리포트 (한경컨센서스) ── */
+  function chgChip(c) {
+    if (c === "up") return '<span class="chg up">▲ 상향</span>';
+    if (c === "down") return '<span class="chg down">▼ 하향</span>';
+    if (c === "flat") return '<span class="chg flat">— 유지</span>';
+    if (c === "new") return '<span class="chg new">신규</span>';
+    return "";
+  }
+
+  function loadReports() {
+    if (!state.code || state.rptFor === state.code) return;
+    state.rptFor = state.code;
+    var empty = document.getElementById("eq-rpt-empty");
+    var conB = document.getElementById("eq-rpt-con-block");
+    var listB = document.getElementById("eq-rpt-list-block");
+    empty.hidden = false;
+    empty.textContent = "불러오는 중…";
+    conB.hidden = true;
+    listB.hidden = true;
+
+    get("/api/credit/equity/reports?code=" + state.code).then(function (d) {
+      if (!d.reports || !d.reports.length) {
+        empty.hidden = false;
+        empty.textContent = d.note || "최근 증권사 리포트가 없습니다.";
+        return;
+      }
+      empty.hidden = true;
+      listB.hidden = false;
+
+      var C = d.consensus;
+      if (C) {
+        conB.hidden = false;
+        document.getElementById("eq-rpt-asof").textContent =
+          "리포트 " + C.n_reports + "건 · 증권사 " + C.n_brokers + "곳 · 한경컨센서스";
+        var up = state.close ? (C.avg - state.close) / state.close * 100 : null;
+        var opTxt = Object.keys(C.opinions || {}).map(function (k) {
+          return k + " " + C.opinions[k];
+        }).join(" · ") || "-";
+        document.getElementById("eq-rpt-kpis").innerHTML = [
+          kpi("평균 목표주가", nf(C.avg), "원", "", "live"),
+          kpi("최저 · 최고", nf(C.low) + " ~ " + nf(C.high), "원", "", "live"),
+          kpi("투자의견", opTxt, "", "최근 " + C.n_reports + "건", "live"),
+          kpi("현재가 대비", up == null ? "-" : (up >= 0 ? "+" : "") + nf(up, 1) + "%", "",
+            up == null ? "" : (up >= 0 ? "상승 여력" : "목표주가 하회"), "live"),
+        ].join("");
+
+        var ps = d.price_series || [];
+        if (ps.length > 1 && window.Charts) {
+          window.Charts.line(document.getElementById("eq-rpt-chart"), {
+            labels: ps.map(function (p) { return p.label; }),
+            series: [
+              { name: "주가", values: ps.map(function (p) { return p.close; }), varName: "--c1" },
+              { name: "평균 목표주가", values: ps.map(function () { return C.avg; }), varName: "--c4" },
+            ],
+          });
+        } else {
+          document.getElementById("eq-rpt-chart").innerHTML =
+            '<div class="chart-error">주가 시계열 없음</div>';
+        }
+      }
+
+      document.getElementById("eq-rpt-list").innerHTML = d.reports.map(function (it) {
+        var meta = [it.broker, it.analyst].filter(Boolean).join(" · ");
+        return '<div class="rpt-row">' +
+          '<div class="rpt-main">' +
+            '<span class="rpt-date">' + esc(it.date) + "</span>" +
+            (it.url
+              ? '<a class="rpt-title" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + " ↗</a>"
+              : '<span class="rpt-title">' + esc(it.title) + "</span>") +
+            '<span class="rpt-meta">' + esc(meta) + "</span>" +
+          "</div>" +
+          '<div class="rpt-side">' +
+            (it.target ? '<span class="rpt-tp">' + nf(it.target) + "</span>" : '<span class="dash">–</span>') +
+            chgChip(it.change) +
+            (it.opinion ? '<span class="rpt-op">' + esc(it.opinion) + "</span>" : "") +
+          "</div></div>";
+      }).join("");
+    }).catch(function (e) {
+      state.rptFor = null;
+      document.getElementById("eq-rpt-empty").hidden = false;
+      document.getElementById("eq-rpt-empty").textContent = e.message || "리포트를 불러오지 못했습니다";
+    });
+  }
+
   /* ── 서브탭 ── */
   function initSubtabs() {
     var root = document.getElementById("credit-root");
@@ -326,14 +413,17 @@
       root.querySelectorAll(".sub-panel").forEach(function (p) {
         p.hidden = p.dataset.sub !== btn.dataset.sub;
       });
-      if (btn.dataset.sub === "filing") loadFilings();   // 공시는 열 때 로드(호출 절약)
+      if (btn.dataset.sub === "filing") loadFilings();   // 열 때 로드(호출 절약)
+      if (btn.dataset.sub === "report") loadReports();
     });
   }
 
-  function filingSubtabActive() {
-    var p = document.querySelector('.sub-panel[data-sub="filing"]');
+  function subActive(sub) {
+    var p = document.querySelector('.sub-panel[data-sub="' + sub + '"]');
     return p && !p.hidden;
   }
+  function filingSubtabActive() { return subActive("filing"); }
+  function reportSubtabActive() { return subActive("report"); }
 
   function boot() {
     var root = document.getElementById("credit-root");

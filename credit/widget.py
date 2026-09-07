@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, render_template, request
 from .equity import get_stock_basics, search_stocks
 from .filings import get_filings
 from .financials import get_financials
+from .reports import get_reports
 
 credit_bp = Blueprint(
     "credit",
@@ -62,3 +63,11 @@ def equity_filings():
     if not code:
         return jsonify({"error": "종목코드 6자리를 입력하세요."}), 400
     return _safe(lambda: get_filings(code), "공시")
+
+
+@credit_bp.route("/api/credit/equity/reports")
+def equity_reports():
+    code = _code_arg()
+    if not code:
+        return jsonify({"error": "종목코드 6자리를 입력하세요."}), 400
+    return _safe(lambda: get_reports(code), "리포트")

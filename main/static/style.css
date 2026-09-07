@@ -486,6 +486,43 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
   .fil-go { display: none; }
 }
 
+/* 리포트: 목표주가 컨센서스 차트 */
+#eq-rpt-chart { margin-top: 12px; }
+@media (min-width: 720px) { #eq-rpt-chart { max-width: 560px; } }
+
+/* 증권사 리포트 목록 */
+.rpt-list {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.rpt-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 11px 14px; border-bottom: 1px solid var(--border2); font-size: .84rem;
+}
+.rpt-row:last-child { border-bottom: none; }
+.rpt-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rpt-date { color: var(--muted); font-size: .72rem; }
+.rpt-title { font-weight: 600; line-height: 1.4; color: var(--fg); text-decoration: none; }
+a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
+.rpt-meta { color: var(--muted); font-size: .74rem; }
+.rpt-side {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;
+}
+.rpt-tp { font-weight: 800; font-size: .9rem; }
+.rpt-op {
+  font-size: .66rem; font-weight: 700; color: var(--accent);
+  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px;
+}
+.chg { font-size: .68rem; font-weight: 700; }
+.chg.up { color: var(--up); }
+.chg.down { color: var(--down); }
+.chg.flat { color: var(--muted); }
+.chg.new { color: var(--c5); }
+@media (max-width: 560px) {
+  .rpt-row { flex-direction: column; gap: 6px; }
+  .rpt-side { align-self: flex-start; }
+}
+
 .range-list { display: grid; gap: 14px; }
 .range-row {
   background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
