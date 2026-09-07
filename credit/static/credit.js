@@ -77,6 +77,7 @@
   function choose(code, name) {
     state.code = code;
     state.name = name || code;
+    state.filFor = null;                 // 새 종목 → 공시 다시 로드 필요
     qEl.value = state.name + " (" + code + ")";
     sugEl.hidden = true;
     document.getElementById("eq-cur-name").textContent = state.name;
@@ -85,6 +86,7 @@
     document.getElementById("eq-current").hidden = false;
     loadBasics();
     loadFinancials();
+    if (filingSubtabActive()) loadFilings();
   }
 
   /* ── 기초정보 + 가격범위 ── */
@@ -269,6 +271,48 @@
     });
   }
 
+  /* ── 공시 (DART) ── */
+  function loadFilings() {
+    if (!state.code || state.filFor === state.code) return;
+    state.filFor = state.code;
+    var empty = document.getElementById("eq-fil-empty");
+    var block = document.getElementById("eq-fil-block");
+    empty.hidden = false;
+    empty.textContent = "불러오는 중…";
+    block.hidden = true;
+
+    get("/api/credit/equity/filings?code=" + state.code).then(function (d) {
+      if (!d.items || !d.items.length) {
+        empty.hidden = false;
+        empty.textContent = d.note || "최근 1년 내 공시가 없습니다.";
+        block.hidden = true;
+        return;
+      }
+      empty.hidden = true;
+      block.hidden = false;
+      document.getElementById("eq-fil-asof").textContent =
+        "최근 " + d.items.length + "건" +
+        (d.total && d.total > d.items.length ? " / 1년 전체 " + nf(d.total) + "건" : "") + " · DART";
+      document.getElementById("eq-fil-list").innerHTML = d.items.map(function (it) {
+        return '<a class="fil-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+          '<span class="fil-date">' + esc(it.date) + "</span>" +
+          '<span class="fil-title">' + esc(it.title) +
+            (it.tag ? ' <span class="fil-tag">' + esc(it.tag) + "</span>" : "") + "</span>" +
+          '<span class="fil-filer">' + esc(it.filer) + "</span>" +
+          '<span class="fil-go" aria-hidden="true">↗</span></a>';
+      }).join("");
+      var more = document.getElementById("eq-fil-more");
+      more.href = d.corp_name
+        ? "https://dart.fss.or.kr/dsab007/main.do?option=corp&textCrpNm=" + encodeURIComponent(d.corp_name)
+        : "https://dart.fss.or.kr/";
+    }).catch(function (e) {
+      state.filFor = null;
+      empty.hidden = false;
+      empty.textContent = e.message || "공시를 불러오지 못했습니다";
+      block.hidden = true;
+    });
+  }
+
   /* ── 서브탭 ── */
   function initSubtabs() {
     var root = document.getElementById("credit-root");
@@ -282,7 +326,13 @@
       root.querySelectorAll(".sub-panel").forEach(function (p) {
         p.hidden = p.dataset.sub !== btn.dataset.sub;
       });
+      if (btn.dataset.sub === "filing") loadFilings();   // 공시는 열 때 로드(호출 절약)
     });
+  }
+
+  function filingSubtabActive() {
+    var p = document.querySelector('.sub-panel[data-sub="filing"]');
+    return p && !p.hidden;
   }
 
   function boot() {
