@@ -383,6 +383,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .k-up { color: var(--up); font-weight: 700; }
 .k-dn { color: var(--down); font-weight: 700; }
 
+/* 기초정보 KPI: 금액·주식수가 길어서 종가/시총/거래대금/거래량/상장주식수만 조금 작게 */
+#eq-kpis .k-value { font-size: 1.2rem; }
+@media (min-width: 720px) { #eq-kpis .k-value { font-size: 1.35rem; } }
+
 /* 주요 지표 (PER·PBR·PSR) */
 .val-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 .val-box {
@@ -396,18 +400,24 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .fin-table th.yr, .fin-table td.yr { background: var(--card2); }
 .fin-table th.yr-start, .fin-table td.yr-start { border-left: 2px solid var(--border); }
 
-/* 손익 / 재무상태 그룹 색 구분 + ROE 강조 */
+/* 좌측 '구분' 열 고정 — 가로 스크롤 시 값이 겹쳐 보이지 않게 불투명 배경 + z-index */
+.fin-table th:first-child, .fin-table td:first-child {
+  background: var(--card); z-index: 1;
+}
+.fin-table thead th { z-index: 2; }
+.fin-table thead th:first-child { z-index: 3; background: var(--card2); }
+
+/* 손익 / 재무상태 그룹 색 구분 + ROE 강조 (틴트는 고정열 제외한 셀에만) */
 .fin-table tbody td:first-child { border-left: 3px solid transparent; }
-.fin-table tr.g-pl  td:not(.yr) { background: rgba(47, 111, 237, .07); }
-.fin-table tr.g-bs  td:not(.yr) { background: rgba(18, 161, 80, .08); }
+.fin-table tr.g-pl  td:not(.yr):not(:first-child) { background: rgba(47, 111, 237, .07); }
+.fin-table tr.g-bs  td:not(.yr):not(:first-child) { background: rgba(18, 161, 80, .08); }
 .fin-table tr.g-pl  td.yr { background: rgba(47, 111, 237, .06); }
 .fin-table tr.g-bs  td.yr { background: rgba(18, 161, 80, .07); }
 .fin-table tr.g-pl  td:first-child { border-left-color: var(--c1); }
 .fin-table tr.g-bs  td:first-child { border-left-color: var(--c3); }
 .fin-table tr.g-bs.g-start td { border-top: 2px solid var(--border); }
-.fin-table tr.g-roe td {
-  background: rgba(220, 38, 38, .09); font-weight: 700; border-top: 2px solid var(--border);
-}
+.fin-table tr.g-roe td { font-weight: 700; border-top: 2px solid var(--border); }
+.fin-table tr.g-roe td:not(:first-child) { background: rgba(220, 38, 38, .09); }
 .fin-table tr.g-roe td:first-child { color: var(--down); border-left-color: var(--down); }
 
 /* 실적분석 차트 그리드 */
