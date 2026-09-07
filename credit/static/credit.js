@@ -7,7 +7,19 @@
 
   function get(url) {
     return fetch(url).then(function (r) {
-      return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; });
+      return r.text().then(function (t) {
+        var j = null;
+        if (t) { try { j = JSON.parse(t); } catch (e) { j = null; } }
+        if (j === null) {
+          throw new Error(
+            r.status >= 500 || r.status === 0
+              ? "서버가 응답하지 못했습니다 (" + (r.status || "네트워크") + "). 잠시 후 다시 시도해주세요."
+              : "서버 응답을 해석하지 못했습니다 (" + r.status + ")."
+          );
+        }
+        if (!r.ok) throw new Error(j.error || ("요청 실패 (" + r.status + ")"));
+        return j;
+      });
     });
   }
   function nf(n, d) {

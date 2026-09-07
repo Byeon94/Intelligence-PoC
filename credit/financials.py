@@ -13,6 +13,7 @@ DART_API_KEY 가 없거나 실패하면 sample_data 로 폴백한다(source="sam
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 
 import requests
@@ -20,7 +21,7 @@ import requests
 from capital._cache import ttl_cache
 from main.config import get_settings
 
-from . import sample_data
+from . import sample_data, store
 from .corp_map import corp_code
 
 logger = logging.getLogger(__name__)
@@ -94,13 +95,12 @@ def _block(labels, rev, opi, ni, assets, liab, eq) -> dict:
     }
 
 
-def _q_report(cc: str, key: str, year: int, q: int) -> dict | None:
-    """1~3분기·반기 보고서: thstrm_amount 가 이미 '당기 3개월'(단일 분기), BS 는 분기말 잔액.
+def _q_single(data: dict | None) -> dict | None:
+    """1~3분기·반기 보고서 파싱: thstrm_amount 가 이미 '당기 3개월', BS 는 분기말 잔액.
 
     (DART fnlttSinglAcnt: 분기·반기 보고서의 손익 thstrm_amount = 3개월,
      thstrm_add_amount = 당기 누적. 사업보고서엔 add 가 없음.)
     """
-    data = _fetch(cc, key, year, _RCODE[q])
     if not data:
         return None
     p = _parse(data, ["thstrm_amount", "thstrm_add_amount"])
@@ -109,15 +109,12 @@ def _q_report(cc: str, key: str, year: int, q: int) -> dict | None:
     return {f: v.get("thstrm_amount") for f, v in p.items()}
 
 
-def _q4_report(cc: str, key: str, year: int) -> dict | None:
+def _q4_from(ann: dict | None, q3: dict | None) -> dict | None:
     """4분기 = 사업보고서(연간) − 3분기 누적. BS 는 연말 잔액 그대로."""
-    ann = _fetch(cc, key, year, "11011")
     if not ann:
         return None
     pa = _parse(ann, ["thstrm_amount"])
-    q3 = _fetch(cc, key, year, "11014")
     p3 = _parse(q3, ["thstrm_add_amount"]) if q3 else {}
-
     row: dict = {}
     for f in _STOCK:
         row[f] = (pa.get(f) or {}).get("thstrm_amount")
@@ -129,23 +126,44 @@ def _q4_report(cc: str, key: str, year: int) -> dict | None:
 
 
 def _quarterly(cc: str, key: str, n: int = 4) -> list[dict]:
-    """최근 n개 분기(단일 분기 기준) 재무. 보고서 미제출 분기는 건너뜀."""
+    """최근 n개 분기(단일 분기 기준) 재무. 필요한 DART 보고서를 병렬로 받아 조립."""
     today = date.today()
     y, q = today.year, (today.month - 1) // 3 + 1
     q -= 1                                    # 진행 중 분기는 아직 미보고
     if q == 0:
         y, q = y - 1, 4
 
+    # 후보 분기(최신→과거, 미제출 대비 여유분)
+    cand: list[tuple[int, int]] = []
+    yy, qq = y, q
+    for _ in range(n + 3):
+        cand.append((yy, qq))
+        qq -= 1
+        if qq == 0:
+            yy, qq = yy - 1, 4
+
+    # 필요한 (연도, reprt_code) 집합 → 병렬 fetch
+    need: set[tuple[int, str]] = set()
+    for (yy, qq) in cand:
+        if qq == 4:
+            need.add((yy, "11011"))
+            need.add((yy, "11014"))
+        else:
+            need.add((yy, _RCODE[qq]))
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        raw = dict(ex.map(lambda it: (it, _fetch(cc, key, it[0], it[1])), need))
+
     out: list[dict] = []
-    tries = 0
-    while len(out) < n and tries < n + 4:
-        tries += 1
-        rep = _q4_report(cc, key, y) if q == 4 else _q_report(cc, key, y, q)
-        if rep and any(rep.get(f) is not None for f in _FLOW + _STOCK):
-            out.append({"label": f"{y} {q}Q", **{f: rep.get(f) for f in _FLOW + _STOCK}})
-        q -= 1
-        if q == 0:
-            y, q = y - 1, 4
+    for (yy, qq) in cand:
+        if len(out) >= n:
+            break
+        if qq == 4:
+            row = _q4_from(raw.get((yy, "11011")), raw.get((yy, "11014")))
+        else:
+            row = _q_single(raw.get((yy, _RCODE[qq])))
+        if row and any(row.get(f) is not None for f in _FLOW + _STOCK):
+            out.append({"label": f"{yy} {qq}Q", **{f: row.get(f) for f in _FLOW + _STOCK}})
     out.reverse()
     return out
 
@@ -165,6 +183,10 @@ def annual_revenue(code: str) -> int | None:
 
 @ttl_cache(60 * 60 * 6)
 def get_financials(code: str) -> dict:
+    cached = store.get_cached(code, "financials")
+    if cached is not None:
+        return cached
+
     key = get_settings().dart_api_key
     cc = corp_code(code) if key else None
     if not cc:
@@ -199,7 +221,7 @@ def get_financials(code: str) -> dict:
         quarters = _block([r["label"] for r in qrows], col("revenue"), col("operating_income"),
                           col("net_income"), col("assets"), col("liabilities"), col("equity"))
 
-    return {
+    result = {
         "code": code,
         "unit": "원",
         "fiscal_year": str(year),
@@ -208,3 +230,5 @@ def get_financials(code: str) -> dict:
         "quarters": quarters,
         "source": "live",
     }
+    store.save_cached(code, "financials", result)
+    return result

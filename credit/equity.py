@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 import requests
@@ -27,7 +28,7 @@ from capital._cache import ttl_cache
 from capital._datago import DataGoError, get_json, pick, to_float
 from main.config import get_settings
 
-from . import sample_data
+from . import sample_data, store
 from .corp_map import corp_code
 
 logger = logging.getLogger(__name__)
@@ -173,33 +174,46 @@ def _market_cap_rank(code: str, market: str | None) -> dict:
     return out
 
 
+def _annual_revenue_safe(code: str) -> int | None:
+    try:
+        from .financials import annual_revenue
+        return annual_revenue(code)
+    except Exception:  # noqa: BLE001 - PSR 없으면 그냥 비움
+        logger.debug("PSR용 매출 조회 실패 %s", code, exc_info=True)
+        return None
+
+
 @ttl_cache(600)
 def get_stock_basics(code: str) -> dict:
-    try:
-        rows = _daily_rows(code, 400)
-    except (DataGoError, ValueError, TypeError) as exc:
-        logger.info("기초정보 폴백(sample) %s: %s", code, exc)
-        return sample_data.basics(code)
+    cached = store.get_cached(code, "basics")
+    if cached is not None:
+        return cached
+
+    # 독립적인 외부 호출을 병렬로 (Render free 0.1 CPU 에서 콜드 로딩 단축)
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        f_rows = ex.submit(_daily_rows, code, 400)
+        f_comp = ex.submit(_dart_company, code)
+        f_nav = ex.submit(_naver_snapshot, code)
+        ex.submit(_listed_snapshot)                 # 시총 순위용 전체 스냅샷 예열
+        f_rev = ex.submit(_annual_revenue_safe, code)
+        try:
+            rows = f_rows.result()
+        except (DataGoError, ValueError, TypeError) as exc:
+            logger.info("기초정보 폴백(sample) %s: %s", code, exc)
+            return sample_data.basics(code)
+        comp = f_comp.result() or {}
+        nav = f_nav.result() or {}
+        revenue = f_rev.result()
 
     last = rows[-1]
     g = lambda *keys: to_float(pick(last, *keys))
     market = pick(last, "mrktCtg", "MRKT_CTG")
-
-    comp = _dart_company(code)
-    nav = _naver_snapshot(code)
-    rank = _market_cap_rank(code, market)
+    rank = _market_cap_rank(code, market)          # _listed_snapshot 은 위에서 예열됨
 
     mcap = g("mrktTotAmt", "MRKT_TOT_AMT")
     tval = g("trPrc", "TR_PRC")
 
-    revenue = None
-    try:
-        from .financials import annual_revenue
-        revenue = annual_revenue(code)
-    except Exception:  # noqa: BLE001 - PSR 없으면 그냥 비움
-        logger.debug("PSR용 매출 조회 실패 %s", code, exc_info=True)
-
-    return {
+    result = {
         "code": code,
         "name": pick(last, "itmsNm", "ITMS_NM"),
         "market": market,
@@ -230,6 +244,8 @@ def get_stock_basics(code: str) -> dict:
         },
         "source": "live",
     }
+    store.save_cached(code, "basics", result)
+    return result
 
 
 @ttl_cache(300)

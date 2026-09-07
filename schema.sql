@@ -32,9 +32,21 @@ create table if not exists issuance_snapshots (
     created_at timestamptz not null default now()
 );
 
+-- 여신·심사 > 기업분석 탭: 종목별 '오늘자' 조회 결과 캐시(기초정보·재무정보).
+-- 같은 종목을 하루 안에 다시 열면 외부 API(data.go.kr·DART·네이버)를 재호출하지 않는다.
+-- code='_corpmap' 행은 DART 종목코드→corp_code 매핑(하루치).
+create table if not exists equity_snapshots (
+    snapshot_date date not null,
+    code text not null,
+    payload jsonb not null,
+    created_at timestamptz not null default now(),
+    primary key (snapshot_date, code)
+);
+
 -- 서버가 publishable(anon) 키로 접속한다면 아래 RLS 정책을 추가해야 읽기/쓰기가 됩니다.
 -- (service_role / sb_secret_ 키를 쓰면 RLS를 우회하므로 불필요합니다.)
 -- alter table policy_snapshots  enable row level security;
 -- alter table research_snapshots enable row level security;
 -- create policy "anon rw policy_snapshots"  on policy_snapshots  for all using (true) with check (true);
 -- create policy "anon rw research_snapshots" on research_snapshots for all using (true) with check (true);
+-- create policy "anon rw equity_snapshots"  on equity_snapshots  for all using (true) with check (true);

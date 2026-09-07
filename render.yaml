@@ -8,7 +8,9 @@ services:
     region: singapore
     branch: main
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main.app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    # free 플랜(512MB) 메모리 여유 + 인프로세스 캐시(corpCode·종목 스냅샷) 공유를 위해
+    # 워커 1 + 스레드 4 (탭이 동시에 던지는 API 호출은 스레드로 병렬 처리).
+    startCommand: gunicorn main.app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --worker-class gthread --timeout 120
     healthCheckPath: /
     envVars:
       - key: PYTHON_VERSION
