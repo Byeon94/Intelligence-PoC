@@ -55,7 +55,7 @@
         <li>📈 <b>자본시장</b> — 증시자금·유동성, CMA·단기수신 지표</li>
         <li>📜 <b>정책·규제</b> — 금융위·금감원·한국은행·기재부 보도자료 + AI 브리핑</li>
         <li>📰 <b>리서치·뉴스</b> — 네이버 뉴스에서 KSFC 업무 관련 기사 AI 선별·태깅 + 브리핑</li>
-        <li>🏦 <b>여신·심사</b> — 담보대출·신용공여 수요와 심사 지표 <span class="soon-tag">준비 중</span></li>
+        <li>🏦 <b>여신·심사</b> — 종목 기업분석(기초정보·가격범위·재무요약·실적분석), 리포트·공시 <span class="soon-tag">일부</span></li>
         <li>💼 <b>투자금융</b> — IB·인수·발행시장 동향 <span class="soon-tag">준비 중</span></li>
         <li>🔐 <b>수탁</b> — 신탁·수탁고 및 자산관리 지표 <span class="soon-tag">준비 중</span></li>
         <li>💱 <b>자금·외화</b> — 조달·운용·외화 유동성 <span class="soon-tag">준비 중</span></li>
@@ -106,6 +106,21 @@
               <td>당일 업무 관련 기사 AI 선별·태깅 + 브리핑</td>
               <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
             </tr>
+            <tr>
+              <td>여신·심사 — 기업분석 · 기초정보</td>
+              <td>종가·전일대비, 시가총액(+코스피/전체 순위), 거래대금(+시총 대비 %), 거래량, 상장주식수, 52·20·10주 가격범위</td>
+              <td>공공데이터포털(data.go.kr) · 금융위원회 주식시세정보 (원천: 한국거래소, 전 영업일 확정치)</td>
+            </tr>
+            <tr>
+              <td>여신·심사 — 기업분석 · 개요</td>
+              <td>설립연도·결산월 / 업종(사업분류)·PER·PBR</td>
+              <td>금융감독원 DART 기업개황 / 네이버 금융(업종·PER·PBR, 참고용)</td>
+            </tr>
+            <tr>
+              <td>여신·심사 — 기업분석 · 재무요약·실적분석</td>
+              <td>최근 3개년 + 4개분기 매출액·영업이익·순이익·자산/부채/자본·부채비율·ROE, PSR(시총÷연간매출)</td>
+              <td>금융감독원 DART 「단일회사 주요계정」(사업·분기보고서, 연결 우선)</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -130,8 +145,11 @@
     {% include "research.html" %}
   </section>
 
+  <section class="tab-panel" data-panel="credit" hidden>
+    {% include "credit.html" %}
+  </section>
+
   {% for tab, name in [
-      ('credit', '여신·심사'),
       ('ib', '투자금융'),
       ('custody', '수탁'),
       ('funding', '자금·외화'),
@@ -192,5 +210,6 @@ applyTab(start === 'intro' || TABS.indexOf(start) >= 0 ? start : 'capital');
 <script src="{{ url_for('capital.static', filename='capital.js') }}"></script>
 <script src="{{ url_for('policy.static', filename='policy.js') }}"></script>
 <script src="{{ url_for('research.static', filename='research.js') }}"></script>
+<script src="{{ url_for('credit.static', filename='credit.js') }}"></script>
 </body>
 </html>

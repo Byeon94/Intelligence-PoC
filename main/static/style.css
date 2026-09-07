@@ -335,11 +335,122 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .ni-title { font-size: .88rem; font-weight: 600; line-height: 1.45; }
 .ni-reason { font-size: .78rem; color: var(--muted); margin-top: 4px; line-height: 1.55; }
 
+/* ── 여신·심사 > 기업분석 ── */
+.eq-search { position: relative; display: flex; gap: 8px; margin-bottom: 14px; }
+.eq-search input {
+  flex: 1; min-width: 0; padding: 10px 12px; font-size: .9rem; color: var(--fg);
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+}
+.eq-search > button {
+  padding: 0 16px; font-size: .85rem; font-weight: 700; color: #fff; cursor: pointer;
+  background: var(--accent); border: none; border-radius: 10px; white-space: nowrap;
+}
+.eq-suggest {
+  position: absolute; top: 46px; left: 0; right: 0; z-index: 20;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); overflow-y: auto; max-height: 320px;
+}
+.eq-sug {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  padding: 10px 12px; background: none; border: none; cursor: pointer; color: var(--fg);
+  border-bottom: 1px solid var(--border2); font-size: .86rem;
+}
+.eq-sug:last-child { border-bottom: none; }
+.eq-sug:hover { background: var(--accent-bg); }
+.eq-sug-mkt { margin-left: auto; font-size: .7rem; color: var(--muted); }
+
+.eq-current { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 14px; }
+.eq-current .eq-name { font-size: 1.1rem; font-weight: 800; }
+.eq-current .eq-code { color: var(--muted); font-size: .8rem; }
+.eq-tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.eq-mkt {
+  font-size: .68rem; font-weight: 700; color: var(--accent);
+  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 7px;
+}
+.eq-sector {
+  font-size: .7rem; font-weight: 600; color: var(--fg);
+  background: var(--card2); border: 1px solid var(--border2); border-radius: 5px; padding: 1px 7px;
+}
+.eq-meta { font-size: .72rem; color: var(--muted); }
+.eq-empty { color: var(--muted); font-size: .85rem; padding: 40px 4px; text-align: center; }
+
+.asof-info {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; margin-left: 5px; padding: 0; vertical-align: middle;
+  font-size: .66rem; font-weight: 800; line-height: 1; cursor: help;
+  color: var(--c2); background: none; border: 1px solid var(--c2); border-radius: 50%;
+}
+.k-up { color: var(--up); font-weight: 700; }
+.k-dn { color: var(--down); font-weight: 700; }
+
+/* 주요 지표 (PER·PBR·PSR) */
+.val-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.val-box {
+  display: flex; flex-direction: column; gap: 3px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+}
+.val-k { font-size: .7rem; font-weight: 700; color: var(--muted); }
+.val-v { font-size: 1.15rem; font-weight: 800; }
+
+/* 재무요약 표 — 분기 컬럼 + 연도 컬럼 */
+.fin-table th.yr, .fin-table td.yr { background: var(--card2); }
+.fin-table th.yr-start, .fin-table td.yr-start { border-left: 2px solid var(--border); }
+
+/* 손익 / 재무상태 그룹 색 구분 + ROE 강조 */
+.fin-table tbody td:first-child { border-left: 3px solid transparent; }
+.fin-table tr.g-pl  td:not(.yr) { background: rgba(47, 111, 237, .07); }
+.fin-table tr.g-bs  td:not(.yr) { background: rgba(18, 161, 80, .08); }
+.fin-table tr.g-pl  td.yr { background: rgba(47, 111, 237, .06); }
+.fin-table tr.g-bs  td.yr { background: rgba(18, 161, 80, .07); }
+.fin-table tr.g-pl  td:first-child { border-left-color: var(--c1); }
+.fin-table tr.g-bs  td:first-child { border-left-color: var(--c3); }
+.fin-table tr.g-bs.g-start td { border-top: 2px solid var(--border); }
+.fin-table tr.g-roe td {
+  background: rgba(220, 38, 38, .09); font-weight: 700; border-top: 2px solid var(--border);
+}
+.fin-table tr.g-roe td:first-child { color: var(--down); border-left-color: var(--down); }
+
+/* 실적분석 차트 그리드 */
+.perf-grid { display: grid; gap: 14px; }
+.perf-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; overflow: hidden;
+}
+.perf-card h4 { font-size: .82rem; font-weight: 700; margin-bottom: 6px; }
+.perf-card .chart-wrap {
+  border: none; padding: 0; background: none;
+  max-width: 460px; margin: 0 auto;
+}
+/* 라벨이 카드 밖으로 튀지 않도록: 크게 확대되는 데스크톱에서 폰트·오버플로 억제 */
+.perf-card .chart-wrap svg { overflow: hidden; }
+.perf-card .axis-label { font-size: 9px; }
+.perf-card .chart-legend { font-size: .72rem; }
+
+.range-list { display: grid; gap: 14px; }
+.range-row {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+}
+.range-top { display: flex; align-items: center; gap: 8px; font-size: .78rem; margin-bottom: 9px; }
+.range-k { font-weight: 700; }
+.range-lo { color: var(--accent); }
+.range-hi { color: var(--down); margin-left: auto; }
+.range-bar {
+  position: relative; height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--c2), var(--down));
+}
+.range-bar i {
+  position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--fg); border: 2px solid var(--card); transform: translate(-50%, -50%);
+}
+.range-cur { font-size: .72rem; color: var(--muted); margin-top: 7px; text-align: center; }
+
 /* ── 데스크톱 ── */
 @media (min-width: 720px) {
   .kpi-grid { grid-template-columns: repeat(4, 1fr); }
   .kpi .k-value { font-size: 1.7rem; }
   .intro-card h2 { font-size: 1.35rem; }
+  .range-list { grid-template-columns: repeat(3, 1fr); }
+  .perf-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (min-width: 900px) {
   .donut-wrap .donut-svg { flex-basis: 180px; max-width: 180px; }

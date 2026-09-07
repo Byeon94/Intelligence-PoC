@@ -7,6 +7,7 @@ from flask import Flask, render_template
 
 from capital.widget import capital_bp
 from capital.issuance.widget import issuance_bp
+from credit.widget import credit_bp
 from policy.widget import policy_bp
 from research.widget import research_bp
 
@@ -17,6 +18,7 @@ app.register_blueprint(capital_bp)
 app.register_blueprint(policy_bp)
 app.register_blueprint(research_bp)
 app.register_blueprint(issuance_bp)
+app.register_blueprint(credit_bp)
 
 
 @app.route("/")

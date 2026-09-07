@@ -1,0 +1,88 @@
+<div class="credit" id="credit-root">
+  <div class="eq-search">
+    <input id="eq-q" type="text" autocomplete="off" spellcheck="false"
+           placeholder="종목명 또는 종목코드 (예: 삼성전자 · 005930)">
+    <button type="button" id="eq-q-btn">조회</button>
+    <div class="eq-suggest" id="eq-suggest" hidden></div>
+  </div>
+
+  <div class="eq-current" id="eq-current" hidden>
+    <span class="eq-name" id="eq-cur-name"></span>
+    <span class="eq-code mono" id="eq-cur-code"></span>
+    <span class="eq-tags" id="eq-cur-tags"></span>
+  </div>
+
+  <div class="subtabs" id="credit-subtabs" role="tablist">
+    <button class="subtab-btn active" data-sub="analysis">기업분석</button>
+    <button class="subtab-btn" data-sub="report">리포트</button>
+    <button class="subtab-btn" data-sub="filing">공시</button>
+  </div>
+
+  <!-- ── 기업분석 ── -->
+  <div class="sub-panel" data-sub="analysis">
+    <div class="eq-empty" id="eq-empty">종목을 검색하면 기초정보가 표시됩니다.</div>
+
+    <section class="block" id="eq-basic-block" hidden>
+      <div class="block-head">
+        <h3>기초정보</h3>
+        <span class="asof" id="eq-asof">
+          <span id="eq-asof-date"></span>
+          <button type="button" class="asof-info" id="eq-asof-info"
+                  title="공공데이터(KRX 확정치) 특성상 전 영업일 종가 기준입니다. 당일 장중·마감 직후 시세는 반영되지 않습니다."
+                  aria-label="기준일자 안내">!</button>
+        </span>
+      </div>
+      <div class="kpi-grid" id="eq-kpis"></div>
+      <div class="val-grid" id="eq-val"></div>
+    </section>
+
+    <section class="block" id="eq-range-block" hidden>
+      <div class="block-head">
+        <h3>가격 범위</h3>
+        <span class="unit-tag">현재가 위치</span>
+      </div>
+      <div class="range-list" id="eq-ranges"></div>
+    </section>
+
+    <section class="block" id="eq-fin-block" hidden>
+      <div class="block-head">
+        <h3>재무요약</h3>
+        <span class="asof" id="eq-fin-asof"></span>
+      </div>
+      <div class="table-wrap" id="eq-fin-table"></div>
+      <p class="page-note" id="eq-fin-note"></p>
+    </section>
+
+    <section class="block" id="eq-perf-block" hidden>
+      <div class="block-head">
+        <h3>실적분석</h3>
+        <span class="unit-tag" id="eq-perf-unit">억원 · 연간</span>
+      </div>
+      <div class="perf-grid">
+        <div class="perf-card"><h4>매출액</h4><div class="chart-wrap" id="pf-rev"></div></div>
+        <div class="perf-card"><h4>영업이익</h4><div class="chart-wrap" id="pf-opi"></div></div>
+        <div class="perf-card"><h4>순이익</h4><div class="chart-wrap" id="pf-ni"></div></div>
+        <div class="perf-card"><h4>자산 · 부채 · 자본</h4><div class="chart-wrap" id="pf-bs"></div></div>
+        <div class="perf-card"><h4>부채비율</h4><div class="chart-wrap" id="pf-dr"></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── 리포트 (준비 중) ── -->
+  <div class="sub-panel" data-sub="report" hidden>
+    <div class="card placeholder-card">
+      <div class="placeholder-emoji">🚧</div>
+      <h2>리포트</h2>
+      <p class="page-note">증권사 리포트 요약을 준비 중입니다.</p>
+    </div>
+  </div>
+
+  <!-- ── 공시 (준비 중) ── -->
+  <div class="sub-panel" data-sub="filing" hidden>
+    <div class="card placeholder-card">
+      <div class="placeholder-emoji">🚧</div>
+      <h2>공시</h2>
+      <p class="page-note">DART 공시 목록을 준비 중입니다.</p>
+    </div>
+  </div>
+</div>
