@@ -66,7 +66,7 @@
   }
 
   var ORG_NAMES = {
-    FSC: "금융위", FSS: "금감원", BOK: "한국은행", MOEF: "기재부",
+    FSC: "금융위", FSS: "금감원", BOK: "한국은행", MOEF: "재경부",
     KRX: "한국거래소", KDIC: "예보", KSD: "예탁결제원", KOFIA: "금투협",
   };
 

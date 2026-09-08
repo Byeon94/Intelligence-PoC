@@ -29,7 +29,7 @@ AUTHORITY_ORGS = [
     {"org": "FSC", "org_name": "금융위원회", "badge": "금융위"},
     {"org": "FSS", "org_name": "금융감독원", "badge": "금감원"},
     {"org": "BOK", "org_name": "한국은행", "badge": "한국은행"},
-    {"org": "MOEF", "org_name": "기획재정부", "badge": "기재부"},
+    {"org": "MOEF", "org_name": "재정경제부", "badge": "재경부"},
 ]
 AFFILIATE_ORGS = [
     # 공식 게시판 스크랩(실데이터)이 먼저, 링크 카드로 대체하는 곳은 아래로
@@ -136,7 +136,7 @@ def fetch_bok() -> list[dict]:
     return out
 
 
-# ── 기획재정부 ────────────────────────────────────────────────────
+# ── 재정경제부 ────────────────────────────────────────────────────
 def fetch_moef() -> list[dict]:
     url = "https://www.moef.go.kr/nw/nes/nesdta.do?bbsId=MOSFBBS_000000000028&menuNo=4010100"
     soup = BeautifulSoup(_get(url).text, "html.parser")
