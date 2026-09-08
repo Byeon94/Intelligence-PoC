@@ -26,7 +26,7 @@ from .sources import (
 )
 
 _TABLE = "policy_snapshots"
-_SCHEMA_V = 7  # v7: 상세페이지 본문(body) 발췌를 스냅샷·브리핑에 반영
+_SCHEMA_V = 8  # v8: 기획재정부 → 재정경제부 명칭 반영(스냅샷 재수집)
 
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
