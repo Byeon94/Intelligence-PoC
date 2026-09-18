@@ -1,0 +1,17 @@
+name: Daily snapshot warmup
+
+on:
+  schedule:
+    # 22:00 UTC = 07:00 KST. GitHub Actions 스케줄은 서버 부하에 따라
+    # 몇 분 정도 지연될 수 있다(PoC 목적상 허용 범위).
+    - cron: "0 22 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger /internal/warmup
+        run: |
+          curl -sS --retry 3 --retry-delay 15 --max-time 60 \
+            "https://intelligence-poc.onrender.com/internal/warmup?key=${{ secrets.WARMUP_KEY }}"
