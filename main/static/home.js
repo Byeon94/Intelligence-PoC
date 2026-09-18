@@ -44,6 +44,10 @@
     { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
       title: "오늘의 증권사 리포트", emoji: "📑",
       desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
+    { id: "it-news", externalUrl: "https://search.naver.com/search.naver?where=news&query=" +
+        encodeURIComponent("금융IT 정보보호 생성형AI"),
+      title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️",
+      desc: "금융IT·정보보호·AI·클라우드 등 IT부 관심 뉴스 AI 선별 + 브리핑", status: "live" },
     { id: "ib-deals", tab: "ib", title: "투자금융", emoji: "💼",
       desc: "IB·인수·발행시장 동향", status: "soon" },
     { id: "custody-status", tab: "custody", title: "수탁", emoji: "🔐",
@@ -239,6 +243,22 @@
               '<span class="gmr-date">' + esc((r.date || "").slice(5)) + "</span>" +
               '<span class="gmr-broker">' + esc(r.broker || "") + "</span>" +
               '<span class="gmr-title">' + esc(r.title || "") + "</span></a></li>";
+          }).join("") + "</ul>";
+        }
+        el.innerHTML = html;
+      });
+    },
+    "it-news": function (el) {
+      return get("/api/it-news/digest").then(function (d) {
+        var html = (d.credit ? '<div class="gal-mini-asof">' + esc(d.credit) + "</div>" : "") +
+          miniBullets(d.briefing, d.briefing_note);
+        var top = (d.articles || []).slice(0, 8);
+        if (top.length) {
+          html += miniSubtitle("오늘의 기사") + '<ul class="gal-mini-reports">' + top.map(function (a) {
+            return '<li><a href="' + esc(a.url || "#") + '" target="_blank" rel="noopener">' +
+              '<span class="gmr-date">' + esc((a.published || "").slice(5, 10)) + "</span>" +
+              '<span class="gmr-broker">' + esc(a.keyword || "") + "</span>" +
+              '<span class="gmr-title">' + esc(a.title || "") + "</span></a></li>";
           }).join("") + "</ul>";
         }
         el.innerHTML = html;
@@ -487,7 +507,8 @@
   }
 
   // ── 카드(전사 위젯 / 내 위젯 공용) ──
-  // opts.mini: 내 위젯 전용 — 있으면 실데이터 미리보기 영역을 넣고 "내 위젯에 추가" 토글은 뺀다.
+  // opts.mini: 내 위젯 전용 — 있으면 실데이터 미리보기 영역을 넣고 "내 위젯에 추가" 토글 대신
+  // "그만보기"(제거) 버튼을 보여준다. 제거해도 전사 위젯에서는 다시 "+ 내 위젯에 추가"로 보인다.
   function galCardHTML(w, opts) {
     opts = opts || {};
     if (opts.mini && w.id === "credit-analysis") return creditAnalysisCardHTML(w);
@@ -495,8 +516,9 @@
     var miniHTML = (opts.mini && MINI_LOADERS[w.id])
       ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
       : "";
-    var toggleHTML = opts.mini ? "" :
-      '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
+    var toggleHTML = opts.mini
+      ? '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>'
+      : '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
         (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
       "</button>";
     return (
@@ -545,6 +567,7 @@
         '<div class="gal-mini" id="mini-' + w.id + '">' + creditAnalysisMiniHTML("mini-" + w.id) + "</div>" +
         '<div class="gal-actions">' +
           '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '">자세히 보기 →</button>' +
+          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
         "</div>" +
       "</div>"
     );
@@ -562,6 +585,15 @@
         var mine = ids.indexOf(btn.dataset.id) >= 0;
         btn.classList.toggle("active", mine);
         btn.textContent = mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가";
+      });
+    });
+    // "그만보기"(내 위젯 전용) — 제거 후 목록을 다시 그려 카드가 즉시 사라지게 한다.
+    // 전사 위젯 쪽 "+ 내 위젯에 추가" 버튼은 getMyWidgetIds() 기준으로 다시 그려지므로
+    // 자동으로 원상복구된다(별도 처리 불필요).
+    scope.querySelectorAll(".gal-remove").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        toggleMyWidget(btn.dataset.id);
+        renderPersonal();
       });
     });
   }
@@ -586,11 +618,32 @@
     bindGalleryCardEvents(box);
   }
 
+  // 기업분석·공시·증권사 리포트는 전사 위젯 목록에는 안 보이는 위젯이라(특정 종목
+  // 기준이라 검색으로만 채워짐) "그만보기"로 지우면 전사 위젯에서 되찾을 방법이 없다.
+  // 내 위젯 화면에 자체 복구 버튼을 둬서 언제든 다시 추가할 수 있게 한다.
+  var HIDDEN_RESTORABLE = ["credit-analysis", "credit-filing", "credit-report"];
+  function renderHiddenRestore() {
+    var slot = document.getElementById("personal-restore-hidden");
+    if (!slot) return;
+    var ids = getMyWidgetIds();
+    var missing = HIDDEN_RESTORABLE.filter(function (id) { return ids.indexOf(id) < 0; });
+    if (!missing.length) { slot.innerHTML = ""; return; }
+    slot.innerHTML =
+      '<div class="page-note personal-restore-note">기업분석·공시·증권사 리포트 위젯을 그만보셨나요? ' +
+      '<button type="button" class="link-btn" id="personal-restore-btn">다시 추가</button></div>';
+    var btn = document.getElementById("personal-restore-btn");
+    if (btn) btn.addEventListener("click", function () {
+      missing.forEach(function (id) { toggleMyWidget(id); });
+      renderPersonal();
+    });
+  }
+
   function renderPersonal() {
     var box = document.getElementById("personal-grid");
     if (!box) return;
     var ids = getMyWidgetIds();
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
+    renderHiddenRestore();
     if (!items.length) {
       box.innerHTML =
         '<div class="page-note home-empty-widgets">전사 위젯에서 추가하면 여기에 표시됩니다.<br>' +
