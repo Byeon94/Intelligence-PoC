@@ -23,12 +23,13 @@
   }
 
   // ── 전사 갤러리 카탈로그(= 업무별 화면의 주요 섹션 단위) ──
+  // sub: 자본시장처럼 내부에 세부탭이 있는 화면일 때, 그 세부탭까지 바로 이동시키기 위한 힌트.
   var WIDGET_CATALOG = [
-    { id: "capital-liquidity", tab: "capital", title: "증시자금·유동성", emoji: "📈",
+    { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
-    { id: "capital-cma", tab: "capital", title: "CMA·단기수신", emoji: "💰",
+    { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
       desc: "CMA 유형별 비중, 증권사별 금리 비교", status: "live" },
-    { id: "capital-issuance", tab: "capital", title: "발행시장", emoji: "🏗️",
+    { id: "capital-issuance", tab: "capital", sub: "issuance", title: "발행시장", emoji: "🏗️",
       desc: "IPO·유상증자 캘린더 + AI 브리핑", status: "live" },
     { id: "policy-briefing", tab: "policy", title: "정책·규제 브리핑", emoji: "📜",
       desc: "금융당국·유관기관 보도자료 + AI 3줄 요약", status: "live" },
@@ -72,8 +73,9 @@
     return ids;
   }
 
-  function goWork(tab) {
+  function goWork(tab, sub) {
     if (window.AppNav) window.AppNav.go("work", tab);
+    if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
   }
 
   // ── 갤러리 카드 ──
@@ -88,7 +90,8 @@
         '<div class="gal-title">' + esc(w.title) + "</div>" +
         '<div class="gal-desc">' + esc(w.desc) + "</div>" +
         '<div class="gal-actions">' +
-          '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '">화면 열기 →</button>' +
+          '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '"' +
+            (w.sub ? ' data-sub="' + w.sub + '"' : "") + '>화면 열기 →</button>' +
           '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
             (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
           "</button>" +
@@ -99,7 +102,7 @@
 
   function bindGalleryCardEvents(scope) {
     scope.querySelectorAll(".gal-open").forEach(function (btn) {
-      btn.addEventListener("click", function () { goWork(btn.dataset.work); });
+      btn.addEventListener("click", function () { goWork(btn.dataset.work, btn.dataset.sub); });
     });
     scope.querySelectorAll(".gal-toggle").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -177,7 +180,8 @@
         '<div class="home-alert ' + (a.level === "warn" ? "al-warn" : "al-info") + '">' +
           '<div class="al-title">⚠️ ' + esc(a.title) + "</div>" +
           '<div class="al-detail">' + esc(a.detail) + "</div>" +
-          '<button type="button" class="dart-btn home-brief-more" data-work="' + a.tab + '">확인하러 가기 →</button>' +
+          '<button type="button" class="dart-btn home-brief-more" data-work="' + a.tab + '"' +
+            (a.sub ? ' data-sub="' + a.sub + '"' : "") + '>확인하러 가기 →</button>' +
         "</div>"
       );
     }).join("");
@@ -186,7 +190,7 @@
 
   function bindGoWorkButtons(scope) {
     scope.querySelectorAll("[data-work]").forEach(function (btn) {
-      btn.addEventListener("click", function () { goWork(btn.dataset.work); });
+      btn.addEventListener("click", function () { goWork(btn.dataset.work, btn.dataset.sub); });
     });
   }
 

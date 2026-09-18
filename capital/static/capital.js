@@ -166,23 +166,30 @@
     }
   }
 
-  function initSubtabs() {
+  function activateSub(sub) {
     var root = document.getElementById("capital-root");
-    if (!root) return;
     var bar = document.getElementById("capital-subtabs");
+    if (!root || !bar) return;
+    bar.querySelectorAll(".subtab-btn").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.sub === sub);
+    });
+    root.querySelectorAll(".sub-panel").forEach(function (p) {
+      p.hidden = p.dataset.sub !== sub;
+    });
+    ensure(sub);
+  }
+
+  function initSubtabs() {
+    var bar = document.getElementById("capital-subtabs");
+    if (!bar) return;
     bar.addEventListener("click", function (e) {
       var btn = e.target.closest(".subtab-btn");
-      if (!btn) return;
-      var sub = btn.dataset.sub;
-      bar.querySelectorAll(".subtab-btn").forEach(function (b) {
-        b.classList.toggle("active", b === btn);
-      });
-      root.querySelectorAll(".sub-panel").forEach(function (p) {
-        p.hidden = p.dataset.sub !== sub;
-      });
-      ensure(sub);
+      if (btn) activateSub(btn.dataset.sub);
     });
   }
+
+  // 다른 모듈(홈 알림·전사 위젯 등)이 "자본시장 > 특정 세부탭"으로 바로 이동시킬 때 사용.
+  window.CapitalNav = { goSub: activateSub };
 
   function capitalVisible() {
     var p = document.querySelector('.tab-panel[data-panel="capital"]');

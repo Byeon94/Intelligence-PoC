@@ -51,6 +51,7 @@ def _liquidity_alert() -> dict | None:
         "title": f"신용공여/예탁금 비율 {direction}",
         "detail": f"{summary.get('as_of', '')} 기준 {ratio.get('value')}% (전기 대비 {change:+.2f}%p)",
         "tab": "capital",
+        "sub": "liquidity",
     }
 
 
@@ -99,6 +100,7 @@ def _issuance_alert(as_of: str | None) -> dict | None:
         "title": f"발행시장 공시 {len(events)}건",
         "detail": f"{as_of} 기준 · [{first.get('type')}] {first.get('company')}{more}",
         "tab": "capital",
+        "sub": "issuance",
     }
 
 
