@@ -78,9 +78,92 @@
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
   }
 
-  // ── 갤러리 카드 ──
-  function galCardHTML(w) {
+  // ── 미니 값 표시(내 위젯 전용) — 위젯마다 가벼운 실데이터를 카드 안에 바로 보여준다 ──
+  function jo(v) { return v == null ? "-" : (Math.round(v * 10) / 10) + "조"; }
+  function miniRow(pairs) {
+    return '<div class="gal-mini-row">' + pairs.map(function (p) {
+      return '<div class="gal-mini-item"><span class="gmi-label">' + esc(p[0]) + '</span>' +
+        '<span class="gmi-value">' + esc(String(p[1])) + '</span></div>';
+    }).join("") + "</div>";
+  }
+  function miniBullets(bullets, note) {
+    if (!bullets || !bullets.length) {
+      return '<div class="gal-mini-note">' + esc(note || "표시할 내용이 없습니다.") + "</div>";
+    }
+    return '<ul class="gal-mini-bullets">' + bullets.slice(0, 2).map(function (b) {
+      return "<li>" + esc(b) + "</li>";
+    }).join("") + "</ul>";
+  }
+
+  var MINI_LOADERS = {
+    "capital-liquidity": function () {
+      return get("/api/capital/liquidity/summary").then(function (d) {
+        var it = d.items || {};
+        return miniRow([
+          ["예탁금", jo(it.investor_deposits && it.investor_deposits.value)],
+          ["신용공여", jo(it.credit_balance && it.credit_balance.value)],
+          ["CMA", jo(it.cma_balance && it.cma_balance.value)]
+        ]);
+      });
+    },
+    "capital-cma": function () {
+      return get("/api/capital/cma/summary").then(function (d) {
+        var it = d.items || {};
+        return miniRow([
+          ["총잔고", jo(it.total && it.total.value)],
+          ["RP형", jo(it.rp && it.rp.value)],
+          ["발행어음형", jo(it.note && it.note.value)]
+        ]);
+      });
+    },
+    "capital-issuance": function () {
+      return get("/api/issuance/digest").then(function (d) {
+        var c = d.counts || {};
+        return miniRow([
+          ["수요예측", c["수요예측"] || 0],
+          ["청약", c["청약"] || 0],
+          ["상장", c["상장"] || 0],
+          ["유상증자", c["유상증자"] || 0]
+        ]);
+      });
+    },
+    "policy-briefing": function () {
+      return get("/api/policy/digest").then(function (d) {
+        return miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
+      });
+    },
+    "research-briefing": function () {
+      return get("/api/research/digest").then(function (d) {
+        return miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
+      });
+    }
+  };
+
+  function loadMiniPreviews(items) {
+    items.forEach(function (w) {
+      var loader = MINI_LOADERS[w.id];
+      var el = document.getElementById("mini-" + w.id);
+      if (!loader || !el) return;
+      loader().then(function (html) {
+        el.innerHTML = html;
+      }).catch(function () {
+        el.innerHTML = '<div class="gal-mini-note">불러오지 못했습니다.</div>';
+      });
+    });
+  }
+
+  // ── 카드(전사 위젯 / 내 위젯 공용) ──
+  // opts.mini: 내 위젯 전용 — 있으면 실데이터 미리보기 영역을 넣고 "내 위젯에 추가" 토글은 뺀다.
+  function galCardHTML(w, opts) {
+    opts = opts || {};
     var mine = getMyWidgetIds().indexOf(w.id) >= 0;
+    var miniHTML = (opts.mini && MINI_LOADERS[w.id])
+      ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
+      : "";
+    var toggleHTML = opts.mini ? "" :
+      '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
+        (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
+      "</button>";
     return (
       '<div class="gal-card">' +
         '<div class="gal-top">' +
@@ -89,12 +172,11 @@
         "</div>" +
         '<div class="gal-title">' + esc(w.title) + "</div>" +
         '<div class="gal-desc">' + esc(w.desc) + "</div>" +
+        miniHTML +
         '<div class="gal-actions">' +
           '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '"' +
             (w.sub ? ' data-sub="' + w.sub + '"' : "") + '>화면 열기 →</button>' +
-          '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
-            (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
-          "</button>" +
+          toggleHTML +
         "</div>" +
       "</div>"
     );
@@ -118,7 +200,7 @@
     var box = document.getElementById("gallery-grid");
     if (!box) return;
     var items = WIDGET_CATALOG.filter(function (w) { return w.status !== "soon"; });
-    box.innerHTML = items.map(galCardHTML).join("");
+    box.innerHTML = items.map(function (w) { return galCardHTML(w); }).join("");
     bindGalleryCardEvents(box);
   }
 
@@ -135,8 +217,9 @@
       if (gbtn) gbtn.addEventListener("click", function () { if (window.AppNav) window.AppNav.go("gallery"); });
       return;
     }
-    box.innerHTML = items.map(galCardHTML).join("");
+    box.innerHTML = items.map(function (w) { return galCardHTML(w, { mini: true }); }).join("");
     bindGalleryCardEvents(box);
+    loadMiniPreviews(items);
   }
 
   // ── 홈 대시보드: 통합 브리핑 + 알림 ──
