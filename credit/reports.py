@@ -1,4 +1,5 @@
 """여신·심사 > 기업분석 > 리포트: 종목별 증권사 리포트 + 목표주가 컨센서스.
+그리고 전사 위젯용 시장 전체 리포트 동향(get_market_report_digest).
 
 소스: 한경컨센서스 (consensus.hankyung.com/analysis/list) — 6자리 종목코드로 검색.
   컬럼: 발간일 · 제목 · 목표주가 · 투자의견 · 애널리스트 · 증권사 · PDF(report_idx)
@@ -11,13 +12,18 @@ from __future__ import annotations
 import html as _html
 import logging
 import re
-from datetime import date
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
 
 from capital._cache import ttl_cache
+from main.config import get_settings
+from main.gemini import generate_text
+from main.snapshot_store import get_snapshot, save_snapshot
 
 logger = logging.getLogger(__name__)
+KST = ZoneInfo("Asia/Seoul")
 
 _LIST_URL = "https://consensus.hankyung.com/analysis/list"
 _PDF_BASE = "https://consensus.hankyung.com"
@@ -152,3 +158,169 @@ def get_reports(code: str, limit: int = 20) -> dict:
         "list_url": f"{_LIST_URL}?report_type=CO&search_text={code}",
         "source": "live",
     }
+
+
+# ── 전사 위젯: 시장 전체 리포트 동향(종목 무관, 조회 기준일 전체) ────────────
+_MARKET_TABLE = "market_report_snapshots"
+_MARKET_MAX_PAGES = 8     # 하루치 페이지 상한(과도한 스크랩 방지) — 넘으면 total_capped=True
+_MARKET_MAX_BACK_DAYS = 5  # 오늘부터 최대 이만큼 거슬러 올라가며 '전영업일' 탐색
+
+_MARKET_BRIEF_SYSTEM_PROMPT = (
+    "너는 한국증권금융(KSFC) 임직원을 위한 증권사 리서치 리포트 브리핑 어시스턴트야.\n"
+    "아래는 오늘(조회 기준일) 국내 증권사들이 발간한 리서치 리포트의 제목·종목·투자의견 목록이다.\n"
+    "이 중 업무상 눈에 띄는 흐름(특정 업종·종목 쏠림, 다수의 상향/하향, 주목할 이슈)을 "
+    "불릿 3개로 정리해.\n"
+    "- 각 불릿은 '- '로 시작, 70자 이내 한 문장. 소제목·서두 없이 불릿 3개만 출력."
+)
+
+
+def _fetch_market_rows(page: int, date_str: str) -> list[dict]:
+    resp = requests.get(_LIST_URL, params={
+        "sdate": date_str, "edate": date_str, "report_type": "CO",
+        "order_type": "", "now_page": page,
+    }, headers=_HEADERS, timeout=12)
+    resp.raise_for_status()
+    t = resp.text
+    i, j = t.find("<tbody>"), t.find("</tbody>")
+    if i < 0:
+        return []
+    out: list[dict] = []
+    for r in re.split(r"(?=<tr)", t[i:j]):
+        if "<td" not in r:
+            continue
+        tds = re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)
+        if len(tds) < 6:
+            continue
+        strip = lambda s: _html.unescape(re.sub(r"<[^>]+>", "", s)).strip()
+        a = re.search(r'<a href="(/analysis/downpdf\?report_idx=\d+)"[^>]*>(.*?)</a>', tds[1], re.S)
+        pdf = _PDF_BASE + a.group(1) if a else None
+        title = strip(a.group(2)) if a else strip(tds[1])   # 종목명 접두를 지우지 않음(시장 전체용)
+        tp = strip(tds[2]).replace(",", "")
+        try:
+            target = int(tp) or None
+        except ValueError:
+            target = None
+        out.append({
+            "date": strip(tds[0]),
+            "title": title,
+            "target": target,
+            "opinion": _norm_opinion(strip(tds[3])),
+            "broker": strip(tds[5]) or None,
+            "url": pdf,
+        })
+    return out
+
+
+def _find_market_reference_date() -> tuple[str, list[dict]]:
+    """오늘부터 거슬러 올라가며 리포트가 실제로 있는 첫 날짜(=전영업일)를 찾는다."""
+    d = datetime.now(KST).date()
+    for _ in range(_MARKET_MAX_BACK_DAYS):
+        ds = d.isoformat()
+        rows = _fetch_market_rows(1, ds)
+        if rows:
+            return ds, rows
+        d -= timedelta(days=1)
+    return datetime.now(KST).date().isoformat(), []
+
+
+def _market_briefing(items: list[dict]) -> list[str]:
+    lines = "\n".join(
+        f"- [{it.get('broker') or ''}] {it.get('title', '')} ({it.get('opinion') or '의견없음'})"
+        for it in items[:60]
+    )
+    text = generate_text(
+        f"오늘 발간된 증권사 리포트 목록:\n\n{lines}\n\n브리핑 3줄을 작성해줘.",
+        system_instruction=_MARKET_BRIEF_SYSTEM_PROMPT,
+        max_output_tokens=1200,
+    )
+    bullets = [b.strip(" -•*") for b in text.split("\n") if b.strip(" -•*")]
+    if not bullets:
+        raise RuntimeError("빈 응답")
+    return bullets[:3]
+
+
+def _maybe_brief_market(payload: dict, force: bool = False) -> dict:
+    s = get_settings()
+    has = bool(payload.get("briefing"))
+    cap = s.policy_max_gemini_calls_per_day
+    if has and not force:
+        return payload
+    if not s.gemini_api_keys:
+        if not has:
+            payload["briefing_note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다."
+        return payload
+    if not payload.get("items"):
+        payload["briefing_note"] = "브리핑을 만들 리포트가 없습니다."
+        return payload
+    if payload.get("gemini_attempts", 0) >= cap:
+        payload["briefing_note"] = (
+            f"AI 재생성 일일 한도({cap}회)에 도달했습니다." + (" 기존 브리핑을 표시합니다." if has else "")
+        )
+        return payload
+    payload["gemini_attempts"] = payload.get("gemini_attempts", 0) + 1
+    try:
+        payload["briefing"] = _market_briefing(payload["items"])
+        payload["briefing_at"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
+        payload["briefing_note"] = None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("시장 리포트 브리핑 실패: %s", exc)
+        if not has:
+            payload["briefing_note"] = "AI 브리핑 생성에 실패했습니다."
+    return payload
+
+
+def get_market_report_digest(force: bool = False) -> dict:
+    """조회 기준일(비영업일이면 전영업일)의 시장 전체 증권사 리포트 건수 + AI 브리핑.
+
+    특정 종목이 아니라 한경컨센서스 전체 목록(report_type=CO) 기준. 하루 1회만 수집하고
+    스냅샷으로 재사용(force=True 인 재생성 버튼은 브리핑만 다시 만든다). 브리핑은 노출용
+    상위 20건(items)을 근거로 생성한다(전체 수백 건을 매번 다 실어 나르지 않기 위함).
+    """
+    today = datetime.now(KST).date().isoformat()
+    snap = get_snapshot(_MARKET_TABLE, today)
+    if snap is not None:
+        before = (bool(snap.get("briefing")), snap.get("gemini_attempts", 0))
+        snap = _maybe_brief_market(snap, force=force)
+        if (bool(snap.get("briefing")), snap.get("gemini_attempts", 0)) != before:
+            save_snapshot(_MARKET_TABLE, today, snap)
+        return {**snap, "cached": not force}
+
+    try:
+        ref_date, first_page = _find_market_reference_date()
+    except requests.RequestException as exc:
+        logger.info("한경컨센서스 전체 조회 실패: %s", exc)
+        return {"date": today, "as_of": None, "items": [], "total": 0, "total_capped": False,
+                "briefing": None, "briefing_note": "리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+                "list_url": f"{_LIST_URL}?report_type=CO", "source": "none"}
+
+    items = list(first_page)
+    capped = False
+    if items:
+        for page in range(2, _MARKET_MAX_PAGES + 1):
+            batch = _fetch_market_rows(page, ref_date)
+            if not batch:
+                break
+            items.extend(batch)
+        else:
+            capped = True  # for-else: 상한까지 다 돌았는데도 빈 페이지를 못 만남
+
+    payload = {
+        "date": today,
+        "as_of": ref_date,
+        "items": items[:20],
+        "total": len(items),
+        "total_capped": capped,
+        "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
+        "briefing": None,
+        "briefing_at": None,
+        "briefing_note": None,
+        "gemini_attempts": 0,
+        "list_url": f"{_LIST_URL}?report_type=CO",
+        "source": "live" if items else "none",
+    }
+    if not items:
+        payload["briefing_note"] = "최근 발간된 리포트가 없습니다."
+    save_snapshot(_MARKET_TABLE, today, payload)
+    payload = _maybe_brief_market(payload)
+    save_snapshot(_MARKET_TABLE, today, payload)
+    return {**payload, "cached": False}

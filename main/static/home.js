@@ -41,6 +41,9 @@
       desc: "종목별 DART 공시 목록", status: "live" },
     { id: "credit-report", tab: "credit", title: "증권사 리포트", emoji: "📊",
       desc: "당해 연도 리포트 + 목표주가 컨센서스", status: "live" },
+    { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list?report_type=CO",
+      title: "오늘의 증권사 리포트", emoji: "📑",
+      desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
     { id: "ib-deals", tab: "ib", title: "투자금융", emoji: "💼",
       desc: "IB·인수·발행시장 동향", status: "soon" },
     { id: "custody-status", tab: "custody", title: "수탁", emoji: "🔐",
@@ -223,7 +226,24 @@
     },
     // 기업분석 위젯 검색창에서 고른 종목을 그대로 따라간다(공용 personalStockPick).
     "credit-filing": function (el) { return renderFilingsMini(el); },
-    "credit-report": function (el) { return renderReportsMini(el); }
+    "credit-report": function (el) { return renderReportsMini(el); },
+    "market-reports": function (el) {
+      return get("/api/credit/market-reports").then(function (d) {
+        var totalTxt = (d.total || 0) + (d.total_capped ? "+" : "") + "건";
+        var html = asOfLine(d.as_of) + miniRow([["리포트 총 건수", totalTxt]]) +
+          miniBullets(d.briefing, d.briefing_note);
+        var top = (d.items || []).slice(0, 5);
+        if (top.length) {
+          html += miniSubtitle("최근 리포트") + '<ul class="gal-mini-reports">' + top.map(function (r) {
+            return '<li><a href="' + esc(r.url || d.list_url) + '" target="_blank" rel="noopener">' +
+              '<span class="gmr-date">' + esc((r.date || "").slice(5)) + "</span>" +
+              '<span class="gmr-broker">' + esc(r.broker || "") + "</span>" +
+              '<span class="gmr-title">' + esc(r.title || "") + "</span></a></li>";
+          }).join("") + "</ul>";
+        }
+        el.innerHTML = html;
+      });
+    }
   };
 
   function loadMiniPreviews(items) {
@@ -489,12 +509,20 @@
         '<div class="gal-desc">' + esc(w.desc) + "</div>" +
         miniHTML +
         '<div class="gal-actions">' +
-          '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '"' +
-            (w.sub ? ' data-sub="' + w.sub + '"' : "") + '>자세히 보기 →</button>' +
+          actionButtonHTML(w) +
           toggleHTML +
         "</div>" +
       "</div>"
     );
+  }
+
+  // 내부 업무 화면이 있으면 SPA 내 이동, 없으면(externalUrl) 새 탭으로 외부 원문 링크.
+  function actionButtonHTML(w) {
+    if (w.externalUrl) {
+      return '<a class="dart-btn gal-open" href="' + esc(w.externalUrl) + '" target="_blank" rel="noopener">자세히 보기 →</a>';
+    }
+    return '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '"' +
+      (w.sub ? ' data-sub="' + w.sub + '"' : "") + '>자세히 보기 →</button>';
   }
 
   // 기업분석 위젯(내 위젯 전용)은 상단에 종목 검색창을 둔 전용 레이아웃을 쓴다.
@@ -523,7 +551,9 @@
   }
 
   function bindGalleryCardEvents(scope) {
-    scope.querySelectorAll(".gal-open").forEach(function (btn) {
+    // data-work 가 있는(=내부 화면으로 이동하는) 버튼만 SPA 네비게이션을 건다.
+    // externalUrl 카드는 <a href target=_blank> 자체로 동작하므로 별도 바인딩 불필요.
+    scope.querySelectorAll(".gal-open[data-work]").forEach(function (btn) {
       btn.addEventListener("click", function () { goWork(btn.dataset.work, btn.dataset.sub); });
     });
     scope.querySelectorAll(".gal-toggle").forEach(function (btn) {
@@ -536,9 +566,15 @@
     });
   }
 
-  // 홈 대시보드에서 이미 통합 브리핑으로 제공하는 위젯은 전사 위젯 목록에서는 뺀다
-  // (이미 내 위젯에 추가돼 있는 경우는 그대로 유지됨).
-  var HIDDEN_FROM_GALLERY = ["policy-briefing", "research-briefing"];
+  // 전사 위젯에는 종목 무관 "시장 전체" 성격의 위젯만 노출한다.
+  // - policy-briefing/research-briefing: 홈 대시보드에서 이미 통합 브리핑으로 제공
+  // - credit-analysis/credit-filing/credit-report: 특정 종목 기준이라 "내 위젯"의
+  //   기업분석 검색창을 통해서만 채워진다(전사 위젯에서 훑어볼 성격의 위젯이 아님)
+  // 이미 내 위젯에 추가돼 있던 경우는 그대로 유지된다.
+  var HIDDEN_FROM_GALLERY = [
+    "policy-briefing", "research-briefing",
+    "credit-analysis", "credit-filing", "credit-report"
+  ];
 
   function renderGallery() {
     var box = document.getElementById("gallery-grid");

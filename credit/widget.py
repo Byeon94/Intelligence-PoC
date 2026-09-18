@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, render_template, request
 from .equity import get_stock_basics, search_stocks
 from .filings import get_filings
 from .financials import get_financials
-from .reports import get_reports
+from .reports import get_market_report_digest, get_reports
 
 credit_bp = Blueprint(
     "credit",
@@ -71,3 +71,10 @@ def equity_reports():
     if not code:
         return jsonify({"error": "종목코드 6자리를 입력하세요."}), 400
     return _safe(lambda: get_reports(code), "리포트")
+
+
+@credit_bp.route("/api/credit/market-reports")
+def market_reports():
+    """전사 위젯: 특정 종목이 아닌 시장 전체 증권사 리포트 동향(건수 + AI 브리핑)."""
+    force = request.args.get("refresh") in ("1", "true", "yes")
+    return _safe(lambda: get_market_report_digest(force=force), "시장 리포트 동향")

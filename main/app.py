@@ -11,6 +11,7 @@ from capital.cma import get_cma_rates
 from capital.issuance.calendar import get_issuance_digest
 from capital.issuance.widget import issuance_bp
 from capital.widget import capital_bp
+from credit.reports import get_market_report_digest
 from credit.widget import credit_bp
 from main.config import get_settings
 from main.home import get_home_summary
@@ -68,13 +69,18 @@ def _run_warmup() -> None:
             get_cma_rates()
         except Exception:  # noqa: BLE001
             logger.exception("CMA 금리 워밍업 실패")
+        try:
+            get_market_report_digest()
+        except Exception:  # noqa: BLE001
+            logger.exception("시장 리포트 동향 워밍업 실패")
     finally:
         _warmup_lock.release()
 
 
 @app.route("/internal/warmup")
 def warmup():
-    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리 스냅샷을 미리 생성.
+    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/시장 리포트
+    동향 스냅샷을 미리 생성.
 
     스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.
