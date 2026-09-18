@@ -642,10 +642,55 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   background: var(--accent-bg); border-radius: 5px; padding: 1px 6px;
 }
 .gal-mini-week .gmw-company { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 내 위젯 안 기업분석 검색(부서 위젯과 독립) */
-.gm-ca-search { margin-bottom: 8px; }
-.gm-ca-search input { font-size: .82rem; padding: 8px 10px; }
-.gm-ca-search .eq-suggest { top: 38px; max-height: 220px; }
+/* 내 위젯 안 기업분석 검색(부서 위젯과 독립) — 카드 전체를 넓게 써서 기초정보·재무요약·
+   실적분석을 부서 위젯처럼 보여준다. */
+.gal-card-ca { grid-column: 1 / -1; }
+.gm-ca-topsearch {
+  background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 12px;
+}
+.gm-ca-topsearch-label { font-size: .7rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+.gm-ca-search { margin-bottom: 0; }
+.gm-ca-search input { font-size: .88rem; padding: 9px 11px; background: var(--card); }
+.gm-ca-search .eq-suggest { top: 42px; max-height: 260px; }
+.gm-ca-stockhead { font-size: 1.02rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.gm-ca-range { margin: 8px 0 2px; }
+.gm-ca-range-labels { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); margin-bottom: 4px; }
+.gm-ca-range-mid { color: var(--muted); }
+.gm-ca-range-bar { position: relative; height: 6px; border-radius: 4px; background: var(--border2); }
+.gm-ca-range-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0; background: var(--accent-bg); border-radius: 4px; }
+.gm-ca-range-dot {
+  position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--card); transform: translate(-50%, -50%);
+}
+.gm-ca-fin th, .gm-ca-fin td { text-align: right; }
+.gm-ca-fin th:first-child, .gm-ca-fin td:first-child { text-align: left; }
+.gm-ca-charts { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 2px; }
+.gm-ca-chart-label { font-size: .7rem; color: var(--muted); margin-bottom: 4px; }
+@media (min-width: 720px) {
+  .gm-ca-charts { grid-template-columns: 1fr 1fr; }
+}
+/* 공시(내 위젯) 최신 5건 */
+.gal-mini-filings { list-style: none; padding: 0; margin: 0; font-size: .78rem; }
+.gal-mini-filings li + li { margin-top: 6px; }
+.gal-mini-filings a { display: flex; gap: 8px; color: var(--fg); text-decoration: none; }
+.gal-mini-filings a:hover { color: var(--accent); }
+.gal-mini-filings .gmf-date { color: var(--muted); flex: 0 0 76px; font-variant-numeric: tabular-nums; }
+.gal-mini-filings .gmf-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 리포트(내 위젯) 최신 5건 */
+.gal-mini-reports { list-style: none; padding: 0; margin: 0; font-size: .76rem; }
+.gal-mini-reports li + li { margin-top: 6px; }
+.gal-mini-reports a { display: flex; gap: 7px; align-items: center; color: var(--fg); text-decoration: none; }
+.gal-mini-reports a:hover { color: var(--accent); }
+.gal-mini-reports .gmr-date { color: var(--muted); flex: 0 0 68px; font-variant-numeric: tabular-nums; }
+.gal-mini-reports .gmr-broker { flex: 0 0 auto; color: var(--muted); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-mini-reports .gmr-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-mini-reports .gmr-target { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gal-mini-reports .gmr-chg { flex: 0 0 auto; font-weight: 800; width: 16px; text-align: center; }
+.gal-mini-reports .gmr-chg.up { color: var(--up); }
+.gal-mini-reports .gmr-chg.down { color: var(--down); }
+.gal-mini-reports .gmr-chg.new { color: var(--accent); }
+.gal-mini-reports .gmr-chg.flat { color: var(--muted); }
 .gal-mini-asof { text-align: right; font-size: .66rem; color: var(--muted); margin-bottom: 4px; }
 .gal-mini-chart { margin-top: 8px; }
 .gal-mini-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
