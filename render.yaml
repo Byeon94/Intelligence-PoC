@@ -33,3 +33,5 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
+      - key: WARMUP_KEY
+        sync: false

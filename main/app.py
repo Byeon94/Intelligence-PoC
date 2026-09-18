@@ -1,15 +1,22 @@
+import logging
 import sys
+import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
 
 from capital.widget import capital_bp
 from capital.issuance.widget import issuance_bp
 from credit.widget import credit_bp
+from main.config import get_settings
+from policy.briefing import get_policy_digest
 from policy.widget import policy_bp
+from research.curate import get_research_digest
 from research.widget import research_bp
+
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 # PoC: 정적 파일(css/js)도 캐시하지 않아 기기 간 최신본이 바로 반영되게 한다.
@@ -24,6 +31,41 @@ app.register_blueprint(credit_bp)
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+_warmup_lock = threading.Lock()
+
+
+def _run_warmup() -> None:
+    if not _warmup_lock.acquire(blocking=False):
+        return
+    try:
+        try:
+            get_policy_digest()
+        except Exception:  # noqa: BLE001
+            logger.exception("정책·규제 워밍업 실패")
+        try:
+            get_research_digest()
+        except Exception:  # noqa: BLE001
+            logger.exception("리서치·뉴스 워밍업 실패")
+    finally:
+        _warmup_lock.release()
+
+
+@app.route("/internal/warmup")
+def warmup():
+    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스 스냅샷을 미리 생성.
+
+    스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
+    응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.
+    """
+    key = get_settings().warmup_key
+    if not key or request.args.get("key") != key:
+        return jsonify({"error": "unauthorized"}), 403
+    if _warmup_lock.locked():
+        return jsonify({"status": "already_running"}), 202
+    threading.Thread(target=_run_warmup, daemon=True).start()
+    return jsonify({"status": "started"}), 202
 
 
 @app.after_request

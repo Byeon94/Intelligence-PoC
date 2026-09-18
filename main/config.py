@@ -29,6 +29,10 @@ class Settings:
     supabase_url: str | None
     supabase_key: str | None
 
+    # /internal/warmup 호출 인증용 비밀키. 매일 아침 외부 스케줄러(GitHub Actions 등)가
+    # 이 키를 붙여 호출하면 정책·규제/리서치·뉴스 스냅샷을 미리 만들어둔다.
+    warmup_key: str | None
+
 
 def _env(name: str) -> str | None:
     v = os.getenv(name)
@@ -63,4 +67,5 @@ def get_settings() -> Settings:
         dart_api_key=_env("DART_API_KEY"),
         supabase_url=_env("SUPABASE_URL"),
         supabase_key=_env("SUPABASE_KEY"),
+        warmup_key=_env("WARMUP_KEY"),
     )
