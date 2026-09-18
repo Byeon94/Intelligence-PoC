@@ -63,7 +63,17 @@
   // ── localStorage: 내가 고른 위젯(기기별) ──
   var LS_KEY = "myWidgets";
   function getMyWidgetIds() {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (e) { return []; }
+    var ids;
+    try { ids = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (e) { ids = []; }
+    if (!Array.isArray(ids)) ids = [];
+    // 위젯 카탈로그가 바뀌어(삭제·이름변경) 더 이상 존재하지 않는 id는 읽을 때마다 자동 정리.
+    // 그래야 업데이트 이후에도 예전에 추가했던 위젯의 흔적이 남지 않는다.
+    var validIds = WIDGET_CATALOG.map(function (w) { return w.id; });
+    var cleaned = ids.filter(function (id) { return validIds.indexOf(id) >= 0; });
+    if (cleaned.length !== ids.length) {
+      try { localStorage.setItem(LS_KEY, JSON.stringify(cleaned)); } catch (e) {}
+    }
+    return cleaned;
   }
   function toggleMyWidget(id) {
     var ids = getMyWidgetIds();
@@ -231,7 +241,14 @@
   // (여신·심사 화면과는 독립적 — 기업분석 위젯의 검색창이 유일한 입력 지점)
   var STOCK_PICK_KEY = "personalStockPick";
   function getStockPick() {
-    try { return JSON.parse(localStorage.getItem(STOCK_PICK_KEY) || "null"); } catch (e) { return null; }
+    var pick;
+    try { pick = JSON.parse(localStorage.getItem(STOCK_PICK_KEY) || "null"); } catch (e) { pick = null; }
+    // 형식이 깨져 있으면(과거 버전 흔적 등) 무시하고 정리 — 검색해보라는 안내로 자연스럽게 복귀.
+    if (!pick || typeof pick.code !== "string" || !/^\d{6}$/.test(pick.code)) {
+      try { localStorage.removeItem(STOCK_PICK_KEY); } catch (e) {}
+      return null;
+    }
+    return pick;
   }
   function setStockPick(code, name) {
     try { localStorage.setItem(STOCK_PICK_KEY, JSON.stringify({ code: code, name: name })); } catch (e) {}
