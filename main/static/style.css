@@ -73,7 +73,7 @@ body {
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 /* 좁은 화면에서 상단 4개 카테고리가 스크롤 없이 한눈에 들어오도록 축소 */
 @media (max-width: 480px) {
-  .tab-btn { padding: 11px 6px; font-size: .74rem; }
+  .tab-btn { padding: 11px 8px; font-size: .8rem; }
 }
 
 /* ── 레이아웃 ── */
@@ -569,7 +569,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 /* .subtabs 가 display:flex 를 직접 지정하므로 [hidden] 기본 동작이 씹힌다 — 명시적으로 덮어써야 함 */
 .work-subtabs[hidden] { display: none; }
 .work-subtabs {
-  max-width: 1180px; margin: 10px auto 0; padding: 0 8px 10px;
+  max-width: 1180px; margin: 10px auto 16px; padding: 4px 8px;
   overflow-x: auto; scrollbar-width: none;
 }
 .work-subtabs::-webkit-scrollbar { display: none; }
@@ -577,18 +577,21 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .work-subtabs .subtab-btn { font-size: .8rem; padding: 8px 12px; flex: 0 0 auto; white-space: nowrap; }
 
 /* ── 홈 대시보드 ── */
+.home-root .block { margin-bottom: 14px; }
 .home-briefs { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .home-brief-more { margin-top: 10px; padding: 6px 13px; font-size: .74rem; }
 .home-empty-widgets { text-align: center; padding: 20px 10px; }
 .home-empty-widgets .dart-btn { margin-top: 10px; }
 
 .home-alert {
-  border-radius: 12px; border: 1px solid var(--border); padding: 12px 14px; margin-bottom: 10px;
+  border-radius: 12px; border: 1px solid var(--border); padding: 9px 14px; margin-bottom: 7px;
   background: var(--card2);
 }
+.home-alert:last-child { margin-bottom: 0; }
 .home-alert.al-warn { background: rgba(220,38,38,.08); border-color: rgba(220,38,38,.35); }
-.home-alert .al-title { font-weight: 800; font-size: .88rem; margin-bottom: 4px; }
-.home-alert .al-detail { font-size: .8rem; color: var(--muted); margin-bottom: 8px; }
+.home-alert .al-title { font-weight: 800; font-size: .88rem; margin-bottom: 2px; }
+.home-alert .al-detail { font-size: .8rem; color: var(--muted); margin-bottom: 5px; }
+.home-alert .home-brief-more { margin-top: 0; }
 
 /* ── 전사 갤러리 / 홈의 "내가 고른 위젯" 공용 카드 그리드 ── */
 .gallery-intro { margin: -6px 0 14px; }
