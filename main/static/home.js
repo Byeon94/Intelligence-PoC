@@ -114,7 +114,8 @@
   function renderGallery() {
     var box = document.getElementById("gallery-grid");
     if (!box) return;
-    box.innerHTML = WIDGET_CATALOG.map(galCardHTML).join("");
+    var items = WIDGET_CATALOG.filter(function (w) { return w.status !== "soon"; });
+    box.innerHTML = items.map(galCardHTML).join("");
     bindGalleryCardEvents(box);
   }
 
