@@ -88,19 +88,46 @@
   function asOfLine(asOf) {
     return asOf ? '<div class="gal-mini-asof">' + esc(asOf) + ' 기준</div>' : "";
   }
+  function miniSubtitle(t) {
+    return '<div class="gal-mini-subtitle">' + esc(t) + "</div>";
+  }
   function miniRow(pairs) {
     return '<div class="gal-mini-row">' + pairs.map(function (p) {
       return '<div class="gal-mini-item"><span class="gmi-label">' + esc(p[0]) + '</span>' +
         '<span class="gmi-value">' + esc(String(p[1])) + '</span></div>';
     }).join("") + "</div>";
   }
-  // 여신·심사 > 기업분석에서 마지막으로 조회한 종목(credit.js 가 저장) — 기업분석/공시/
-  // 리포트 위젯의 내 위젯 미리보기는 이 종목 기준으로 보여준다.
-  function getLastStock() {
-    try { return JSON.parse(localStorage.getItem("lastStock") || "null"); } catch (e) { return null; }
+  function miniRateTable(rows) {
+    if (!rows.length) return '<div class="gal-mini-note">금리 정보가 없습니다.</div>';
+    return '<table class="gal-mini-table"><thead><tr><th>증권사</th><th>RP형</th><th>발행어음형</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        return "<tr><td>" + esc(r.company) + "</td><td>" +
+          (r.rp_rate != null ? r.rp_rate.toFixed(2) + "%" : "-") + "</td><td>" +
+          (r.note_rate != null ? r.note_rate.toFixed(2) + "%" : "-") + "</td></tr>";
+      }).join("") + "</tbody></table>";
   }
-  function miniStockHint() {
-    return '<div class="gal-mini-note">여신·심사 &gt; 기업분석에서 종목을 검색하면 여기에 표시됩니다.</div>';
+  function thisWeekRange() {
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    var start = new Date(now); start.setDate(now.getDate() - now.getDay());
+    var end = new Date(start); end.setDate(start.getDate() + 6);
+    return [start, end];
+  }
+  function thisWeekEvents(events) {
+    var range = thisWeekRange();
+    return (events || []).filter(function (e) {
+      if (!e.date) return false;
+      var d = new Date(e.date + "T00:00:00");
+      return d >= range[0] && d <= range[1];
+    }).sort(function (a, b) { return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+  }
+  function miniWeekList(events) {
+    if (!events.length) return '<div class="gal-mini-note">이번 주 예정된 일정이 없습니다.</div>';
+    return '<ul class="gal-mini-week">' + events.slice(0, 6).map(function (e) {
+      return "<li><span class=\"gmw-date\">" + esc((e.date || "").slice(5)) + "</span>" +
+        '<span class="gmw-type">' + esc(e.type || "") + "</span>" +
+        '<span class="gmw-company">' + esc(e.company || "") + "</span></li>";
+    }).join("") + "</ul>";
   }
   function miniStockHead(name, code) {
     return '<div class="gal-mini-stock">' + esc(name) + ' <span class="mono">(' + esc(code) + ')</span></div>';
@@ -140,13 +167,19 @@
       });
     },
     "capital-cma": function (el) {
-      return get("/api/capital/cma/mix").then(function (d) {
-        var top = (d.mix || []).slice().sort(function (a, b) { return b.share - a.share; })[0] || {};
-        el.innerHTML = asOfLine(d.as_of) + '<div class="gal-mini-chart gal-mini-donut" id="' + el.id + '-donut"></div>';
+      return Promise.all([get("/api/capital/cma/mix"), get("/api/capital/cma/rates")]).then(function (res) {
+        var mix = res[0], rates = res[1];
+        var top = (mix.mix || []).slice().sort(function (a, b) { return b.share - a.share; })[0] || {};
+        var top5 = (rates.companies || []).slice()
+          .sort(function (a, b) { return (b.rp_rate || 0) - (a.rp_rate || 0); }).slice(0, 5);
+        el.innerHTML =
+          miniSubtitle("CMA 유형별 비중") + asOfLine(mix.as_of) +
+          '<div class="gal-mini-chart gal-mini-donut" id="' + el.id + '-donut"></div>' +
+          miniSubtitle("증권사별 금리 비교") + asOfLine(rates.as_of) + miniRateTable(top5);
         var chartEl = document.getElementById(el.id + "-donut");
         if (chartEl && window.Charts) {
           window.Charts.donut(chartEl, {
-            items: d.mix,
+            items: mix.mix,
             centerLabel: "최다 " + (top.type || ""),
             centerValue: top.share != null ? Math.round(top.share * 10) / 10 + "%" : ""
           });
@@ -156,12 +189,16 @@
     "capital-issuance": function (el) {
       return get("/api/issuance/digest").then(function (d) {
         var c = d.counts || {};
-        el.innerHTML = asOfLine(d.date) + miniRow([
-          ["수요예측", c["수요예측"] || 0],
-          ["청약", c["청약"] || 0],
-          ["상장", c["상장"] || 0],
-          ["유상증자", c["유상증자"] || 0]
-        ]) + miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
+        el.innerHTML =
+          miniSubtitle((d.month_label || "이번 달") + " IPO·유상증자 캘린더 요약") + asOfLine(d.date) +
+          miniRow([
+            ["수요예측", c["수요예측"] || 0],
+            ["청약", c["청약"] || 0],
+            ["상장", c["상장"] || 0],
+            ["유상증자", c["유상증자"] || 0]
+          ]) +
+          miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note) +
+          miniSubtitle("이번 주 일정") + miniWeekList(thisWeekEvents(d.events));
       });
     },
     "policy-briefing": function (el) {
@@ -172,45 +209,6 @@
     "research-briefing": function (el) {
       return get("/api/research/digest").then(function (d) {
         el.innerHTML = miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
-      });
-    },
-    "credit-analysis": function (el) {
-      var s = getLastStock();
-      if (!s) { el.innerHTML = miniStockHint(); return Promise.resolve(); }
-      return get("/api/credit/equity/basics?code=" + s.code).then(function (d) {
-        var chg = d.change_pct;
-        var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
-        el.innerHTML = miniStockHead(d.name || s.name, d.code || s.code) + miniRow([
-          ["종가", d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
-          ["등락", chgTxt],
-          ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
-        ]);
-      });
-    },
-    "credit-filing": function (el) {
-      var s = getLastStock();
-      if (!s) { el.innerHTML = miniStockHint(); return Promise.resolve(); }
-      return get("/api/credit/equity/filings?code=" + s.code).then(function (d) {
-        var items = (d.items || []).slice(0, 2);
-        var head = miniStockHead(d.corp_name || s.name, s.code);
-        if (!items.length) { el.innerHTML = head + '<div class="gal-mini-note">최근 공시가 없습니다.</div>'; return; }
-        el.innerHTML = head + '<ul class="gal-mini-bullets">' + items.map(function (it) {
-          return "<li>" + esc(it.date || "") + " · " + esc(it.title || "") + "</li>";
-        }).join("") + "</ul>";
-      });
-    },
-    "credit-report": function (el) {
-      var s = getLastStock();
-      if (!s) { el.innerHTML = miniStockHint(); return Promise.resolve(); }
-      return get("/api/credit/equity/reports?code=" + s.code).then(function (d) {
-        var head = miniStockHead(s.name, s.code);
-        var c = d.consensus;
-        if (!c) { el.innerHTML = head + '<div class="gal-mini-note">' + esc(d.note || "리포트 컨센서스가 없습니다.") + "</div>"; return; }
-        el.innerHTML = head + miniRow([
-          ["평균목표가", Number(c.avg).toLocaleString("ko-KR") + "원"],
-          ["증권사", c.n_brokers + "곳"],
-          ["리포트", c.n_reports + "건"]
-        ]);
       });
     }
   };
@@ -226,14 +224,103 @@
     });
   }
 
+  // ── 기업분석: 내 위젯 안에서 직접 종목을 검색(여신·심사 화면과 독립적) ──
+  var STOCK_PICK_KEY = "personalStockPick";
+  function getStockPick() {
+    try { return JSON.parse(localStorage.getItem(STOCK_PICK_KEY) || "null"); } catch (e) { return null; }
+  }
+  function setStockPick(code, name) {
+    try { localStorage.setItem(STOCK_PICK_KEY, JSON.stringify({ code: code, name: name })); } catch (e) {}
+  }
+  function mktNameShort(m) {
+    return m === "KOSDAQ" ? "코스닥" : m === "KOSPI" ? "코스피" : (m || "");
+  }
+  function creditAnalysisMiniHTML(elId) {
+    return (
+      '<div class="eq-search gm-ca-search">' +
+        '<input type="text" class="gm-ca-input" placeholder="종목명 또는 코드 검색">' +
+        '<div class="eq-suggest gm-ca-suggest" hidden></div>' +
+      "</div>" +
+      '<div class="gm-ca-result" id="' + elId + '-result"><div class="gal-mini-note">종목을 검색해보세요.</div></div>'
+    );
+  }
+  function renderStockPreview(resultEl, code, name) {
+    resultEl.innerHTML = '<span class="page-note">불러오는 중…</span>';
+    get("/api/credit/equity/basics?code=" + code).then(function (d) {
+      var chg = d.change_pct;
+      var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
+      resultEl.innerHTML = miniStockHead(d.name || name, d.code || code) + miniRow([
+        ["종가", d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
+        ["등락", chgTxt],
+        ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
+      ]) + miniRow([
+        ["PER", d.valuation && d.valuation.per != null ? Number(d.valuation.per).toFixed(1) : "-"],
+        ["PBR", d.valuation && d.valuation.pbr != null ? Number(d.valuation.pbr).toFixed(1) : "-"],
+        ["PSR", d.valuation && d.valuation.psr != null ? Number(d.valuation.psr).toFixed(1) : "-"]
+      ]);
+    }).catch(function () {
+      resultEl.innerHTML = '<div class="gal-mini-note">불러오지 못했습니다.</div>';
+    });
+  }
+  // 서제스트 바깥 클릭 시 닫기 — 매번 새로 렌더되는 카드에 중복 바인딩되지 않도록 문서에 한 번만 건다.
+  document.addEventListener("click", function (e) {
+    if (e.target.closest(".gm-ca-search")) return;
+    document.querySelectorAll(".gm-ca-suggest").forEach(function (s) { s.hidden = true; });
+  });
+  function initCreditAnalysisSearch() {
+    var wrap = document.getElementById("mini-credit-analysis");
+    if (!wrap) return;
+    var input = wrap.querySelector(".gm-ca-input");
+    var sugBox = wrap.querySelector(".gm-ca-suggest");
+    var resultEl = document.getElementById("mini-credit-analysis-result");
+    var timer = null;
+
+    function search() {
+      var q = input.value.trim();
+      if (q.length < 2) { sugBox.hidden = true; return; }
+      get("/api/credit/equity/search?q=" + encodeURIComponent(q)).then(function (d) {
+        if (!d.items || !d.items.length) { sugBox.hidden = true; return; }
+        sugBox.innerHTML = d.items.map(function (it) {
+          return '<button type="button" class="eq-sug" data-code="' + esc(it.code) +
+            '" data-name="' + esc(it.name) + '"><b>' + esc(it.name) + "</b> " +
+            '<span class="mono">' + esc(it.code) + "</span>" +
+            '<span class="eq-sug-mkt">' + esc(mktNameShort(it.market)) + "</span></button>";
+        }).join("");
+        sugBox.hidden = false;
+      }).catch(function () { sugBox.hidden = true; });
+    }
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(search, 250);
+    });
+    sugBox.addEventListener("click", function (e) {
+      var btn = e.target.closest(".eq-sug");
+      if (!btn) return;
+      var code = btn.dataset.code, name = btn.dataset.name;
+      input.value = name + " (" + code + ")";
+      sugBox.hidden = true;
+      setStockPick(code, name);
+      renderStockPreview(resultEl, code, name);
+    });
+
+    var pick = getStockPick();
+    if (pick && pick.code) {
+      input.value = pick.name + " (" + pick.code + ")";
+      renderStockPreview(resultEl, pick.code, pick.name);
+    }
+  }
+
   // ── 카드(전사 위젯 / 내 위젯 공용) ──
   // opts.mini: 내 위젯 전용 — 있으면 실데이터 미리보기 영역을 넣고 "내 위젯에 추가" 토글은 뺀다.
   function galCardHTML(w, opts) {
     opts = opts || {};
     var mine = getMyWidgetIds().indexOf(w.id) >= 0;
-    var miniHTML = (opts.mini && MINI_LOADERS[w.id])
-      ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
-      : "";
+    var miniHTML = "";
+    if (opts.mini && w.id === "credit-analysis") {
+      miniHTML = '<div class="gal-mini gm-ca" id="mini-' + w.id + '">' + creditAnalysisMiniHTML("mini-" + w.id) + "</div>";
+    } else if (opts.mini && MINI_LOADERS[w.id]) {
+      miniHTML = '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>';
+    }
     var toggleHTML = opts.mini ? "" :
       '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
         (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
@@ -300,6 +387,7 @@
     box.innerHTML = items.map(function (w) { return galCardHTML(w, { mini: true }); }).join("");
     bindGalleryCardEvents(box);
     loadMiniPreviews(items);
+    if (items.some(function (w) { return w.id === "credit-analysis"; })) initCreditAnalysisSearch();
   }
 
   // ── 홈 대시보드: 통합 브리핑 + 알림 ──

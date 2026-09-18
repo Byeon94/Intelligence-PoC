@@ -625,6 +625,27 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-bullets li::before { content: "· "; color: var(--accent); font-weight: 800; }
 .gal-mini-note { font-size: .78rem; color: var(--muted); }
 .gal-mini-stock { font-size: .82rem; font-weight: 800; margin-bottom: 6px; }
+.gal-mini-subtitle {
+  font-size: .68rem; font-weight: 800; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .03em; margin: 10px 0 4px;
+}
+.gal-mini-subtitle:first-child { margin-top: 0; }
+.gal-mini-table { width: 100%; border-collapse: collapse; font-size: .72rem; margin-top: 2px; }
+.gal-mini-table th, .gal-mini-table td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--border2); }
+.gal-mini-table th { color: var(--muted); font-weight: 700; }
+.gal-mini-table td:not(:first-child), .gal-mini-table th:not(:first-child) { text-align: right; }
+.gal-mini-week { list-style: none; padding: 0; margin: 0; font-size: .74rem; }
+.gal-mini-week li { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+.gal-mini-week .gmw-date { color: var(--muted); flex: 0 0 40px; font-variant-numeric: tabular-nums; }
+.gal-mini-week .gmw-type {
+  flex: 0 0 auto; font-size: .64rem; font-weight: 800; color: var(--accent);
+  background: var(--accent-bg); border-radius: 5px; padding: 1px 6px;
+}
+.gal-mini-week .gmw-company { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 내 위젯 안 기업분석 검색(부서 위젯과 독립) */
+.gm-ca-search { margin-bottom: 8px; }
+.gm-ca-search input { font-size: .82rem; padding: 8px 10px; }
+.gm-ca-search .eq-suggest { top: 38px; max-height: 220px; }
 .gal-mini-asof { text-align: right; font-size: .66rem; color: var(--muted); margin-bottom: 4px; }
 .gal-mini-chart { margin-top: 8px; }
 .gal-mini-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
