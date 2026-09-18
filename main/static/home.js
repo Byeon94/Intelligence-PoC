@@ -76,6 +76,11 @@
   function goWork(tab, sub) {
     if (window.AppNav) window.AppNav.go("work", tab);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
+    // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #work-subtabs 클릭을 감지해 처음 한 번
+    // 데이터를 지연 로딩한다. 홈/전사 위젯에서 곧장 이동할 때도 그 로딩이 걸리도록
+    // 같은 이벤트를 한 번 흉내 낸다.
+    var bar = document.getElementById("work-subtabs");
+    if (bar) bar.dispatchEvent(new Event("click", { bubbles: true }));
   }
 
   // ── 미니 값 표시(내 위젯 전용) — 위젯마다 가벼운 실데이터를 카드 안에 바로 보여준다 ──
