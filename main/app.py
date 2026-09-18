@@ -60,16 +60,8 @@ def warmup():
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.
     """
     key = get_settings().warmup_key
-    given = request.args.get("key")
-    if not key or given != key:
-        # 진단용(비밀값 자체는 노출하지 않음): 길이 불일치는 대개 공백/줄바꿈이 섞여
-        # 들어간 경우다. 원인 확인 후 이 블록은 제거할 것.
-        return jsonify({
-            "error": "unauthorized",
-            "server_key_set": bool(key),
-            "server_key_len": len(key) if key else 0,
-            "given_key_len": len(given) if given else 0,
-        }), 403
+    if not key or request.args.get("key") != key:
+        return jsonify({"error": "unauthorized"}), 403
     if _warmup_lock.locked():
         return jsonify({"status": "already_running"}), 202
     threading.Thread(target=_run_warmup, daemon=True).start()
