@@ -624,11 +624,24 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-bullets li { padding: 2px 0; line-height: 1.42; }
 .gal-mini-bullets li::before { content: "· "; color: var(--accent); font-weight: 800; }
 .gal-mini-note { font-size: .78rem; color: var(--muted); }
+.gal-mini-stock { font-size: .82rem; font-weight: 800; margin-bottom: 6px; }
+.gal-mini-asof { text-align: right; font-size: .66rem; color: var(--muted); margin-bottom: 4px; }
 .gal-mini-chart { margin-top: 8px; }
 .gal-mini-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .gal-mini-chart .chart-legend { margin-top: 6px; gap: 8px; }
 .gal-mini-chart .chart-legend .lg { font-size: .66rem; }
 .gal-mini-chart .axis-label { font-size: 8px; }
+/* CMA 유형별 점유율 도넛 — 좁은 카드에 맞춰 축소 배치 */
+.gal-mini-donut { display: flex; align-items: center; gap: 10px; margin-top: 0; }
+.gal-mini-donut .donut-svg { flex: 0 0 76px; max-width: 76px; }
+.gal-mini-donut .donut-center-v { font-size: 15px; }
+.gal-mini-donut .donut-center-l { font-size: 7px; }
+.gal-mini-donut .donut-legend { min-width: 0; flex: 1; gap: 3px; }
+.gal-mini-donut .donut-legend .dl { font-size: .68rem; gap: 5px; }
+.gal-mini-donut .donut-legend .dl-bal { display: none; }
+/* AI 브리핑 — 눈에 띄게 별도 박스로 구분 */
+.gal-mini-ai { margin-top: 9px; padding: 8px 10px; background: var(--accent-bg); border-radius: 8px; }
+.gal-mini-ai-label { font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
 .gal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .gal-actions .dart-btn { padding: 6px 12px; font-size: .74rem; }
 .gal-toggle {

@@ -85,19 +85,33 @@
 
   // ── 미니 값 표시(내 위젯 전용) — 위젯마다 가벼운 실데이터를 카드 안에 바로 보여준다 ──
   function jo(v) { return v == null ? "-" : (Math.round(v * 10) / 10) + "조"; }
+  function asOfLine(asOf) {
+    return asOf ? '<div class="gal-mini-asof">' + esc(asOf) + ' 기준</div>' : "";
+  }
   function miniRow(pairs) {
     return '<div class="gal-mini-row">' + pairs.map(function (p) {
       return '<div class="gal-mini-item"><span class="gmi-label">' + esc(p[0]) + '</span>' +
         '<span class="gmi-value">' + esc(String(p[1])) + '</span></div>';
     }).join("") + "</div>";
   }
+  // 여신·심사 > 기업분석에서 마지막으로 조회한 종목(credit.js 가 저장) — 기업분석/공시/
+  // 리포트 위젯의 내 위젯 미리보기는 이 종목 기준으로 보여준다.
+  function getLastStock() {
+    try { return JSON.parse(localStorage.getItem("lastStock") || "null"); } catch (e) { return null; }
+  }
+  function miniStockHint() {
+    return '<div class="gal-mini-note">여신·심사 &gt; 기업분석에서 종목을 검색하면 여기에 표시됩니다.</div>';
+  }
+  function miniStockHead(name, code) {
+    return '<div class="gal-mini-stock">' + esc(name) + ' <span class="mono">(' + esc(code) + ')</span></div>';
+  }
   function miniBullets(bullets, note) {
-    if (!bullets || !bullets.length) {
-      return '<div class="gal-mini-note">' + esc(note || "표시할 내용이 없습니다.") + "</div>";
-    }
-    return '<ul class="gal-mini-bullets">' + bullets.slice(0, 2).map(function (b) {
-      return "<li>" + esc(b) + "</li>";
-    }).join("") + "</ul>";
+    var body = (!bullets || !bullets.length)
+      ? '<div class="gal-mini-note">' + esc(note || "표시할 내용이 없습니다.") + "</div>"
+      : '<ul class="gal-mini-bullets">' + bullets.slice(0, 2).map(function (b) {
+          return "<li>" + esc(b) + "</li>";
+        }).join("") + "</ul>";
+    return '<div class="gal-mini-ai"><div class="gal-mini-ai-label">🤖 AI 브리핑</div>' + body + "</div>";
   }
 
   // 각 로더는 자신의 미리보기 영역(el)을 직접 채운다(el) => Promise.
@@ -105,7 +119,7 @@
     "capital-liquidity": function (el) {
       return get("/api/capital/liquidity/summary").then(function (d) {
         var it = d.items || {};
-        el.innerHTML = miniRow([
+        el.innerHTML = asOfLine(d.as_of) + miniRow([
           ["예탁금", jo(it.investor_deposits && it.investor_deposits.value)],
           ["신용공여", jo(it.credit_balance && it.credit_balance.value)],
           ["CMA", jo(it.cma_balance && it.cma_balance.value)]
@@ -126,19 +140,23 @@
       });
     },
     "capital-cma": function (el) {
-      return get("/api/capital/cma/summary").then(function (d) {
-        var it = d.items || {};
-        el.innerHTML = miniRow([
-          ["총잔고", jo(it.total && it.total.value)],
-          ["RP형", jo(it.rp && it.rp.value)],
-          ["발행어음형", jo(it.note && it.note.value)]
-        ]);
+      return get("/api/capital/cma/mix").then(function (d) {
+        var top = (d.mix || []).slice().sort(function (a, b) { return b.share - a.share; })[0] || {};
+        el.innerHTML = asOfLine(d.as_of) + '<div class="gal-mini-chart gal-mini-donut" id="' + el.id + '-donut"></div>';
+        var chartEl = document.getElementById(el.id + "-donut");
+        if (chartEl && window.Charts) {
+          window.Charts.donut(chartEl, {
+            items: d.mix,
+            centerLabel: "최다 " + (top.type || ""),
+            centerValue: top.share != null ? Math.round(top.share * 10) / 10 + "%" : ""
+          });
+        }
       });
     },
     "capital-issuance": function (el) {
       return get("/api/issuance/digest").then(function (d) {
         var c = d.counts || {};
-        el.innerHTML = miniRow([
+        el.innerHTML = asOfLine(d.date) + miniRow([
           ["수요예측", c["수요예측"] || 0],
           ["청약", c["청약"] || 0],
           ["상장", c["상장"] || 0],
@@ -154,6 +172,45 @@
     "research-briefing": function (el) {
       return get("/api/research/digest").then(function (d) {
         el.innerHTML = miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
+      });
+    },
+    "credit-analysis": function (el) {
+      var s = getLastStock();
+      if (!s) { el.innerHTML = miniStockHint(); return Promise.resolve(); }
+      return get("/api/credit/equity/basics?code=" + s.code).then(function (d) {
+        var chg = d.change_pct;
+        var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
+        el.innerHTML = miniStockHead(d.name || s.name, d.code || s.code) + miniRow([
+          ["종가", d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
+          ["등락", chgTxt],
+          ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
+        ]);
+      });
+    },
+    "credit-filing": function (el) {
+      var s = getLastStock();
+      if (!s) { el.innerHTML = miniStockHint(); return Promise.resolve(); }
+      return get("/api/credit/equity/filings?code=" + s.code).then(function (d) {
+        var items = (d.items || []).slice(0, 2);
+        var head = miniStockHead(d.corp_name || s.name, s.code);
+        if (!items.length) { el.innerHTML = head + '<div class="gal-mini-note">최근 공시가 없습니다.</div>'; return; }
+        el.innerHTML = head + '<ul class="gal-mini-bullets">' + items.map(function (it) {
+          return "<li>" + esc(it.date || "") + " · " + esc(it.title || "") + "</li>";
+        }).join("") + "</ul>";
+      });
+    },
+    "credit-report": function (el) {
+      var s = getLastStock();
+      if (!s) { el.innerHTML = miniStockHint(); return Promise.resolve(); }
+      return get("/api/credit/equity/reports?code=" + s.code).then(function (d) {
+        var head = miniStockHead(s.name, s.code);
+        var c = d.consensus;
+        if (!c) { el.innerHTML = head + '<div class="gal-mini-note">' + esc(d.note || "리포트 컨센서스가 없습니다.") + "</div>"; return; }
+        el.innerHTML = head + miniRow([
+          ["평균목표가", Number(c.avg).toLocaleString("ko-KR") + "원"],
+          ["증권사", c.n_brokers + "곳"],
+          ["리포트", c.n_reports + "건"]
+        ]);
       });
     }
   };
@@ -192,7 +249,7 @@
         miniHTML +
         '<div class="gal-actions">' +
           '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '"' +
-            (w.sub ? ' data-sub="' + w.sub + '"' : "") + '>화면 열기 →</button>' +
+            (w.sub ? ' data-sub="' + w.sub + '"' : "") + '>자세히 보기 →</button>' +
           toggleHTML +
         "</div>" +
       "</div>"

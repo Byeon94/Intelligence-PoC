@@ -79,6 +79,8 @@
     state.name = name || code;
     state.filFor = null;                 // 새 종목 → 공시·리포트 다시 로드
     state.rptFor = null;
+    // 내 위젯(홈 대시보드)에서 "마지막으로 조회한 종목" 기준 미리보기를 보여주기 위해 기억.
+    try { localStorage.setItem("lastStock", JSON.stringify({ code: code, name: state.name })); } catch (e) {}
     qEl.value = state.name + " (" + code + ")";
     sugEl.hidden = true;
     document.getElementById("eq-cur-name").textContent = state.name;
