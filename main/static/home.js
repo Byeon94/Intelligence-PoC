@@ -41,7 +41,7 @@
       desc: "종목별 DART 공시 목록", status: "live" },
     { id: "credit-report", tab: "credit", title: "증권사 리포트", emoji: "📊",
       desc: "당해 연도 리포트 + 목표주가 컨센서스", status: "live" },
-    { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list?report_type=CO",
+    { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
       title: "오늘의 증권사 리포트", emoji: "📑",
       desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
     { id: "ib-deals", tab: "ib", title: "투자금융", emoji: "💼",

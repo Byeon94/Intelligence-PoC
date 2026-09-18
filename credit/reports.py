@@ -164,19 +164,25 @@ def get_reports(code: str, limit: int = 20) -> dict:
 _MARKET_TABLE = "market_report_snapshots"
 _MARKET_MAX_PAGES = 8     # 하루치 페이지 상한(과도한 스크랩 방지) — 넘으면 total_capped=True
 _MARKET_MAX_BACK_DAYS = 5  # 오늘부터 최대 이만큼 거슬러 올라가며 '전영업일' 탐색
+_MARKET_SCHEMA_V = 2  # v2: report_type=CO(기업만) → ""(전체 유형)로 변경, 총 건수 버그 수정
 
 _MARKET_BRIEF_SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 임직원을 위한 증권사 리서치 리포트 브리핑 어시스턴트야.\n"
-    "아래는 오늘(조회 기준일) 국내 증권사들이 발간한 리서치 리포트의 제목·종목·투자의견 목록이다.\n"
-    "이 중 업무상 눈에 띄는 흐름(특정 업종·종목 쏠림, 다수의 상향/하향, 주목할 이슈)을 "
-    "불릿 3개로 정리해.\n"
+    "아래는 오늘(조회 기준일) 국내 증권사들이 발간한 리서치 리포트의 유형(시장/산업/기업/경제 등)·"
+    "제목·증권사 목록이다.\n"
+    "이 중 업무상 눈에 띄는 흐름(특정 업종·종목 쏠림, 여러 증권사가 다룬 공통 이슈, 주목할 "
+    "이슈)을 불릿 3개로 정리해.\n"
     "- 각 불릿은 '- '로 시작, 70자 이내 한 문장. 소제목·서두 없이 불릿 3개만 출력."
 )
 
 
 def _fetch_market_rows(page: int, date_str: str) -> list[dict]:
+    # report_type=""(전체): 기업(CO) 리포트만이 아니라 시장·산업·경제 등 그 날 발간된
+    # 모든 리포트를 센다. 이 뷰는 CO 전용 목록과 테이블 컬럼 구성이 달라
+    # (목표주가·투자의견 컬럼이 없음) 파싱도 별도로 한다.
+    # 컬럼: [0]날짜 [1]유형(시장/산업/기업/경제…) [2]제목(PDF 링크) [3]애널리스트 [4]증권사 [5]첨부
     resp = requests.get(_LIST_URL, params={
-        "sdate": date_str, "edate": date_str, "report_type": "CO",
+        "sdate": date_str, "edate": date_str, "report_type": "",
         "order_type": "", "now_page": page,
     }, headers=_HEADERS, timeout=12)
     resp.raise_for_status()
@@ -189,23 +195,17 @@ def _fetch_market_rows(page: int, date_str: str) -> list[dict]:
         if "<td" not in r:
             continue
         tds = re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)
-        if len(tds) < 6:
+        if len(tds) < 5:
             continue
         strip = lambda s: _html.unescape(re.sub(r"<[^>]+>", "", s)).strip()
-        a = re.search(r'<a href="(/analysis/downpdf\?report_idx=\d+)"[^>]*>(.*?)</a>', tds[1], re.S)
+        a = re.search(r'<a href="(/analysis/downpdf\?report_idx=\d+)"[^>]*>(.*?)</a>', tds[2], re.S)
         pdf = _PDF_BASE + a.group(1) if a else None
-        title = strip(a.group(2)) if a else strip(tds[1])   # 종목명 접두를 지우지 않음(시장 전체용)
-        tp = strip(tds[2]).replace(",", "")
-        try:
-            target = int(tp) or None
-        except ValueError:
-            target = None
+        title = strip(a.group(2)) if a else strip(tds[2])
         out.append({
             "date": strip(tds[0]),
+            "category": strip(tds[1]) or None,
             "title": title,
-            "target": target,
-            "opinion": _norm_opinion(strip(tds[3])),
-            "broker": strip(tds[5]) or None,
+            "broker": strip(tds[4]) or None,
             "url": pdf,
         })
     return out
@@ -225,7 +225,7 @@ def _find_market_reference_date() -> tuple[str, list[dict]]:
 
 def _market_briefing(items: list[dict]) -> list[str]:
     lines = "\n".join(
-        f"- [{it.get('broker') or ''}] {it.get('title', '')} ({it.get('opinion') or '의견없음'})"
+        f"- [{it.get('category') or ''}/{it.get('broker') or ''}] {it.get('title', '')}"
         for it in items[:60]
     )
     text = generate_text(
@@ -272,12 +272,16 @@ def _maybe_brief_market(payload: dict, force: bool = False) -> dict:
 def get_market_report_digest(force: bool = False) -> dict:
     """조회 기준일(비영업일이면 전영업일)의 시장 전체 증권사 리포트 건수 + AI 브리핑.
 
-    특정 종목이 아니라 한경컨센서스 전체 목록(report_type=CO) 기준. 하루 1회만 수집하고
-    스냅샷으로 재사용(force=True 인 재생성 버튼은 브리핑만 다시 만든다). 브리핑은 노출용
-    상위 20건(items)을 근거로 생성한다(전체 수백 건을 매번 다 실어 나르지 않기 위함).
+    특정 종목이 아니라 한경컨센서스 전체 목록(report_type="", 시장·산업·기업·경제 등 전 유형)
+    기준. 하루 1회만 수집하고 스냅샷으로 재사용(force=True 인 재생성 버튼은 브리핑만 다시
+    만든다). 브리핑은 노출용 상위 20건(items, 제목 중복 제거됨)을 근거로 생성한다(전체
+    수백 건을 매번 다 실어 나르지 않기 위함). total 은 사이트에서 세는 값과 맞추기 위해
+    중복 제거 전 원본 건수다.
     """
     today = datetime.now(KST).date().isoformat()
     snap = get_snapshot(_MARKET_TABLE, today)
+    if snap is not None and snap.get("v") != _MARKET_SCHEMA_V:
+        snap = None  # 스키마 변경(전체 유형 반영) — 재수집
     if snap is not None:
         before = (bool(snap.get("briefing")), snap.get("gemini_attempts", 0))
         snap = _maybe_brief_market(snap, force=force)
@@ -291,7 +295,7 @@ def get_market_report_digest(force: bool = False) -> dict:
         logger.info("한경컨센서스 전체 조회 실패: %s", exc)
         return {"date": today, "as_of": None, "items": [], "total": 0, "total_capped": False,
                 "briefing": None, "briefing_note": "리포트를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
-                "list_url": f"{_LIST_URL}?report_type=CO", "source": "none"}
+                "list_url": _LIST_URL, "source": "none"}
 
     items = list(first_page)
     capped = False
@@ -304,10 +308,23 @@ def get_market_report_digest(force: bool = False) -> dict:
         else:
             capped = True  # for-else: 상한까지 다 돌았는데도 빈 페이지를 못 만남
 
+    # 표시/브리핑용은 제목 중복을 제거(원본 목록에 같은 리포트가 중복 게재되는 경우가 있음).
+    # '총 건수'는 실제 사이트에서 세는 값과 맞추기 위해 중복 제거 전 원본 건수를 쓴다.
+    seen_titles: set[str] = set()
+    deduped: list[dict] = []
+    for it in items:
+        key = (it.get("title") or "").strip()
+        if key and key in seen_titles:
+            continue
+        if key:
+            seen_titles.add(key)
+        deduped.append(it)
+
     payload = {
+        "v": _MARKET_SCHEMA_V,
         "date": today,
         "as_of": ref_date,
-        "items": items[:20],
+        "items": deduped[:20],
         "total": len(items),
         "total_capped": capped,
         "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
@@ -315,7 +332,7 @@ def get_market_report_digest(force: bool = False) -> dict:
         "briefing_at": None,
         "briefing_note": None,
         "gemini_attempts": 0,
-        "list_url": f"{_LIST_URL}?report_type=CO",
+        "list_url": f"{_LIST_URL}?sdate={ref_date}&edate={ref_date}",
         "source": "live" if items else "none",
     }
     if not items:
