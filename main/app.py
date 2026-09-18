@@ -7,10 +7,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, jsonify, render_template, request
 
-from capital.widget import capital_bp
+from capital.issuance.calendar import get_issuance_digest
 from capital.issuance.widget import issuance_bp
+from capital.widget import capital_bp
 from credit.widget import credit_bp
 from main.config import get_settings
+from main.home import get_home_summary
 from policy.briefing import get_policy_digest
 from policy.widget import policy_bp
 from research.curate import get_research_digest
@@ -33,6 +35,15 @@ def home():
     return render_template("index.html")
 
 
+@app.route("/api/home/summary")
+def home_summary():
+    try:
+        return jsonify(get_home_summary())
+    except Exception:  # noqa: BLE001
+        logger.exception("홈 요약 조회 실패")
+        return jsonify({"error": "홈 요약을 불러오지 못했습니다."}), 502
+
+
 _warmup_lock = threading.Lock()
 
 
@@ -48,13 +59,17 @@ def _run_warmup() -> None:
             get_research_digest()
         except Exception:  # noqa: BLE001
             logger.exception("리서치·뉴스 워밍업 실패")
+        try:
+            get_issuance_digest()
+        except Exception:  # noqa: BLE001
+            logger.exception("발행시장 워밍업 실패")
     finally:
         _warmup_lock.release()
 
 
 @app.route("/internal/warmup")
 def warmup():
-    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스 스냅샷을 미리 생성.
+    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장 스냅샷을 미리 생성.
 
     스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.
