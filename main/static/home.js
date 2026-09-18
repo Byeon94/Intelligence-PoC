@@ -100,46 +100,60 @@
     }).join("") + "</ul>";
   }
 
+  // 각 로더는 자신의 미리보기 영역(el)을 직접 채운다(el) => Promise.
   var MINI_LOADERS = {
-    "capital-liquidity": function () {
+    "capital-liquidity": function (el) {
       return get("/api/capital/liquidity/summary").then(function (d) {
         var it = d.items || {};
-        return miniRow([
+        el.innerHTML = miniRow([
           ["예탁금", jo(it.investor_deposits && it.investor_deposits.value)],
           ["신용공여", jo(it.credit_balance && it.credit_balance.value)],
           ["CMA", jo(it.cma_balance && it.cma_balance.value)]
-        ]);
+        ]) + '<div class="gal-mini-chart" id="' + el.id + '-chart"></div>';
+        return get("/api/capital/liquidity/trend").then(function (t) {
+          var chartEl = document.getElementById(el.id + "-chart");
+          if (!chartEl || !window.Charts) return;
+          var n = 12; // 최근 1년만 (카드 공간이 작아 전체 24개월은 과함)
+          window.Charts.line(chartEl, {
+            labels: (t.labels || []).slice(-n),
+            series: [
+              { name: "예탁금", values: (t.series.investor_deposits || []).slice(-n), varName: "--c1" },
+              { name: "신용공여", values: (t.series.credit_balance || []).slice(-n), varName: "--c2" },
+              { name: "CMA", values: (t.series.cma_balance || []).slice(-n), varName: "--c3" }
+            ]
+          });
+        });
       });
     },
-    "capital-cma": function () {
+    "capital-cma": function (el) {
       return get("/api/capital/cma/summary").then(function (d) {
         var it = d.items || {};
-        return miniRow([
+        el.innerHTML = miniRow([
           ["총잔고", jo(it.total && it.total.value)],
           ["RP형", jo(it.rp && it.rp.value)],
           ["발행어음형", jo(it.note && it.note.value)]
         ]);
       });
     },
-    "capital-issuance": function () {
+    "capital-issuance": function (el) {
       return get("/api/issuance/digest").then(function (d) {
         var c = d.counts || {};
-        return miniRow([
+        el.innerHTML = miniRow([
           ["수요예측", c["수요예측"] || 0],
           ["청약", c["청약"] || 0],
           ["상장", c["상장"] || 0],
           ["유상증자", c["유상증자"] || 0]
-        ]);
+        ]) + miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
       });
     },
-    "policy-briefing": function () {
+    "policy-briefing": function (el) {
       return get("/api/policy/digest").then(function (d) {
-        return miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
+        el.innerHTML = miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
       });
     },
-    "research-briefing": function () {
+    "research-briefing": function (el) {
       return get("/api/research/digest").then(function (d) {
-        return miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
+        el.innerHTML = miniBullets(bulletsFromBriefing(d.briefing), d.briefing_note);
       });
     }
   };
@@ -149,9 +163,7 @@
       var loader = MINI_LOADERS[w.id];
       var el = document.getElementById("mini-" + w.id);
       if (!loader || !el) return;
-      loader().then(function (html) {
-        el.innerHTML = html;
-      }).catch(function () {
+      loader(el).catch(function () {
         el.innerHTML = '<div class="gal-mini-note">불러오지 못했습니다.</div>';
       });
     });
@@ -201,10 +213,16 @@
     });
   }
 
+  // 홈 대시보드에서 이미 통합 브리핑으로 제공하는 위젯은 전사 위젯 목록에서는 뺀다
+  // (이미 내 위젯에 추가돼 있는 경우는 그대로 유지됨).
+  var HIDDEN_FROM_GALLERY = ["policy-briefing", "research-briefing"];
+
   function renderGallery() {
     var box = document.getElementById("gallery-grid");
     if (!box) return;
-    var items = WIDGET_CATALOG.filter(function (w) { return w.status !== "soon"; });
+    var items = WIDGET_CATALOG.filter(function (w) {
+      return w.status !== "soon" && HIDDEN_FROM_GALLERY.indexOf(w.id) < 0;
+    });
     box.innerHTML = items.map(function (w) { return galCardHTML(w); }).join("");
     bindGalleryCardEvents(box);
   }

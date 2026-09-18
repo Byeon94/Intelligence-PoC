@@ -624,6 +624,11 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-bullets li { padding: 2px 0; line-height: 1.42; }
 .gal-mini-bullets li::before { content: "· "; color: var(--accent); font-weight: 800; }
 .gal-mini-note { font-size: .78rem; color: var(--muted); }
+.gal-mini-chart { margin-top: 8px; }
+.gal-mini-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.gal-mini-chart .chart-legend { margin-top: 6px; gap: 8px; }
+.gal-mini-chart .chart-legend .lg { font-size: .66rem; }
+.gal-mini-chart .axis-label { font-size: 8px; }
 .gal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .gal-actions .dart-btn { padding: 6px 12px; font-size: .74rem; }
 .gal-toggle {
