@@ -9,6 +9,8 @@
     });
   }
 
+  // AI 브리핑은 홈 대시보드에도 이미 표시되므로, 이 화면에서는 기본 접어두고
+  // "더보기"를 눌렀을 때만 펼친다(중복 노출 최소화).
   function renderBrief(d) {
     var box = document.getElementById("rs-brief");
     if (!box) return;
@@ -17,22 +19,35 @@
       '<div class="brief-head">' +
         '<span class="brief-label">💬 AI 뉴스 브리핑</span>' +
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
+        '<button type="button" class="brief-toggle" id="rs-brief-toggle">더보기 ↓</button>' +
       "</div>";
     var bullets = (d.briefing || []).filter(Boolean).slice(0, 3);
+    var body;
     if (!bullets.length) {
-      box.innerHTML = head + '<div class="brief-note">' +
-        esc(d.briefing_note || "브리핑을 사용할 수 없습니다.") + "</div>";
-      return;
+      body = '<div class="brief-note">' + esc(d.briefing_note || "브리핑을 사용할 수 없습니다.") + "</div>";
+    } else {
+      body = '<ol class="brief-list">' +
+          bullets.map(function (b, i) {
+            return '<li><span class="bl-no">' + (CIRCLED[i] || i + 1) + "</span>" +
+                   '<span class="bl-tx">' + esc(b) + "</span></li>";
+          }).join("") +
+        "</ol>" +
+        (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
+        '<div class="brief-meta">📌 네이버 뉴스에서 당일 수집한 기사 중 한국증권금융 업무 관련 항목을 AI가 선별·요약합니다.</div>';
     }
-    box.innerHTML = head +
-      '<ol class="brief-list">' +
-        bullets.map(function (b, i) {
-          return '<li><span class="bl-no">' + (CIRCLED[i] || i + 1) + "</span>" +
-                 '<span class="bl-tx">' + esc(b) + "</span></li>";
-        }).join("") +
-      "</ol>" +
-      (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
-      '<div class="brief-meta">📌 네이버 뉴스에서 당일 수집한 기사 중 한국증권금융 업무 관련 항목을 AI가 선별·요약합니다.</div>';
+    box.innerHTML = head + '<div class="brief-body" id="rs-brief-body" hidden>' + body + "</div>";
+    bindBriefToggle();
+  }
+
+  function bindBriefToggle() {
+    var btn = document.getElementById("rs-brief-toggle");
+    var body = document.getElementById("rs-brief-body");
+    if (!btn || !body) return;
+    btn.addEventListener("click", function () {
+      var show = body.hidden;
+      body.hidden = !show;
+      btn.textContent = show ? "접기 ↑" : "더보기 ↓";
+    });
   }
 
   function renderFeed(d) {

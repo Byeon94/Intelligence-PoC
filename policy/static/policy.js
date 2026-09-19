@@ -10,6 +10,8 @@
     });
   }
 
+  // AI 브리핑은 홈 대시보드에도 이미 표시되므로, 이 화면에서는 기본 접어두고
+  // "더보기"를 눌렀을 때만 펼친다(중복 노출 최소화).
   function renderBriefing(d) {
     var box = document.getElementById("pol-brief");
     if (!box) return;
@@ -19,37 +21,50 @@
       '<div class="brief-head">' +
         '<span class="brief-label">💬 AI 정책 브리핑</span>' +
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
+        '<button type="button" class="brief-toggle" id="pol-brief-toggle">더보기 ↓</button>' +
       "</div>";
 
+    var body;
     if (!d.briefing) {
-      box.innerHTML = head +
-        '<div class="brief-note">' + esc(d.briefing_note || "AI 브리핑을 사용할 수 없습니다.") + "</div>";
-      return;
-    }
-    var bullets = d.briefing
-      .split("\n")
-      .map(function (l) { return l.replace(/^\s*[-•*]\s*/, "").trim(); })
-      .map(function (l) { return l.replace(/\s*·?\s*출처[:：].*$/, "").trim(); })
-      .filter(Boolean)
-      .map(function (l) {
-        // 한 줄 분량으로 축약: 첫 문장까지만, 그래도 길면 잘라서 …
-        var cut = l.match(/^(.{25,90}?[.!?。](?=\s|$))/);
-        var s = cut ? cut[1] : l;
-        if (s.length > 95) s = s.slice(0, 92).replace(/[\s,·]+\S*$/, "") + "…";
-        return s;
-      })
-      .slice(0, 3);
+      body = '<div class="brief-note">' + esc(d.briefing_note || "AI 브리핑을 사용할 수 없습니다.") + "</div>";
+    } else {
+      var bullets = d.briefing
+        .split("\n")
+        .map(function (l) { return l.replace(/^\s*[-•*]\s*/, "").trim(); })
+        .map(function (l) { return l.replace(/\s*·?\s*출처[:：].*$/, "").trim(); })
+        .filter(Boolean)
+        .map(function (l) {
+          // 한 줄 분량으로 축약: 첫 문장까지만, 그래도 길면 잘라서 …
+          var cut = l.match(/^(.{25,90}?[.!?。](?=\s|$))/);
+          var s = cut ? cut[1] : l;
+          if (s.length > 95) s = s.slice(0, 92).replace(/[\s,·]+\S*$/, "") + "…";
+          return s;
+        })
+        .slice(0, 3);
 
-    box.innerHTML = head +
-      '<ol class="brief-list">' +
-        bullets.map(function (b, i) {
-          return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + "</span>" +
-                 '<span class="bl-tx">' + esc(b) + "</span></li>";
-        }).join("") +
-      "</ol>" +
-      (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
-      '<div class="brief-meta">📌 위 요약은 당일 수집된 공식 보도자료를 기반으로 AI가 자동 생성합니다.' +
-        (d.stale ? " · 이전 자료" : "") + "</div>";
+      body = '<ol class="brief-list">' +
+          bullets.map(function (b, i) {
+            return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + "</span>" +
+                   '<span class="bl-tx">' + esc(b) + "</span></li>";
+          }).join("") +
+        "</ol>" +
+        (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
+        '<div class="brief-meta">📌 위 요약은 당일 수집된 공식 보도자료를 기반으로 AI가 자동 생성합니다.' +
+          (d.stale ? " · 이전 자료" : "") + "</div>";
+    }
+    box.innerHTML = head + '<div class="brief-body" id="pol-brief-body" hidden>' + body + "</div>";
+    bindBriefToggle();
+  }
+
+  function bindBriefToggle() {
+    var btn = document.getElementById("pol-brief-toggle");
+    var body = document.getElementById("pol-brief-body");
+    if (!btn || !body) return;
+    btn.addEventListener("click", function () {
+      var show = body.hidden;
+      body.hidden = !show;
+      btn.textContent = show ? "접기 ↑" : "더보기 ↓";
+    });
   }
 
   var ORG_NAMES = {
