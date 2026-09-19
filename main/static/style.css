@@ -599,6 +599,8 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-card {
   background: var(--card); border: 1px solid var(--border); border-radius: 14px;
   padding: 15px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px;
+  min-width: 0; /* 그리드/플렉스 아이템 기본값(min-width:auto)이 내부 긴 텍스트만큼
+                   카드를 넓혀 모바일에서 가로 스크롤(=화면이 축소되어 보임)을 만드는 문제 방지 */
 }
 .gal-top { display: flex; align-items: center; justify-content: space-between; }
 .gal-emoji { font-size: 1.4rem; }
@@ -612,6 +614,8 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-status.st-soon { color: var(--muted); }
 /* 부서 위젯 — "전사 등재" 옆에 함께 붙는 출처 배지, 연한 빨강으로 눈에 띄게 */
 .gal-status.st-deptw { color: var(--down); border-color: var(--down); background: rgba(220,38,38,.08); }
+/* 제작 부서/담당자 표기(예: IT부 제작) — 부서 위젯 배지 대신 파란색으로 출처를 밝힌다 */
+.gal-status.st-credit { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .gal-title { font-weight: 800; font-size: .95rem; }
 .gal-desc { font-size: .8rem; color: var(--muted); line-height: 1.5; flex: 1; }
 /* 내 위젯 카드 안 실데이터 미리보기 */
@@ -641,7 +645,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   flex: 0 0 auto; font-size: .64rem; font-weight: 800; color: var(--accent);
   background: var(--accent-bg); border-radius: 5px; padding: 1px 6px;
 }
-.gal-mini-week .gmw-company { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-mini-week .gmw-company { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 내 위젯 안 기업분석 검색(부서 위젯과 독립) — 카드 전체를 넓게 써서 기초정보·재무요약·
    실적분석을 부서 위젯처럼 보여준다. */
 .gal-card-ca { grid-column: 1 / -1; }
@@ -676,7 +680,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-filings a { display: flex; gap: 8px; color: var(--fg); text-decoration: none; }
 .gal-mini-filings a:hover { color: var(--accent); }
 .gal-mini-filings .gmf-date { color: var(--muted); flex: 0 0 76px; font-variant-numeric: tabular-nums; }
-.gal-mini-filings .gmf-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-mini-filings .gmf-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 리포트(내 위젯) 최신 5건 */
 .gal-mini-reports { list-style: none; padding: 0; margin: 0; font-size: .76rem; }
 .gal-mini-reports li + li { margin-top: 6px; }
@@ -684,7 +688,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-reports a:hover { color: var(--accent); }
 .gal-mini-reports .gmr-date { color: var(--muted); flex: 0 0 68px; font-variant-numeric: tabular-nums; }
 .gal-mini-reports .gmr-broker { flex: 0 0 auto; color: var(--muted); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gal-mini-reports .gmr-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-mini-reports .gmr-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gal-mini-reports .gmr-target { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gal-mini-reports .gmr-chg { flex: 0 0 auto; font-weight: 800; width: 16px; text-align: center; }
 .gal-mini-reports .gmr-chg.up { color: var(--up); }

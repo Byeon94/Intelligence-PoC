@@ -25,6 +25,13 @@
   // ── 전사 갤러리 카탈로그(= 업무별 화면의 주요 섹션 단위) ──
   // sub: 자본시장처럼 내부에 세부탭이 있는 화면일 때, 그 세부탭까지 바로 이동시키기 위한 힌트.
   var WIDGET_CATALOG = [
+    { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
+      title: "오늘의 증권사 리포트", emoji: "📑", creditBadge: "기획부 유OO 과장 제작",
+      desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
+    { id: "it-news", externalUrl: "https://search.naver.com/search.naver?where=news&query=" +
+        encodeURIComponent("금융IT 정보보호 생성형AI"),
+      title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️", creditBadge: "IT부 변OO 과장 제작",
+      desc: "금융IT·정보보호·AI·클라우드 등 IT부 관심 뉴스 AI 선별 + 브리핑", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
@@ -41,13 +48,6 @@
       desc: "종목별 DART 공시 목록", status: "live" },
     { id: "credit-report", tab: "credit", title: "증권사 리포트", emoji: "📊",
       desc: "당해 연도 리포트 + 목표주가 컨센서스", status: "live" },
-    { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
-      title: "오늘의 증권사 리포트", emoji: "📑",
-      desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
-    { id: "it-news", externalUrl: "https://search.naver.com/search.naver?where=news&query=" +
-        encodeURIComponent("금융IT 정보보호 생성형AI"),
-      title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️",
-      desc: "금융IT·정보보호·AI·클라우드 등 IT부 관심 뉴스 AI 선별 + 브리핑", status: "live" },
     { id: "ib-deals", tab: "ib", title: "투자금융", emoji: "💼",
       desc: "IB·인수·발행시장 동향", status: "soon" },
     { id: "custody-status", tab: "custody", title: "수탁", emoji: "🔐",
@@ -62,8 +62,12 @@
 
   // "부서 위젯" 배지 — 업무별 화면에 실제로 구현된(=live) 위젯에는 "전사 등재" 옆에
   // 함께 표시해, 원래 부서 업무 화면에서 만들어졌다는 출처를 나타낸다.
+  // creditBadge 가 있는 위젯(예: 특정 부서 담당자가 직접 만든 위젯)은 "부서 위젯" 대신
+  // 그 제작 출처를 파란색 배지로 보여준다.
   function statusBadgesHTML(w) {
-    var deptBadge = w.status === "live" ? '<span class="gal-status st-deptw">부서 위젯</span>' : "";
+    var deptBadge = w.creditBadge
+      ? '<span class="gal-status st-credit">' + esc(w.creditBadge) + "</span>"
+      : (w.status === "live" ? '<span class="gal-status st-deptw">부서 위젯</span>' : "");
     return deptBadge + '<span class="gal-status ' + STATUS_CLASS[w.status] + '">' + STATUS_LABEL[w.status] + "</span>";
   }
 
@@ -250,8 +254,7 @@
     },
     "it-news": function (el) {
       return get("/api/it-news/digest").then(function (d) {
-        var html = (d.credit ? '<div class="gal-mini-asof">' + esc(d.credit) + "</div>" : "") +
-          miniBullets(d.briefing, d.briefing_note);
+        var html = miniBullets(d.briefing, d.briefing_note);
         var top = (d.articles || []).slice(0, 8);
         if (top.length) {
           html += miniSubtitle("오늘의 기사") + '<ul class="gal-mini-reports">' + top.map(function (a) {
