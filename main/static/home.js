@@ -1,5 +1,6 @@
 /* 홈 대시보드 · 전사 위젯 · 내 위젯
- * 위젯 "선택"은 로그인 없이 이 브라우저(localStorage)에만 저장한다(PoC 범위). */
+ * 위젯 "선택"은 로그인 없이, 이 탭이 열려 있는 동안(메모리)만 유지한다 — 새로고침·재접속하면
+ * 초기화된다(PoC 범위, 영속 저장 없음). */
 (function () {
   "use strict";
 
@@ -71,27 +72,17 @@
     return deptBadge + '<span class="gal-status ' + STATUS_CLASS[w.status] + '">' + STATUS_LABEL[w.status] + "</span>";
   }
 
-  // ── localStorage: 내가 고른 위젯(기기별) ──
-  var LS_KEY = "myWidgets";
+  // ── 내가 고른 위젯: 이 탭이 열려 있는 동안만(메모리) 유지 ──
+  // 예전엔 localStorage에 저장해 재접속해도 남아 있었으나, 링크로 새로 열 때마다
+  // "내 위젯"이 항상 빈 상태로 시작하도록(=재접속 시 지속되지 않도록) 요청에 따라 변경.
+  var myWidgetIds = [];
   function getMyWidgetIds() {
-    var ids;
-    try { ids = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch (e) { ids = []; }
-    if (!Array.isArray(ids)) ids = [];
-    // 위젯 카탈로그가 바뀌어(삭제·이름변경) 더 이상 존재하지 않는 id는 읽을 때마다 자동 정리.
-    // 그래야 업데이트 이후에도 예전에 추가했던 위젯의 흔적이 남지 않는다.
-    var validIds = WIDGET_CATALOG.map(function (w) { return w.id; });
-    var cleaned = ids.filter(function (id) { return validIds.indexOf(id) >= 0; });
-    if (cleaned.length !== ids.length) {
-      try { localStorage.setItem(LS_KEY, JSON.stringify(cleaned)); } catch (e) {}
-    }
-    return cleaned;
+    return myWidgetIds.slice();
   }
   function toggleMyWidget(id) {
-    var ids = getMyWidgetIds();
-    var i = ids.indexOf(id);
-    if (i >= 0) ids.splice(i, 1); else ids.push(id);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(ids)); } catch (e) {}
-    return ids;
+    var i = myWidgetIds.indexOf(id);
+    if (i >= 0) myWidgetIds.splice(i, 1); else myWidgetIds.push(id);
+    return myWidgetIds.slice();
   }
 
   function goWork(tab, sub) {
