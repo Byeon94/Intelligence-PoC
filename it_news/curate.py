@@ -6,10 +6,14 @@
 """
 from __future__ import annotations
 
+import html as _html
 import json
 import logging
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+import requests
 
 from main.config import get_settings
 from main.gemini import generate_text
@@ -21,7 +25,7 @@ logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
 _TABLE = "it_news_snapshots"
 _N = 5
-_SCHEMA_V = 2  # v2: 8건 선별 → AI가 가장 괜찮은 5건만 선별하도록 축소
+_SCHEMA_V = 3  # v3: 네이버가 잘라 보내는 제목을 원문 og:title로 보완
 CREDIT = "IT부 변OO 과장 제작"
 
 _SYSTEM_PROMPT = (
@@ -65,6 +69,27 @@ def _parse(text: str) -> dict:
     return obj
 
 
+_OG_TITLE_RE = re.compile(
+    r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\'](.*?)["\']', re.I
+)
+
+
+def _full_title(url: str) -> str | None:
+    """네이버 뉴스 검색 API는 긴 제목을 '...'로 잘라서 준다. 잘린 제목만 원문
+    페이지의 og:title(보통 잘리지 않은 전체 제목)로 보완한다. 실패하면 None."""
+    try:
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
+        resp.raise_for_status()
+        m = _OG_TITLE_RE.search(resp.text)
+        if not m:
+            return None
+        title = _html.unescape(m.group(1)).strip()
+        title = re.sub(r"\s*\|\s*[^|]{1,20}$", "", title).strip()  # " | 언론사명" 접미사만 제거(하이픈은 헤드라인 자체에 흔해 건드리지 않음)
+        return title or None
+    except Exception:  # noqa: BLE001 - 원문 페이지 구조는 사이트마다 달라 실패는 흔함
+        return None
+
+
 def _apply_curation(payload: dict) -> dict:
     cands = payload.get("candidates") or []
     result = _gemini_curate(cands)
@@ -75,8 +100,11 @@ def _apply_curation(payload: dict) -> dict:
             c = cands[int(p["idx"])]
         except (ValueError, KeyError, IndexError, TypeError):
             continue
+        title = c["title"]
+        if title.endswith("...") or title.endswith("…"):
+            title = _full_title(c["url"]) or title
         articles.append({
-            "title": c["title"],
+            "title": title,
             "url": c["url"],
             "keyword": c.get("keyword", ""),
             "published": c["published"],

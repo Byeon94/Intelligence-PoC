@@ -686,9 +686,79 @@
     }
     return (
       '<div class="brief-card home-brief">' + head + body +
-        '<button type="button" class="dart-btn home-brief-more" data-work="' + opts.tab + '">자세히 보기 →</button>' +
+        '<button type="button" class="dart-btn home-brief-more" data-detail="' + opts.tab + '">자세히 보기 ↓</button>' +
+        '<div class="home-brief-detail" id="home-detail-' + opts.tab + '" hidden></div>' +
       "</div>"
     );
+  }
+
+  // "자세히 보기"를 눌렀을 때 부서 화면으로 이동하지 않고, 금융당국 동향/유관기관
+  // 동향(정책) 또는 선별 기사 전체(리서치)를 홈 대시보드 카드 안에 바로 펼쳐 보여준다.
+  function policyGroupsHTML(groups) {
+    if (!groups || !groups.length) return '<div class="chart-error">보도자료를 가져오지 못했습니다.</div>';
+    return groups.map(function (g) {
+      var rows = (g.items || []).map(function (it) {
+        if (it.link_only) {
+          return '<a class="pol-item pol-link" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+            '<div class="pi-title">🔗 ' + esc(it.title) + "</div></a>";
+        }
+        return '<a class="pol-item" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+          '<div class="pi-top"><span class="pi-date">' + esc(it.date || "") + "</span>" +
+            (it.dept ? '<span class="pi-dept">' + esc(it.dept) + "</span>" : "") + "</div>" +
+          '<div class="pi-title">' + esc(it.title) + "</div></a>";
+      }).join("");
+      return '<div class="pol-group"><div class="pg-head"><span class="pg-badge">' + esc(g.badge) + "</span>" +
+        '<span class="pg-name">' + esc(g.org_name) + "</span></div>" + rows + "</div>";
+    }).join("");
+  }
+
+  function policyDetailHTML(d) {
+    return miniSubtitle("금융당국 동향") + policyGroupsHTML(d.groups) +
+      miniSubtitle("유관기관 동향") + policyGroupsHTML(d.affiliate_groups);
+  }
+
+  function researchDetailHTML(d) {
+    var arts = d.articles || [];
+    if (!arts.length) {
+      return '<div class="chart-error">' + esc(d.briefing_note || "선별된 기사가 없습니다.") + "</div>";
+    }
+    return arts.map(function (a, i) {
+      return '<a class="news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
+        '<div class="ni-rank">' + (i + 1) + "</div>" +
+        '<div class="ni-body"><div class="ni-top"><span class="ni-tag">' + esc(a.tag || "일반") + "</span>" +
+          '<span class="ni-date">' + esc(a.published || "") + "</span></div>" +
+          '<div class="ni-title">' + esc(a.title) + "</div>" +
+          (a.reason ? '<div class="ni-reason">' + esc(a.reason) + "</div>" : "") +
+        "</div></a>";
+    }).join("");
+  }
+
+  function loadBriefDetail(tab, box) {
+    var url = tab === "policy" ? "/api/policy/digest" : "/api/research/digest";
+    box.innerHTML = '<span class="page-note">불러오는 중…</span>';
+    return get(url).then(function (d) {
+      box.innerHTML = tab === "policy" ? policyDetailHTML(d) : researchDetailHTML(d);
+    }).catch(function (e) {
+      box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      box.dataset.loaded = "";
+    });
+  }
+
+  function bindBriefDetailToggle(scope) {
+    scope.querySelectorAll(".home-brief-more[data-detail]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var tab = btn.dataset.detail;
+        var box = document.getElementById("home-detail-" + tab);
+        if (!box) return;
+        var show = box.hidden;
+        box.hidden = !show;
+        btn.textContent = show ? "접기 ↑" : "자세히 보기 ↓";
+        if (show && !box.dataset.loaded) {
+          box.dataset.loaded = "1";
+          loadBriefDetail(tab, box);
+        }
+      });
+    });
   }
 
   function renderAlerts(alerts) {
@@ -737,7 +807,7 @@
         });
       }
       briefBox.innerHTML = cards || '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
-      bindGoWorkButtons(briefBox);
+      bindBriefDetailToggle(briefBox);
       renderAlerts(d.alerts);
     }).catch(function (e) {
       briefBox.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";

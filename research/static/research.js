@@ -17,13 +17,11 @@
       '<div class="brief-head">' +
         '<span class="brief-label">💬 AI 뉴스 브리핑</span>' +
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
-        '<button type="button" class="brief-regen" id="rs-regen">↻ 재생성</button>' +
       "</div>";
     var bullets = (d.briefing || []).filter(Boolean).slice(0, 3);
     if (!bullets.length) {
       box.innerHTML = head + '<div class="brief-note">' +
         esc(d.briefing_note || "브리핑을 사용할 수 없습니다.") + "</div>";
-      bindRegen();
       return;
     }
     box.innerHTML = head +
@@ -35,17 +33,6 @@
       "</ol>" +
       (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
       '<div class="brief-meta">📌 네이버 뉴스에서 당일 수집한 기사 중 한국증권금융 업무 관련 항목을 AI가 선별·요약합니다.</div>';
-    bindRegen();
-  }
-
-  function bindRegen() {
-    var btn = document.getElementById("rs-regen");
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      btn.disabled = true;
-      btn.textContent = "재생성 중…";
-      fetchDigest(true);
-    });
   }
 
   function renderFeed(d) {

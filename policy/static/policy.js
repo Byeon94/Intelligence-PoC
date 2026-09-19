@@ -19,13 +19,11 @@
       '<div class="brief-head">' +
         '<span class="brief-label">💬 AI 정책 브리핑</span>' +
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
-        '<button type="button" class="brief-regen" id="pol-regen">↻ 재생성</button>' +
       "</div>";
 
     if (!d.briefing) {
       box.innerHTML = head +
         '<div class="brief-note">' + esc(d.briefing_note || "AI 브리핑을 사용할 수 없습니다.") + "</div>";
-      bindRegen();
       return;
     }
     var bullets = d.briefing
@@ -52,17 +50,6 @@
       (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
       '<div class="brief-meta">📌 위 요약은 당일 수집된 공식 보도자료를 기반으로 AI가 자동 생성합니다.' +
         (d.stale ? " · 이전 자료" : "") + "</div>";
-    bindRegen();
-  }
-
-  function bindRegen() {
-    var btn = document.getElementById("pol-regen");
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      btn.disabled = true;
-      btn.textContent = "재생성 중…";
-      fetchDigest(true);
-    });
   }
 
   var ORG_NAMES = {
