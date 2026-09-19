@@ -244,7 +244,6 @@
         if (top.length) {
           html += miniSubtitle("최근 리포트") + '<ul class="gal-mini-reports">' + top.map(function (r) {
             return '<li><a href="' + esc(r.url || d.list_url) + '" target="_blank" rel="noopener">' +
-              '<span class="gmr-date">' + esc((r.date || "").slice(5)) + "</span>" +
               '<span class="gmr-broker">' + esc(r.broker || "") + "</span>" +
               '<span class="gmr-title">' + esc(r.title || "") + "</span></a></li>";
           }).join("") + "</ul>";
@@ -259,7 +258,6 @@
         if (top.length) {
           html += miniSubtitle("오늘의 기사(AI 추천)") + '<ul class="gal-mini-reports">' + top.map(function (a) {
             return '<li><a href="' + esc(a.url || "#") + '" target="_blank" rel="noopener">' +
-              '<span class="gmr-date">' + esc((a.published || "").slice(5, 10)) + "</span>" +
               '<span class="gmr-broker">' + esc(a.keyword || "") + "</span>" +
               '<span class="gmr-title">' + esc(a.title || "") + "</span></a></li>";
           }).join("") + "</ul>";
@@ -524,6 +522,9 @@
       : '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
         (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
       "</button>";
+    // "오늘의 IT·정보보호 뉴스"는 내 위젯 안에서 기사 링크가 이미 각각 걸려 있어
+    // 별도 "자세히 보기"(네이버 뉴스 검색으로 이동)가 의미가 없어 내 위젯에서만 뺀다.
+    var showActionBtn = !(opts.mini && w.id === "it-news");
     return (
       '<div class="gal-card">' +
         '<div class="gal-top">' +
@@ -534,7 +535,7 @@
         '<div class="gal-desc">' + esc(w.desc) + "</div>" +
         miniHTML +
         '<div class="gal-actions">' +
-          actionButtonHTML(w) +
+          (showActionBtn ? actionButtonHTML(w) : "") +
           toggleHTML +
         "</div>" +
       "</div>"
