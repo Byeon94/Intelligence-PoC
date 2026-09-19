@@ -31,7 +31,7 @@
     { id: "it-news", externalUrl: "https://search.naver.com/search.naver?where=news&query=" +
         encodeURIComponent("금융IT 정보보호 생성형AI"),
       title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️", creditBadge: "IT부 변OO 과장 제작",
-      desc: "금융IT·정보보호·AI·클라우드 등 IT부 관심 뉴스 AI 선별 + 브리핑", status: "live" },
+      desc: "IT·정보보호 관련 참고하기 좋은 뉴스 및 AI 브리핑", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
