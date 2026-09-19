@@ -255,9 +255,9 @@
     "it-news": function (el) {
       return get("/api/it-news/digest").then(function (d) {
         var html = miniBullets(d.briefing, d.briefing_note);
-        var top = (d.articles || []).slice(0, 8);
+        var top = (d.articles || []).slice(0, 5);
         if (top.length) {
-          html += miniSubtitle("오늘의 기사") + '<ul class="gal-mini-reports">' + top.map(function (a) {
+          html += miniSubtitle("오늘의 기사(AI 추천)") + '<ul class="gal-mini-reports">' + top.map(function (a) {
             return '<li><a href="' + esc(a.url || "#") + '" target="_blank" rel="noopener">' +
               '<span class="gmr-date">' + esc((a.published || "").slice(5, 10)) + "</span>" +
               '<span class="gmr-broker">' + esc(a.keyword || "") + "</span>" +

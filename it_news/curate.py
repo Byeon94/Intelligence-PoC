@@ -20,13 +20,15 @@ from .sources import collect_candidates
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
 _TABLE = "it_news_snapshots"
-_N = 8
+_N = 5
+_SCHEMA_V = 2  # v2: 8건 선별 → AI가 가장 괜찮은 5건만 선별하도록 축소
 CREDIT = "IT부 변OO 과장 제작"
 
 _SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 임직원을 위한 IT·정보보호 뉴스 큐레이터야.\n"
     "아래 후보 기사 중 금융 IT·정보보호·AI·클라우드·빅데이터·UI/UX·생성형 AI·개발 트렌드·"
-    "혁신금융서비스·블록체인·차세대 시스템과 관련성이 높은 순으로 정확히 8건을 골라라.\n"
+    "혁신금융서비스·블록체인·차세대 시스템과 관련성·중요도가 가장 높은 5건만 엄선해라.\n"
+    "picks 배열은 관련성·중요도가 높은 순서로 정렬해라(1번이 가장 추천하는 기사).\n"
     "그리고 오늘 가장 주목할 흐름을 불릿 3개로 요약한 briefing 을 작성해라 "
     "(각 불릿 '- ' 시작, 한 문장, 업무 시사점 포함).\n"
     "반드시 아래 JSON 형식 텍스트만 출력해. 코드블록·설명 금지.\n"
@@ -125,6 +127,8 @@ def get_it_news_digest(force: bool = False) -> dict:
     today = _today()
 
     snap = get_snapshot(_TABLE, today)
+    if snap is not None and snap.get("v") != _SCHEMA_V:
+        snap = None  # 스키마 변경(5건 선별로 축소) — 재수집
     if snap is not None:
         before = (len(snap.get("articles") or []), snap.get("gemini_attempts", 0))
         snap = _maybe_curate(snap, force=force)
@@ -141,6 +145,7 @@ def get_it_news_digest(force: bool = False) -> dict:
         raise
 
     payload = {
+        "v": _SCHEMA_V,
         "date": today,
         "credit": CREDIT,
         "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),

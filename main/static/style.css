@@ -619,7 +619,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-title { font-weight: 800; font-size: .95rem; }
 .gal-desc { font-size: .8rem; color: var(--muted); line-height: 1.5; flex: 1; }
 /* 내 위젯 카드 안 실데이터 미리보기 */
-.gal-mini { margin-top: 4px; padding-top: 9px; border-top: 1px solid var(--border2); }
+.gal-mini { margin-top: 0; padding-top: 6px; border-top: 1px solid var(--border2); }
 .gal-mini-row { display: flex; gap: 14px; flex-wrap: wrap; }
 .gal-mini-item { display: flex; flex-direction: column; gap: 2px; }
 .gal-mini-item .gmi-label { font-size: .68rem; color: var(--muted); }
