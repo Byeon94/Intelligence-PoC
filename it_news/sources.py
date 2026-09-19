@@ -24,7 +24,7 @@ _ENDPOINT = "https://openapi.naver.com/v1/search/news.json"
 
 KEYWORDS = [
     "금융 IT", "정보보호", "AI", "클라우드", "빅데이터", "UI/UX",
-    "생성형 AI", "개발 트렌드", "혁신금융서비스", "블록체인", "차세대",
+    "생성형 AI", "개발 트렌드", "혁신금융서비스", "블록체인", "금융 차세대", "한국증권금융",
 ]
 
 _STRIP_TAG = re.compile(r"<[^>]+>")
