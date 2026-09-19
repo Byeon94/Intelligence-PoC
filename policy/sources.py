@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from urllib.parse import urljoin
@@ -233,20 +234,33 @@ _AUTHORITY_FETCHERS = {"FSC": fetch_fsc, "FSS": fetch_fss, "BOK": fetch_bok, "MO
 _AFFILIATE_FETCHERS = {"KRX": fetch_krx, "KDIC": fetch_kdic, "KSD": fetch_ksd, "KOFIA": fetch_kofia}
 
 
+def _fetch_one(org: str, fn) -> list[dict] | None:
+    """성공 시 결과 리스트(빈 리스트 포함 가능), 실패 시 None."""
+    try:
+        got = fn()
+        if not got:
+            logger.warning("정책 스크랩 결과 없음: %s", org)
+        return got
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("정책 스크랩 실패 %s: %s", org, exc)
+        return None
+
+
 def _run(fetchers: dict) -> tuple[list[dict], list[str]]:
+    """하루 1회만 스크랩하고 캐시하는 구조라, 이 한 번의 시도에서 실패한 기관은
+    자정(다음 날짜 롤오버)까지 실패 상태로 굳어버린다. 일시적 네트워크 문제로
+    한 곳이 실패해도 결과가 통째로 나빠지지 않도록 실패한 기관만 한 번 더 시도한다."""
     items: list[dict] = []
     failed: list[str] = []
     for org, fn in fetchers.items():
-        try:
-            got = fn()
-            if got:
-                items.extend(got)
-            else:
-                failed.append(org)
-                logger.warning("정책 스크랩 결과 없음: %s", org)
-        except Exception as exc:  # noqa: BLE001
+        got = _fetch_one(org, fn)
+        if got is None:
+            time.sleep(1)
+            got = _fetch_one(org, fn)  # 재시도 1회
+        if got:
+            items.extend(got)
+        else:
             failed.append(org)
-            logger.warning("정책 스크랩 실패 %s: %s", org, exc)
     return items, failed
 
 

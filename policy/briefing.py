@@ -26,7 +26,7 @@ from .sources import (
 )
 
 _TABLE = "policy_snapshots"
-_SCHEMA_V = 8  # v8: 기획재정부 → 재정경제부 명칭 반영(스냅샷 재수집)
+_SCHEMA_V = 9  # v9: 스크랩 실패 기관 1회 재시도 추가(오늘자 금융위 누락 재수집)
 
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
