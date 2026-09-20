@@ -2,7 +2,7 @@ name: Daily snapshot warmup
 
 on:
   schedule:
-    # 22:00 UTC = 07:00 KST. GitHub Actions 스케줄은 서버 부하에 따라
+    # 15:01 UTC = 00:01 KST(다음날). GitHub Actions 스케줄은 서버 부하에 따라
     # 몇 분 정도 지연될 수 있다(PoC 목적상 허용 범위).
     - cron: "1 15 * * *"
   workflow_dispatch: {}

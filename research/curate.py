@@ -144,7 +144,7 @@ def get_research_digest(force: bool = False) -> dict:
 
     try:
         candidates = collect_candidates()
-    except RuntimeError as exc:  # 키 미설정 등
+    except RuntimeError:  # 키 미설정 등
         stale = latest_snapshot(_TABLE)
         if stale:
             return {**stale, "cached": True, "stale": True}
