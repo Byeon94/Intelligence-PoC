@@ -33,13 +33,6 @@
         .map(function (l) { return l.replace(/^\s*[-•*]\s*/, "").trim(); })
         .map(function (l) { return l.replace(/\s*·?\s*출처[:：].*$/, "").trim(); })
         .filter(Boolean)
-        .map(function (l) {
-          // 한 줄 분량으로 축약: 첫 문장까지만, 그래도 길면 잘라서 …
-          var cut = l.match(/^(.{25,90}?[.!?。](?=\s|$))/);
-          var s = cut ? cut[1] : l;
-          if (s.length > 95) s = s.slice(0, 92).replace(/[\s,·]+\S*$/, "") + "…";
-          return s;
-        })
         .slice(0, 3);
 
       body = '<ol class="brief-list">' +

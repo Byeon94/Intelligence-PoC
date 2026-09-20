@@ -613,32 +613,11 @@
     bindGalleryCardEvents(box);
   }
 
-  // 기업분석·공시·증권사 리포트는 전사 위젯 목록에는 안 보이는 위젯이라(특정 종목
-  // 기준이라 검색으로만 채워짐) "그만보기"로 지우면 전사 위젯에서 되찾을 방법이 없다.
-  // 내 위젯 화면에 자체 복구 버튼을 둬서 언제든 다시 추가할 수 있게 한다.
-  var HIDDEN_RESTORABLE = ["credit-analysis", "credit-filing", "credit-report"];
-  function renderHiddenRestore() {
-    var slot = document.getElementById("personal-restore-hidden");
-    if (!slot) return;
-    var ids = getMyWidgetIds();
-    var missing = HIDDEN_RESTORABLE.filter(function (id) { return ids.indexOf(id) < 0; });
-    if (!missing.length) { slot.innerHTML = ""; return; }
-    slot.innerHTML =
-      '<div class="page-note personal-restore-note">기업분석·공시·증권사 리포트 위젯을 그만보셨나요? ' +
-      '<button type="button" class="link-btn" id="personal-restore-btn">다시 추가</button></div>';
-    var btn = document.getElementById("personal-restore-btn");
-    if (btn) btn.addEventListener("click", function () {
-      missing.forEach(function (id) { toggleMyWidget(id); });
-      renderPersonal();
-    });
-  }
-
   function renderPersonal() {
     var box = document.getElementById("personal-grid");
     if (!box) return;
     var ids = getMyWidgetIds();
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
-    renderHiddenRestore();
     if (!items.length) {
       box.innerHTML =
         '<div class="page-note home-empty-widgets">전사 위젯에서 추가하면 여기에 표시됩니다.<br>' +
