@@ -79,17 +79,28 @@
     return parts[0] + "년 " + Number(parts[1]) + "월";
   }
 
+  // 브라우저 로컬 날짜를 YYYY-MM-DD로 (toISOString은 UTC라 자정 근처엔 하루 밀릴 수 있음).
+  function localISODate(dateObj) {
+    var d = dateObj || new Date();
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  // DART 공시는 비영업일에 올라오지 않으므로 "공시 데이터에 실제로 찍힌 최신 날짜"가
+  // 곧 전 영업일 기준이 되고, 뉴스는 주말에도 나올 수 있으므로 조회 시점의 실제 날짜를 쓴다.
   function refDateInfo() {
     var d = leadsState.data;
     if (!d) return null;
-    var dates = (d.collateral || []).map(function (x) { return x.date; })
+    var dartDates = (d.collateral || []).map(function (x) { return x.date; })
       .concat((d.esop || []).map(function (x) { return x.date; }))
-      .concat((newsState.items || []).map(function (n) { return n.published; }))
-      .concat((esopNewsState.items || []).map(function (n) { return n.published; }))
       .filter(Boolean);
-    if (!dates.length) return null;
-    var refDate = dates.reduce(function (a, b) { return b > a ? b : a; });
-    return { refDate: refDate, refMonth: refDate.slice(0, 7) };
+    var newsRefDate = localISODate();
+    var dartRefDate = dartDates.length
+      ? dartDates.reduce(function (a, b) { return b > a ? b : a; })
+      : newsRefDate;
+    return { dartRefDate: dartRefDate, newsRefDate: newsRefDate, refMonth: dartRefDate.slice(0, 7) };
   }
 
   /* ── 전체: 요약 KPI 4개 ── */
@@ -97,23 +108,25 @@
     var d = leadsState.data;
     if (!d || d.pending || newsState.items === null || esopNewsState.items === null) return;   // 모든 소스가 응답한 뒤에 계산
     var ref = refDateInfo();
-    var refDate = ref ? ref.refDate : new Date().toISOString().slice(0, 10);
-    var refMonth = ref ? ref.refMonth : new Date().toISOString().slice(0, 7);
+    var dartRefDate = ref ? ref.dartRefDate : localISODate();
+    var newsRefDate = ref ? ref.newsRefDate : localISODate();
+    var refMonth = ref ? ref.refMonth : localISODate().slice(0, 7);
 
     document.getElementById("leads-asof").textContent =
-      refDate + " 기준 (DART·뉴스에 실제로 올라온 최신 날짜 — 비영업일이면 자동으로 전 영업일)";
+      "공시 " + dartRefDate + " · 뉴스 " + newsRefDate + " 기준 (공시는 비영업일이면 자동으로 전 영업일, 뉴스는 조회일 기준)";
 
     var newsItems = newsState.items || [];
     var allDated = (d.collateral || []).concat(d.esop || [])
       .concat(newsItems.map(function (n) { return { date: n.published }; }))
       .concat((esopNewsState.items || []).map(function (n) { return { date: n.published }; }));
-    var weekCutoff = new Date(refDate + "T00:00:00");
+    var weekCutoff = new Date(newsRefDate + "T00:00:00");
     weekCutoff.setDate(weekCutoff.getDate() - 6);
-    var weekCutStr = weekCutoff.toISOString().slice(0, 10);
+    var weekCutStr = localISODate(weekCutoff);
 
-    var todayCount = allDated.filter(function (x) { return x.date === refDate; }).length;
-    var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= refDate; }).length;
-    renderTodayLeadsList(refDate);
+    var todayCount = (d.collateral || []).concat(d.esop || []).filter(function (x) { return x.date === dartRefDate; }).length
+      + newsItems.concat(esopNewsState.items || []).filter(function (n) { return n.published === newsRefDate; }).length;
+    var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= newsRefDate; }).length;
+    renderTodayLeadsList(dartRefDate, newsRefDate);
 
     var inMonth = function (x) { return (x.date || "").slice(0, 7) === refMonth; };
     var newsInMonth = function (n) { return (n.published || "").slice(0, 7) === refMonth; };
@@ -308,17 +321,19 @@
     renderEsopNewsList();
   }
 
-  /* ── 전체: AI 브리핑 하단에 "오늘 신규 리드"(기준일에 실제로 찍힌 공시·뉴스) 목록 ── */
-  function renderTodayLeadsList(refDate) {
+  /* ── 전체: AI 브리핑 하단에 "오늘 신규 리드" 목록 — 공시는 dartRefDate(비영업일이면
+     전 영업일), 뉴스는 newsRefDate(조회 시점의 실제 날짜) 기준으로 각각 필터링한다. ── */
+  function renderTodayLeadsList(dartRefDate, newsRefDate) {
     var d = leadsState.data;
     if (!d) return;
     var rows = [];
-    (d.collateral || []).forEach(function (it) { if (it.date === refDate) rows.push(collateralRowHTML(it)); });
-    (d.esop || []).forEach(function (it) { if (it.date === refDate) rows.push(esopRowHTML(it)); });
-    (newsState.items || []).forEach(function (n) { if (n.published === refDate) rows.push(newsRowHTML(n)); });
-    (esopNewsState.items || []).forEach(function (n) { if (n.published === refDate) rows.push(newsRowHTML(n)); });
+    (d.collateral || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(collateralRowHTML(it)); });
+    (d.esop || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(esopRowHTML(it)); });
+    (newsState.items || []).forEach(function (n) { if (n.published === newsRefDate) rows.push(newsRowHTML(n)); });
+    (esopNewsState.items || []).forEach(function (n) { if (n.published === newsRefDate) rows.push(newsRowHTML(n)); });
     renderExpandableList("leads-today-list", rows, function (html) { return html; },
-      refDate + " 기준 신규 공시·뉴스가 없습니다.", function () { renderTodayLeadsList(refDate); });
+      "공시 " + dartRefDate + " · 뉴스 " + newsRefDate + " 기준 신규 공시·뉴스가 없습니다.",
+      function () { renderTodayLeadsList(dartRefDate, newsRefDate); });
   }
 
   var leadsLoaded = false;
