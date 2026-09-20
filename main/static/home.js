@@ -236,8 +236,9 @@
           miniBullets(d.briefing, d.briefing_note);
         var top = (d.items || []).slice(0, 5);
         if (top.length) {
-          html += miniSubtitle("최근 리포트") + '<ul class="gal-mini-reports">' + top.map(function (r) {
+          html += miniSubtitle("최근 리포트") + '<ul class="gal-mini-reports">' + top.map(function (r, i) {
             return '<li><a href="' + esc(r.url || d.list_url) + '" target="_blank" rel="noopener">' +
+              '<span class="gmr-no">' + (i + 1) + "</span>" +
               '<span class="gmr-broker">' + esc(r.broker || "") + "</span>" +
               '<span class="gmr-title">' + esc(r.title || "") + "</span></a></li>";
           }).join("") + "</ul>";
@@ -250,8 +251,9 @@
         var html = asOfLine(d.date) + miniBullets(d.briefing, d.briefing_note);
         var top = (d.articles || []).slice(0, 5);
         if (top.length) {
-          html += miniSubtitle("오늘의 기사(AI 추천)") + '<ul class="gal-mini-reports">' + top.map(function (a) {
+          html += miniSubtitle("오늘의 기사(AI 추천)") + '<ul class="gal-mini-reports">' + top.map(function (a, i) {
             return '<li><a href="' + esc(a.url || "#") + '" target="_blank" rel="noopener">' +
+              '<span class="gmr-no">' + (i + 1) + "</span>" +
               '<span class="gmr-broker">' + esc(a.keyword || "") + "</span>" +
               '<span class="gmr-title">' + esc(a.title || "") + "</span></a></li>";
           }).join("") + "</ul>";
@@ -577,6 +579,12 @@
   function creditGlanceCardHTML(w) {
     return (
       '<div class="gal-card gal-card-glance">' +
+        '<div class="gal-top">' +
+          '<span class="gal-emoji">' + w.emoji + "</span>" +
+          '<span class="gal-badges">' + statusBadgesHTML(w) + "</span>" +
+        "</div>" +
+        '<div class="gal-title">' + esc(w.title) + "</div>" +
+        '<div class="gal-desc">' + esc(w.desc) + "</div>" +
         '<div class="gm-ca-topsearch">' +
           '<div class="gm-ca-topsearch-label">🔍 종목 입력</div>' +
           '<div class="eq-search gm-ca-search">' +
@@ -584,12 +592,6 @@
             '<div class="eq-suggest gm-ca-suggest" hidden></div>' +
           "</div>" +
         "</div>" +
-        '<div class="gal-top">' +
-          '<span class="gal-emoji">' + w.emoji + "</span>" +
-          '<span class="gal-badges">' + statusBadgesHTML(w) + "</span>" +
-        "</div>" +
-        '<div class="gal-title">' + esc(w.title) + "</div>" +
-        '<div class="gal-desc">' + esc(w.desc) + "</div>" +
         '<div class="gal-mini" id="mini-' + w.id + '"><div class="gm-ca-result" id="mini-' + w.id + '-result">' +
           '<div class="gal-mini-note">종목을 검색해보세요.</div></div></div>' +
         '<div class="gal-actions">' +
@@ -604,9 +606,10 @@
     resultEl.innerHTML = '<span class="page-note">불러오는 중…</span>';
     Promise.all([
       get("/api/credit/equity/basics?code=" + code),
+      get("/api/credit/equity/financials?code=" + code).catch(function () { return null; }),
       get("/api/credit/equity/filings?code=" + code).catch(function () { return null; })
     ]).then(function (res) {
-      var d = res[0], fil = res[1];
+      var d = res[0], fin = res[1], fil = res[2];
       var chg = d.change_pct;
       var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
 
@@ -619,10 +622,29 @@
         ["등락", chgTxt],
         ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
       ]) + miniRow([
-        ["PER", d.valuation && d.valuation.per != null ? Number(d.valuation.per).toFixed(1) : "-"],
-        ["PBR", d.valuation && d.valuation.pbr != null ? Number(d.valuation.pbr).toFixed(1) : "-"],
-        ["PSR", d.valuation && d.valuation.psr != null ? Number(d.valuation.psr).toFixed(1) : "-"]
-      ]) + rangeBarHTML(d.ranges && d.ranges.w52);
+        ["거래대금", d.trade_value != null ? jo(d.trade_value / 1e12) : "-"],
+        ["거래량", d.volume != null ? Number(d.volume).toLocaleString("ko-KR") + "주" : "-"],
+        ["상장주식수", d.shares != null ? Number(d.shares).toLocaleString("ko-KR") + "주" : "-"]
+      ]);
+
+      if (fin && fin.annual && fin.annual.labels && fin.annual.labels.length) {
+        var a = fin.annual;
+        html += miniSubtitle("재무요약 (연간)") + finTableHTML(a.labels, [
+          { label: "매출액", values: a.revenue, fmt: joWon },
+          { label: "영업이익", values: a.operating_income, fmt: joWon },
+          { label: "순이익", values: a.net_income, fmt: joWon },
+          { label: "자산총계", values: a.assets, fmt: joWon },
+          { label: "부채총계", values: a.liabilities, fmt: joWon },
+          { label: "자본총계", values: a.equity, fmt: joWon }
+        ]);
+        html += miniSubtitle("실적분석") +
+          '<div class="gm-ca-charts">' +
+            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">매출액·영업이익·순이익(조원)</div>' +
+              '<div class="gal-mini-chart" id="' + resultEl.id + '-chart1"></div></div>' +
+            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">자산·부채·자본(조원)</div>' +
+              '<div class="gal-mini-chart" id="' + resultEl.id + '-chart2"></div></div>' +
+          "</div>";
+      }
 
       var filings = (fil && fil.items || []).slice(0, 5);
       html += miniSubtitle("최근 공시(DART)");
@@ -636,6 +658,31 @@
         }).join("") + "</ul>";
       }
       resultEl.innerHTML = html;
+
+      if (fin && fin.annual && window.Charts) {
+        var L = fin.annual.labels;
+        var c1 = document.getElementById(resultEl.id + "-chart1");
+        if (c1) {
+          window.Charts.line(c1, {
+            labels: L,
+            series: [
+              { name: "매출액", values: (fin.annual.revenue || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c1" },
+              { name: "영업이익", values: (fin.annual.operating_income || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c2" },
+              { name: "순이익", values: (fin.annual.net_income || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c5" }
+            ]
+          });
+        }
+        var c2 = document.getElementById(resultEl.id + "-chart2");
+        if (c2) {
+          window.Charts.stackBar(c2, {
+            labels: L,
+            series: [
+              { name: "부채", values: (fin.annual.liabilities || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c2" },
+              { name: "자본", values: (fin.annual.equity || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c3" }
+            ]
+          });
+        }
+      }
     }).catch(function () {
       resultEl.innerHTML = '<div class="gal-mini-note">불러오지 못했습니다.</div>';
     });
