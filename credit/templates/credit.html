@@ -1,25 +1,18 @@
 <div class="credit" id="credit-root">
-  <div class="eq-search">
-    <input id="eq-q" type="text" autocomplete="off" spellcheck="false"
-           placeholder="종목명 또는 종목코드 (예: 삼성전자 · 005930)">
-    <button type="button" id="eq-q-btn">조회</button>
-    <div class="eq-suggest" id="eq-suggest" hidden></div>
+  <div class="subtabs" id="leads-subtabs" role="tablist">
+    <button class="subtab-btn active" data-sub="all">전체</button>
+    <button class="subtab-btn" data-sub="inherit">상속·증여</button>
+    <button class="subtab-btn" data-sub="esop">우리사주</button>
+    <button class="subtab-btn" data-sub="stock">종목별 자세히보기</button>
   </div>
 
-  <!-- ── 메인 화면: 담보대출·우리사주 금융 수요 리드 레이더 (종목 미검색 시) ── -->
-  <div id="credit-landing">
-    <div class="subtabs" id="leads-subtabs" role="tablist">
-      <button class="subtab-btn active" data-sub="all">전체</button>
-      <button class="subtab-btn" data-sub="inherit">상속·증여</button>
-      <button class="subtab-btn" data-sub="pledge">담보계약</button>
-      <button class="subtab-btn" data-sub="esop">우리사주</button>
-    </div>
-
+  <!-- ── 담보대출·우리사주 금융 수요 리드 레이더 (전체/상속증여/우리사주) ── -->
+  <div id="leads-panel">
     <div class="kpi-grid" id="leads-kpis"></div>
 
     <section class="block">
       <div class="block-head">
-        <h3>담보대출 수요 레이더 — DART 상속·증여·담보계약 공시 기반 리드</h3>
+        <h3>담보대출 수요 레이더 — DART 상속·증여 공시 기반 리드</h3>
       </div>
       <div id="leads-collateral-list"><div class="page-note">불러오는 중…</div></div>
     </section>
@@ -34,9 +27,14 @@
     <p class="page-note leads-scope-note" id="leads-scope-note"></p>
   </div>
 
-  <!-- ── 종목 상세: 검색·조회 후에만 표시 ── -->
-  <div id="credit-detail" hidden>
-    <button type="button" class="dart-btn" id="leads-back-btn">← 리드 목록으로</button>
+  <!-- ── 종목별 자세히보기: 검색해서 기업분석/공시/리포트 확인 ── -->
+  <div id="stock-panel" hidden>
+    <div class="eq-search">
+      <input id="eq-q" type="text" autocomplete="off" spellcheck="false"
+             placeholder="종목명 또는 종목코드 (예: 삼성전자 · 005930)">
+      <button type="button" id="eq-q-btn">조회</button>
+      <div class="eq-suggest" id="eq-suggest" hidden></div>
+    </div>
 
     <div class="eq-current" id="eq-current" hidden>
       <span class="eq-name" id="eq-cur-name"></span>

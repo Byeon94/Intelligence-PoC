@@ -83,6 +83,6 @@ def market_reports():
 
 @credit_bp.route("/api/credit/leads")
 def leads():
-    """여신·심사 메인 화면: 코스피 상위 30종목 담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
+    """여신·심사 메인 화면: 코스피 전 종목 담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
     force = request.args.get("refresh") in ("1", "true", "yes")
     return _safe(lambda: get_leads(force=force), "담보대출·우리사주 리드")

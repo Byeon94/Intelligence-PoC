@@ -56,7 +56,7 @@ create table if not exists lending_news_snapshots (
     created_at timestamptz not null default now()
 );
 
--- 여신·심사 메인 화면: 코스피 상위 30종목 담보대출·우리사주 금융 수요 리드(DART 실데이터, 하루 1회 수집)
+-- 여신·심사 메인 화면: 코스피 전 종목 담보대출·우리사주 금융 수요 리드(DART 실데이터, 하루 1회 수집)
 create table if not exists credit_lead_snapshots (
     snapshot_date date primary key,
     payload jsonb not null,

@@ -508,7 +508,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 }
 
 /* 여신·심사 메인: 담보대출·우리사주 리드 레이더 */
-#leads-back-btn { margin-bottom: 12px; }
 .lead-row {
   display: block; text-decoration: none; color: inherit;
   background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);

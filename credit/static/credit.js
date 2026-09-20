@@ -74,22 +74,6 @@
     }).catch(function () { sugEl.hidden = true; });
   }
 
-  function showDetail() {
-    var landing = document.getElementById("credit-landing");
-    var detail = document.getElementById("credit-detail");
-    if (landing) landing.hidden = true;
-    if (detail) detail.hidden = false;
-  }
-  function showLanding() {
-    var landing = document.getElementById("credit-landing");
-    var detail = document.getElementById("credit-detail");
-    if (detail) detail.hidden = true;
-    if (landing) landing.hidden = false;
-    state.code = null;
-    state.name = null;
-    qEl.value = "";
-  }
-
   function choose(code, name) {
     state.code = code;
     state.name = name || code;
@@ -97,7 +81,6 @@
     state.rptFor = null;
     qEl.value = state.name + " (" + code + ")";
     sugEl.hidden = true;
-    showDetail();
     document.getElementById("eq-cur-name").textContent = state.name;
     document.getElementById("eq-cur-code").textContent = code;
     document.getElementById("eq-cur-tags").innerHTML = "";
@@ -129,24 +112,19 @@
   function renderLeadKpis(d) {
     var all = (d.collateral || []).concat(d.esop || []);
     var todayStr = new Date().toISOString().slice(0, 10);
-    var inherit = (d.collateral || []).filter(function (x) { return x.kind === "inherit"; });
-    var pledge = (d.collateral || []).filter(function (x) { return x.kind === "pledge"; });
     document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
       ["오늘 신규 리드", all.filter(function (x) { return x.date === todayStr; }).length + "건",
         "이번 주 " + countSince(all, 7) + "건"],
-      ["상속·증여 공시", inherit.length + "건", "DART 자동 감지"],
+      ["상속·증여 공시", (d.collateral || []).length + "건", "DART 자동 감지"],
       ["우리사주 배정 시그널", (d.esop || []).length + "건", "유상증자 추적"],
-      ["담보계약 공시", pledge.length + "건", "지분 담보 감지"],
     ]);
   }
-
-  function badgeCls(badge) { return badge === "감지" ? "fil-tag" : "pg-badge"; }
 
   function collateralRowHTML(it) {
     return (
       '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
         '<div class="lead-row-head">' +
-          '<span class="' + badgeCls(it.badge) + '">' + esc(it.badge) + "</span>" +
+          '<span class="pg-badge">LEAD</span>' +
           '<span class="lead-title">' + esc(it.name) + " — " + esc(it.reporter || it.reason) + "</span>" +
           '<span class="lead-date">' + esc(it.date) + "</span>" +
         "</div>" +
@@ -202,11 +180,21 @@
     leadsLoaded = true;
     get("/api/credit/leads").then(function (d) {
       leadsState.data = d;
+      if (d.pending) {
+        document.getElementById("leads-kpis").innerHTML = "";
+        document.getElementById("leads-collateral-list").innerHTML =
+          '<div class="page-note">코스피 전 종목 데이터를 처음 수집하는 중입니다. 잠시 후 새로고침해주세요.</div>';
+        document.getElementById("leads-esop-list").innerHTML = "";
+        document.getElementById("leads-scope-note").textContent = "";
+        leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
+        return;
+      }
       renderLeadKpis(d);
       renderLeadLists();
       document.getElementById("leads-scope-note").textContent =
-        "대상 범위: 코스피 시가총액 상위 " + (d.universe || 30) + "종목 · DART 전자공시 실데이터 기준, 매일 1회 갱신 · " +
-        "코스피 상위 종목은 이미 상장돼 있어 'IPO(신규상장)' 리드는 없고 유상증자 공시로 우리사주 수요를 추적합니다.";
+        "대상 범위: 코스피 전체 상장종목(" + (d.universe || 0) + "종목) · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
+        (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "") + " · " +
+        "코스피 종목은 이미 상장돼 있어 'IPO(신규상장)' 리드는 없고 유상증자 공시로 우리사주 수요를 추적합니다.";
     }).catch(function (e) {
       leadsLoaded = false;
       document.getElementById("leads-collateral-list").innerHTML =
@@ -221,15 +209,31 @@
   }
   function maybeLoadLeads() { if (creditTabVisible()) loadLeads(); }
 
+  function selectLeadsSub(sub) {
+    var bar = document.getElementById("leads-subtabs");
+    if (!bar) return;
+    bar.querySelectorAll(".subtab-btn").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.sub === sub);
+    });
+    var leadsPanel = document.getElementById("leads-panel");
+    var stockPanel = document.getElementById("stock-panel");
+    if (sub === "stock") {
+      leadsPanel.hidden = true;
+      stockPanel.hidden = false;
+    } else {
+      stockPanel.hidden = true;
+      leadsPanel.hidden = false;
+      leadsState.sub = sub;
+      renderLeadLists();
+    }
+  }
+
   function initLeadsSubtabs() {
     var bar = document.getElementById("leads-subtabs");
     if (!bar) return;
     bar.addEventListener("click", function (e) {
       var btn = e.target.closest(".subtab-btn");
-      if (!btn) return;
-      bar.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
-      leadsState.sub = btn.dataset.sub;
-      renderLeadLists();
+      if (btn) selectLeadsSub(btn.dataset.sub);
     });
   }
 
@@ -572,8 +576,7 @@
     if (mainTabs) mainTabs.addEventListener("click", function () { setTimeout(maybeLoadLeads, 0); });
     var workTabs = document.getElementById("work-subtabs");
     if (workTabs) workTabs.addEventListener("click", function () { setTimeout(maybeLoadLeads, 0); });
-    var backBtn = document.getElementById("leads-back-btn");
-    if (backBtn) backBtn.addEventListener("click", showLanding);
+    window.CreditNav = { goSub: selectLeadsSub };
 
     qEl.addEventListener("input", function () {
       clearTimeout(tmr);

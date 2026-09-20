@@ -33,7 +33,7 @@
         encodeURIComponent("금융IT 정보보호 생성형AI"),
       title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️", creditBadge: "IT부 변OO 과장 제작",
       desc: "IT·정보보호 관련 참고하기 좋은 뉴스 및 AI 브리핑", status: "live" },
-    { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
+    { id: "credit-equity-glance", tab: "credit", sub: "stock", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
@@ -46,11 +46,11 @@
       desc: "금융당국·유관기관 보도자료 + AI 3줄 요약", status: "live" },
     { id: "research-briefing", tab: "research", title: "리서치·뉴스 브리핑", emoji: "📰",
       desc: "업무 관련 기사 AI 선별·태깅 + 요약", status: "live" },
-    { id: "credit-analysis", tab: "credit", title: "기업분석", emoji: "🏦",
+    { id: "credit-analysis", tab: "credit", sub: "stock", title: "기업분석", emoji: "🏦",
       desc: "종목 기초정보·가격범위·재무요약·실적분석", status: "live" },
-    { id: "credit-filing", tab: "credit", title: "공시", emoji: "🗂️",
+    { id: "credit-filing", tab: "credit", sub: "stock", title: "공시", emoji: "🗂️",
       desc: "종목별 DART 공시 목록", status: "live" },
-    { id: "credit-report", tab: "credit", title: "증권사 리포트", emoji: "📊",
+    { id: "credit-report", tab: "credit", sub: "stock", title: "증권사 리포트", emoji: "📊",
       desc: "당해 연도 리포트 + 목표주가 컨센서스", status: "live" },
     { id: "ib-deals", tab: "ib", title: "투자금융", emoji: "💼",
       desc: "IB·인수·발행시장 동향", status: "soon" },
@@ -90,6 +90,7 @@
 
   function goWork(tab, sub) {
     if (window.AppNav) window.AppNav.go("work", tab);
+    if (sub && tab === "credit" && window.CreditNav) window.CreditNav.goSub(sub);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
     // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #work-subtabs 클릭을 감지해 처음 한 번
     // 데이터를 지연 로딩한다. 홈/전사 위젯에서 곧장 이동할 때도 그 로딩이 걸리도록
