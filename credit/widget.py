@@ -85,9 +85,13 @@ def market_reports():
 
 @credit_bp.route("/api/credit/leads")
 def leads():
-    """여신·심사 메인 화면: 코스피·코스닥 전 종목 증권담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
-    force = request.args.get("refresh") in ("1", "true", "yes")
-    return _safe(lambda: get_leads(force=force), "증권담보대출·우리사주 리드")
+    """여신·심사 메인 화면: 코스피·코스닥 전 종목 증권담보대출·우리사주 금융 수요 리드(DART 실데이터).
+
+    수집 자체는 코스피·코스닥 전 종목을 훑어 수 분이 걸리고 DART 호출량도 많아,
+    /internal/warmup 배치에서만 force=True 로 수행한다. 이 라우트는 절대 force 를
+    받지 않고(쿼리로도 재수집을 못 트리거하게) 저장된 스냅샷만 읽는다.
+    """
+    return _safe(lambda: get_leads(), "증권담보대출·우리사주 리드")
 
 
 @credit_bp.route("/api/credit/inherit-news")

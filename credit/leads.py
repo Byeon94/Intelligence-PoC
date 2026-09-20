@@ -25,14 +25,19 @@
 LLM이 수치를 지어낼 위험을 피하려고 여기서는 Gemini를 호출하지 않는다.
 
 증권담보대출 리드는 코스피·코스닥 전 종목(~2,500개)마다 majorstock.json을 호출해야 해서
-스레드풀로 병렬 조회해도 수 분이 걸릴 수 있다. 그래서 당일 스냅샷이 없으면(즉시 응답이
-필요한 웹 요청 도중) 가장 최근 스냅샷을 먼저 반환하고, 실제 재수집은 백그라운드 스레드에서
-진행한다(요청이 몇 분씩 붙잡혀 타임아웃 나는 것을 방지). force=True(수동 갱신)일 때만 동기 실행.
+스레드풀로 병렬 조회해도 수 분이 걸린다. 정책·리서치 브리핑 등 다른 스냅샷과 동일하게,
+실제 수집(_collect)은 /internal/warmup 배치(하루 1회, GitHub Actions cron)에서만
+force=True 로 수행하고, 일반 웹 요청(get_leads(force=False))은 절대 DART를 직접
+호출하지 않고 이미 저장된 스냅샷만 읽는다(오늘자가 없으면 가장 최근 스냅샷을
+"stale"로, 그마저 없으면 "pending" 상태를 반환). 라이브 요청에서 즉석으로 재수집을
+트리거하던 이전 방식은, 짧은 시간에 캐시가 여러 번 무효화될 때마다 배치 밖에서도
+수천 건씩 DART를 호출하게 돼 opendart.fss.or.kr 쪽 남용 방지 차단을 실제로 유발한
+적이 있어(2026-09-20) 제거했다.
 
 호출 속도 제한: 종목 수가 많다 보니 스레드 동시성만 믿고 짧은 시간에 수천 건을 몰아
 보내면 opendart.fss.or.kr 쪽에서 해당 IP의 연결 자체를 끊어버리는(비공식 남용 방지)
-현상이 실제로 발생했다(2026-09-20 확인 — 이 앱뿐 아니라 같은 키를 쓰는 모든 DART 호출이
-같이 막힘). 그래서 전체 요청을 초당 몇 건으로 강제 제한하는 스로틀을 둔다.
+현상이 실제로 발생했다. 그래서 배치 수집 중에도 전체 요청을 초당 몇 건으로 강제
+제한하는 스로틀을 둔다.
 """
 from __future__ import annotations
 
@@ -102,6 +107,14 @@ class _CallHealth:
 
     def check(self, label: str) -> None:
         total = self.ok + self.fail
+        # 시도한 호출이 하나라도 있는데 전부 실패 → 표본이 적어도(예: esop 스윕은 유형당
+        # 딱 1번씩만 시도) 명백한 장애 신호. 호출량이 많은 스캔(예: 종목별 majorstock)은
+        # 일부 종목만 실패할 수 있어 표본이 충분할 때(10건 이상)만 70% 기준을 본다.
+        if total > 0 and self.ok == 0:
+            raise RuntimeError(
+                f"{label}: DART 호출이 전부 실패했습니다({self.fail}/{total}) — "
+                "일시적인 API 차단/장애로 보고 이번 수집 결과는 저장하지 않습니다."
+            )
         if total >= 10 and self.fail / total > 0.7:
             raise RuntimeError(
                 f"{label}: DART 호출 실패율이 너무 높습니다({self.fail}/{total}) — "
@@ -371,42 +384,24 @@ def _collect() -> dict:
     }
 
 
-_SCHEMA_V = 6  # v6: 실패율 감지(빈 결과 덮어쓰기 방지) + 증권담보대출 월별 집계 추가
-
-_refresh_lock = threading.Lock()
-
-
-def _background_refresh() -> None:
-    if not _refresh_lock.acquire(blocking=False):
-        return
-    try:
-        payload = _collect()
-        payload["v"] = _SCHEMA_V
-        save_snapshot(_TABLE, datetime.now(KST).date().isoformat(), payload)
-    except Exception:  # noqa: BLE001
-        logger.exception("여신·심사 리드 백그라운드 갱신 실패")
-    finally:
-        _refresh_lock.release()
+_SCHEMA_V = 7  # v7: 실패율 감지 보정(표본 적어도 전부 실패면 즉시 감지) + 라이브 요청은
+                # 재수집을 트리거하지 않고 배치(warmup)만 수집하도록 변경
 
 
 def get_leads(force: bool = False) -> dict:
+    """force=True 는 /internal/warmup 배치 전용 — 이 값 없이는 절대 DART 를 호출하지 않고
+    이미 저장된 스냅샷만 읽는다(정책·리서치 등 다른 브리핑과 동일한 '배치 수집 + 스냅샷
+    조회' 방식)."""
     today = datetime.now(KST).date().isoformat()
     if not force:
         snap = get_snapshot(_TABLE, today)
         if snap is not None and snap.get("v") == _SCHEMA_V:
             return snap
 
-        # 코스피 전 종목 스캔은 수 분 걸릴 수 있어, 웹 요청은 붙잡지 않는다.
-        # 예전 스냅샷이 있으면 그걸 즉시 돌려주고 실제 재수집은 백그라운드로 미룬다.
         stale = latest_snapshot(_TABLE)
         if stale is not None:
-            if not _refresh_lock.locked():
-                threading.Thread(target=_background_refresh, daemon=True).start()
             return {**stale, "stale": True}
 
-        # 스냅샷이 아예 없는 최초 실행 — 백그라운드로 수집을 시작하고 "수집 중" 상태를 반환.
-        if not _refresh_lock.locked():
-            threading.Thread(target=_background_refresh, daemon=True).start()
         return {"collateral": [], "esop": [], "esop_monthly": [], "collateral_monthly": [],
                 "universe": 0, "generated_at": None, "pending": True, "v": _SCHEMA_V}
 
