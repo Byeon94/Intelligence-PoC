@@ -159,9 +159,9 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .kpi .k-value .k-unit { font-size: .8rem; font-weight: 600; color: var(--muted); margin-left: 3px; }
 .kpi .k-sub { font-size: .74rem; color: var(--muted); margin-top: 5px; }
 .kpi .k-delta { font-size: .76rem; font-weight: 700; margin-top: 5px; }
-/* 전월 대비 증감(자본시장 지표)은 주가 등락과 별개로 상승=파랑/하락=빨강을 쓴다 */
-.kpi .k-delta.up { color: var(--accent); }
-.kpi .k-delta.down { color: var(--down); }
+/* 전월 대비 증감도 주가 등락과 동일하게 상승=빨강/하락=파랑을 쓴다 */
+.kpi .k-delta.up { color: var(--stock-up); }
+.kpi .k-delta.down { color: var(--stock-down); }
 .kpi .k-delta.flat { color: var(--muted); }
 
 .src-badge {
@@ -542,6 +542,15 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .esop-month-label { font-weight: 700; }
 .esop-month-count { color: var(--muted); }
 
+.lead-sub-head { font-size: .82rem; font-weight: 700; color: var(--muted); margin: 18px 0 8px; }
+.lead-sub-head:first-of-type { margin-top: 8px; }
+.lead-more-btn {
+  display: block; width: 100%; margin: 2px 0 16px; padding: 9px; border-radius: 10px;
+  border: 1px dashed var(--border); background: var(--card2); color: var(--muted);
+  font-size: .78rem; font-weight: 700; cursor: pointer; text-align: center;
+}
+.lead-more-btn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+
 /* 여신·심사 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
 .credit #leads-subtabs { margin-bottom: 20px; }
 .credit .kpi-grid { gap: 14px; margin-bottom: 24px; }
@@ -779,8 +788,8 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-reports .gmr-title { flex: 1; min-width: 0; white-space: normal; word-break: break-word; line-height: 1.4; font-weight: 600; }
 .gal-mini-reports .gmr-target { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gal-mini-reports .gmr-chg { flex: 0 0 auto; font-weight: 800; width: 16px; text-align: center; }
-.gal-mini-reports .gmr-chg.up { color: var(--up); }
-.gal-mini-reports .gmr-chg.down { color: var(--down); }
+.gal-mini-reports .gmr-chg.up { color: var(--stock-up); }
+.gal-mini-reports .gmr-chg.down { color: var(--stock-down); }
 .gal-mini-reports .gmr-chg.new { color: var(--accent); }
 .gal-mini-reports .gmr-chg.flat { color: var(--muted); }
 .gal-mini-asof { text-align: right; font-size: .66rem; color: var(--muted); margin-bottom: 4px; }

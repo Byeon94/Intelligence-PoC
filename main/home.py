@@ -11,6 +11,7 @@ import logging
 from typing import Callable, TypeVar
 
 from capital.liquidity import get_liquidity_summary
+from credit.esop_news import get_esop_news
 from credit.inherit_news import get_inherit_news
 from credit.leads import get_leads
 from policy.briefing import get_policy_digest
@@ -91,8 +92,10 @@ def _credit_leads_alert() -> dict | None:
     if not leads or leads.get("pending"):
         return None
     news = _safe("여신·심사 상속증여 뉴스", get_inherit_news) or {}
+    esop_news = _safe("여신·심사 우리사주 뉴스", get_esop_news) or {}
     dated = [x.get("date") for x in (leads.get("collateral") or []) + (leads.get("esop") or []) if x.get("date")]
     dated += [n.get("published") for n in (news.get("items") or []) if n.get("published")]
+    dated += [n.get("published") for n in (esop_news.get("items") or []) if n.get("published")]
     if not dated:
         return None
     ref_date = max(dated)

@@ -11,6 +11,7 @@ from capital.cma import get_cma_rates
 from capital.issuance.calendar import get_issuance_digest
 from capital.issuance.widget import issuance_bp
 from capital.widget import capital_bp
+from credit.esop_news import get_esop_news
 from credit.inherit_news import get_inherit_news
 from credit.lead_briefing import get_lead_briefings
 from credit.leads import get_leads
@@ -99,7 +100,11 @@ def _run_warmup() -> None:
         except Exception:  # noqa: BLE001
             logger.exception("상속·증여 뉴스 동향 워밍업 실패")
         try:
-            get_lead_briefings(force=True)   # 위 두 스냅샷을 방금 새로 만들었으니 브리핑도 같이 갱신
+            get_esop_news()
+        except Exception:  # noqa: BLE001
+            logger.exception("우리사주 뉴스 동향 워밍업 실패")
+        try:
+            get_lead_briefings(force=True)   # 위 스냅샷들을 방금 새로 만들었으니 브리핑도 같이 갱신
         except Exception:  # noqa: BLE001
             logger.exception("여신·심사 리드 AI 브리핑 워밍업 실패")
     finally:

@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, render_template, request
 
 from .equity import get_stock_basics, search_stocks
+from .esop_news import get_esop_news
 from .filings import get_filings
 from .financials import get_financials
 from .inherit_news import get_inherit_news
@@ -99,6 +100,13 @@ def inherit_news():
     """여신·심사 메인 화면: 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단)."""
     force = request.args.get("refresh") in ("1", "true", "yes")
     return _safe(lambda: get_inherit_news(force=force), "상속·증여 뉴스 동향")
+
+
+@credit_bp.route("/api/credit/esop-news")
+def esop_news():
+    """여신·심사 메인 화면: 우리사주(유상증자·IPO) 관련 뉴스 동향(참고용, AI 관련도 판단)."""
+    force = request.args.get("refresh") in ("1", "true", "yes")
+    return _safe(lambda: get_esop_news(force=force), "우리사주 뉴스 동향")
 
 
 @credit_bp.route("/api/credit/lead-briefings")

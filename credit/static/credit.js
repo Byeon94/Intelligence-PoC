@@ -1,12 +1,12 @@
 /* 여신·심사 탭 메인 화면: 증권담보대출·우리사주 금융 수요 리드 레이더(DART 실데이터) +
-   상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단) + AI 브리핑. 종목별 기업분석/공시/
+   상속·증여/우리사주 관련 뉴스 동향(참고용, AI 관련도 판단) + AI 브리핑. 종목별 기업분석/공시/
    리포트 조회는 전사위젯 > 내 위젯의 개별 위젯에서 제공한다(이 탭에서는 제공하지 않음).
 
    탭 구성:
      전체     — 요약 KPI 4개 + AI 브리핑 2개(증권담보대출 수요 레이더 / 우리사주 금융 수요),
                 브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용
-     증권담보대출 — DART 리드(상속·증여) + 관련 뉴스를 날짜순으로 합친 상세 목록 + 월별 집계
-     우리사주    — 유상증자·IPO 상세 목록 + 월별 집계 */
+     증권담보대출 — DART 공시(상속·증여)와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계
+     우리사주    — 유상증자·IPO DART 공시와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계 */
 (function () {
   "use strict";
 
@@ -35,8 +35,35 @@
 
   var leadsState = { data: null };
   var newsState = { items: null };
+  var esopNewsState = { items: null };
   var briefState = { data: null };
   var CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
+  var LIST_LIMIT = 5;
+
+  /* ── 목록(더보기) 공통 렌더러: 기본 5개만 보여주고, 더보기를 누르면 전체를 펼친다 ── */
+  var expandState = {};
+  var rerenderers = {};
+  function renderExpandableList(boxId, items, rowFn, emptyMsg, rerender) {
+    rerenderers[boxId] = rerender;
+    var box = document.getElementById(boxId);
+    if (!box) return;
+    if (!items.length) { box.innerHTML = '<div class="page-note">' + emptyMsg + "</div>"; return; }
+    var expanded = !!expandState[boxId];
+    var shown = expanded ? items : items.slice(0, LIST_LIMIT);
+    var html = shown.map(rowFn).join("");
+    if (items.length > LIST_LIMIT) {
+      html += '<button type="button" class="lead-more-btn" data-box="' + boxId + '">' +
+        (expanded ? "접기 ▲" : "더보기 (전체 " + items.length + "건) ▼") + "</button>";
+    }
+    box.innerHTML = html;
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".lead-more-btn");
+    if (!btn) return;
+    var boxId = btn.dataset.box;
+    expandState[boxId] = !expandState[boxId];
+    if (rerenderers[boxId]) rerenderers[boxId]();
+  });
 
   function leadKpiHTML(items) {
     return items.map(function (k) {
@@ -57,6 +84,7 @@
     var dates = (d.collateral || []).map(function (x) { return x.date; })
       .concat((d.esop || []).map(function (x) { return x.date; }))
       .concat((newsState.items || []).map(function (n) { return n.published; }))
+      .concat((esopNewsState.items || []).map(function (n) { return n.published; }))
       .filter(Boolean);
     if (!dates.length) return null;
     var refDate = dates.reduce(function (a, b) { return b > a ? b : a; });
@@ -66,7 +94,7 @@
   /* ── 전체: 요약 KPI 4개 ── */
   function renderTopKpis() {
     var d = leadsState.data;
-    if (!d || d.pending || newsState.items === null) return;   // 리드·뉴스 둘 다 응답한 뒤에 계산
+    if (!d || d.pending || newsState.items === null || esopNewsState.items === null) return;   // 모든 소스가 응답한 뒤에 계산
     var ref = refDateInfo();
     var refDate = ref ? ref.refDate : new Date().toISOString().slice(0, 10);
     var refMonth = ref ? ref.refMonth : new Date().toISOString().slice(0, 7);
@@ -76,7 +104,8 @@
 
     var newsItems = newsState.items || [];
     var allDated = (d.collateral || []).concat(d.esop || [])
-      .concat(newsItems.map(function (n) { return { date: n.published }; }));
+      .concat(newsItems.map(function (n) { return { date: n.published }; }))
+      .concat((esopNewsState.items || []).map(function (n) { return { date: n.published }; }));
     var weekCutoff = new Date(refDate + "T00:00:00");
     weekCutoff.setDate(weekCutoff.getDate() - 6);
     var weekCutStr = weekCutoff.toISOString().slice(0, 10);
@@ -175,15 +204,29 @@
     );
   }
 
+  function byDateDesc(a, b) { return (a.date || "") < (b.date || "") ? 1 : ((a.date || "") > (b.date || "") ? -1 : 0); }
+
+  function renderInheritDisclosures() {
+    var d = leadsState.data;
+    if (!d) return;
+    var items = (d.collateral || []).slice().sort(byDateDesc);
+    renderExpandableList("leads-inherit-disclosures", items, collateralRowHTML,
+      "최근 60일 내 상속·증여 관련 DART 공시가 없습니다.", renderInheritDisclosures);
+  }
+
+  function renderInheritNewsList() {
+    if (newsState.items === null) return;
+    var items = (newsState.items || []).slice()
+      .sort(function (a, b) { return (a.published || "") < (b.published || "") ? 1 : -1; });
+    renderExpandableList("leads-inherit-news-list", items, newsRowHTML,
+      "최근 60일 내 관련 뉴스가 없습니다.", renderInheritNewsList);
+  }
+
   function renderInheritList() {
     var d = leadsState.data;
     if (!d || newsState.items === null) return;
-    var collateral = (d.collateral || []).map(function (it) { return { date: it.date, html: collateralRowHTML(it) }; });
-    var news = (newsState.items || []).map(function (n) { return { date: n.published, html: newsRowHTML(n) }; });
-    var rows = collateral.concat(news).sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
-    document.getElementById("leads-inherit-list").innerHTML = rows.length
-      ? rows.map(function (r) { return r.html; }).join("")
-      : '<div class="page-note">최근 60일 내 해당 공시·뉴스가 없습니다.</div>';
+    renderInheritDisclosures();
+    renderInheritNewsList();
     renderInheritMonthly();
   }
 
@@ -241,13 +284,25 @@
     );
   }
 
-  function renderEsopList() {
+  function renderEsopDisclosures() {
     var d = leadsState.data;
     if (!d) return;
-    var esop = d.esop || [];
-    document.getElementById("leads-esop-list").innerHTML = esop.length
-      ? esop.map(esopRowHTML).join("")
-      : '<div class="page-note">최근 60일 내 유상증자·IPO 공시가 없습니다.</div>';
+    var items = (d.esop || []).slice().sort(byDateDesc);
+    renderExpandableList("leads-esop-disclosures", items, esopRowHTML,
+      "최근 60일 내 유상증자·IPO 공시가 없습니다.", renderEsopDisclosures);
+  }
+
+  function renderEsopNewsList() {
+    if (esopNewsState.items === null) return;
+    var items = (esopNewsState.items || []).slice()
+      .sort(function (a, b) { return (a.published || "") < (b.published || "") ? 1 : -1; });
+    renderExpandableList("leads-esop-news-list", items, newsRowHTML,
+      "최근 60일 내 관련 뉴스가 없습니다.", renderEsopNewsList);
+  }
+
+  function renderEsopList() {
+    renderEsopDisclosures();
+    renderEsopNewsList();
   }
 
   var leadsLoaded = false;
@@ -259,9 +314,11 @@
       if (d.pending) {
         document.getElementById("leads-kpis").innerHTML = "";
         document.getElementById("leads-asof").textContent = "";
-        document.getElementById("leads-inherit-list").innerHTML =
+        document.getElementById("leads-inherit-disclosures").innerHTML =
           '<div class="page-note">코스피·코스닥 전 종목 데이터를 처음 수집하는 중입니다. 잠시 후 새로고침해주세요.</div>';
-        document.getElementById("leads-esop-list").innerHTML = "";
+        document.getElementById("leads-inherit-news-list").innerHTML = "";
+        document.getElementById("leads-esop-disclosures").innerHTML = "";
+        document.getElementById("leads-esop-news-list").innerHTML = "";
         document.getElementById("leads-scope-note").textContent = "";
         leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
         return;
@@ -275,9 +332,11 @@
         (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
     }).catch(function (e) {
       leadsLoaded = false;
-      document.getElementById("leads-inherit-list").innerHTML =
+      document.getElementById("leads-inherit-disclosures").innerHTML =
         '<div class="chart-error">' + (e.message || "리드 데이터를 불러오지 못했습니다") + "</div>";
-      document.getElementById("leads-esop-list").innerHTML = "";
+      document.getElementById("leads-inherit-news-list").innerHTML = "";
+      document.getElementById("leads-esop-disclosures").innerHTML = "";
+      document.getElementById("leads-esop-news-list").innerHTML = "";
     });
   }
 
@@ -293,15 +352,28 @@
     });
   }
 
+  function loadEsopNews() {
+    get("/api/credit/esop-news").then(function (d) {
+      esopNewsState.items = d.items || [];
+      renderTopKpis();
+      renderEsopNewsList();
+    }).catch(function () {
+      esopNewsState.items = [];          // 실패해도 KPI·리스트 계산은 진행되게
+      renderTopKpis();
+      renderEsopNewsList();
+    });
+  }
+
   function creditTabVisible() {
     var p = document.querySelector('.tab-panel[data-panel="credit"]');
     return p && !p.hidden;
   }
-  var newsLoaded = false, briefLoaded = false;
+  var newsLoaded = false, esopNewsLoaded = false, briefLoaded = false;
   function maybeLoadLeads() {
     if (!creditTabVisible()) return;
     loadLeads();
     if (!newsLoaded) { newsLoaded = true; loadInheritNews(); }
+    if (!esopNewsLoaded) { esopNewsLoaded = true; loadEsopNews(); }
     if (!briefLoaded) { briefLoaded = true; loadBriefings(); }
   }
 
