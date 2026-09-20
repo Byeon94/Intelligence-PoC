@@ -105,7 +105,7 @@
     loading("cma-kpis");
     get("/api/capital/cma/summary").then(function (d) {
       var it = d.items;
-      document.getElementById("cma-asof").textContent = (d.as_of || "") + " 기준";
+      document.getElementById("cma-asof-date").textContent = (d.as_of || "") + " 기준";
       document.getElementById("cma-kpis").innerHTML = [
         kpi({ label: "CMA 총잔고", value: num(it.total.value, 1), unit: "조원", source: d.source }),
         kpi({ label: "RP형 잔고", value: num(it.rp.value, 1), unit: "조원",
