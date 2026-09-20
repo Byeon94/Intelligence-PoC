@@ -542,7 +542,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .esop-month-label { font-weight: 700; }
 .esop-month-count { color: var(--muted); }
 
-.lead-sub-head { font-size: .82rem; font-weight: 700; color: var(--muted); margin: 18px 0 8px; }
+.lead-sub-head {
+  font-size: .88rem; font-weight: 800; color: var(--fg); margin: 20px 0 8px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
+}
 .lead-sub-head:first-of-type { margin-top: 8px; }
 .lead-more-btn {
   display: block; width: 100%; margin: 2px 0 16px; padding: 9px; border-radius: 10px;

@@ -164,7 +164,7 @@
         bullets: d.collateral_briefing, sub: "inherit",
       });
       esopBox.innerHTML = briefCardHTML({
-        label: "🧑‍🤝‍🧑 우리사주 금융 수요", when: "AI 브리핑",
+        label: "🧑‍🤝‍🧑 우리사주대출 수요 레이더", when: "AI 브리핑",
         bullets: d.esop_briefing, sub: "esop",
       });
       bindBriefButtons(colBox);
