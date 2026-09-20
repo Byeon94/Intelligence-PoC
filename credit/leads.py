@@ -1,7 +1,8 @@
 """여신·심사 탭 메인 화면 — 담보대출 수요 레이더 / 우리사주 금융 수요 (실데이터).
 
-대상: 코스피 전체 상장종목(equity._listed_snapshot 기준). 시가총액 상위 30종목으로
-좁혔더니 대기업 상속·증여 이벤트 자체가 원래 드물어 리드가 거의 안 잡혀, 전체로 확대했다.
+대상: 코스피+코스닥 전체 상장종목(equity._listed_snapshot 기준). 시가총액 상위
+30종목만, 코스피만으로 차례로 좁혀봤더니 상속·증여 이벤트 자체가 원래 드물어 리드가
+거의 안 잡혀, 코스피·코스닥 전체로 확대했다.
 
 데이터 소스 (전부 DART OpenAPI 실데이터, 추정치 없음):
   - 담보대출 수요 리드 : majorstock.json(대량보유 상황보고)의 실제 `report_resn`(보고사유)
@@ -67,8 +68,8 @@ def _fmt_date(yyyymmdd: str | None) -> str:
     return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) == 8 else s
 
 
-def _all_kospi() -> list[dict]:
-    return [s for s in listed_snapshot() if s.get("market") == "KOSPI"]
+def _scan_universe() -> list[dict]:
+    return [s for s in listed_snapshot() if s.get("market") in ("KOSPI", "KOSDAQ")]
 
 
 def _listed_corp_codes() -> set[str]:
@@ -229,7 +230,7 @@ def _esop_monthly_summary(esop: list[dict]) -> list[dict]:
 
 def _collect() -> dict:
     key = get_settings().dart_api_key
-    stocks = _all_kospi()
+    stocks = _scan_universe()
     now = datetime.now(KST)
     if not key or not stocks:
         return {"collateral": [], "esop": [], "esop_monthly": [], "universe": len(stocks),
@@ -284,7 +285,7 @@ def _collect() -> dict:
     }
 
 
-_SCHEMA_V = 4  # v4: 우리사주에 IPO 포함(전 시장 스윕) + 월별 집계 + 회사당 최신 1건만
+_SCHEMA_V = 5  # v5: 상속·증여 스캔 대상을 코스피 → 코스피+코스닥으로 확대
 
 _refresh_lock = threading.Lock()
 

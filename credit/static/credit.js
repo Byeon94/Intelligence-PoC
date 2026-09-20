@@ -1,6 +1,11 @@
 /* 여신·심사 탭 메인 화면: 담보대출·우리사주 금융 수요 리드 레이더(DART 실데이터) +
-   상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단). 종목별 기업분석/공시/리포트 조회는
-   전사위젯 > 내 위젯의 개별 위젯에서 제공한다(이 탭에서는 제공하지 않음). */
+   상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단) + AI 브리핑. 종목별 기업분석/공시/
+   리포트 조회는 전사위젯 > 내 위젯의 개별 위젯에서 제공한다(이 탭에서는 제공하지 않음).
+
+   탭 구성:
+     전체     — 요약 KPI 4개 + AI 브리핑 2개(담보대출 수요 레이더 / 우리사주 금융 수요)
+     상속·증여 — DART 리드 + 관련 뉴스를 날짜순으로 합친 상세 목록
+     우리사주  — 유상증자·IPO 상세 목록 + 월별 집계 */
 (function () {
   "use strict";
 
@@ -27,12 +32,9 @@
     });
   }
 
-  /* ── 메인 화면: 담보대출·우리사주 금융 수요 리드 레이더 ── */
-  // 기준일은 벽시계 "오늘"이 아니라 DART·뉴스에 실제로 찍힌 날짜 중 최신값을 쓴다.
-  // DART·뉴스 모두 비영업일에는 새 항목이 생기지 않으므로, 이렇게 하면 주말/공휴일에도
-  // 자동으로 "전 영업일" 기준이 된다.
-  var leadsState = { data: null, sub: "all" };
+  var leadsState = { data: null };
   var newsState = { items: null };
+  var briefState = { data: null };
 
   function leadKpiHTML(items) {
     return items.map(function (k) {
@@ -59,6 +61,7 @@
     return { refDate: refDate, refMonth: refDate.slice(0, 7) };
   }
 
+  /* ── 전체: 요약 KPI 4개 ── */
   function renderTopKpis() {
     var d = leadsState.data;
     if (!d || d.pending || newsState.items === null) return;   // 리드·뉴스 둘 다 응답한 뒤에 계산
@@ -69,45 +72,54 @@
     document.getElementById("leads-asof").textContent =
       refDate + " 기준 (DART·뉴스에 실제로 올라온 최신 날짜 — 비영업일이면 자동으로 전 영업일)";
 
+    var newsItems = newsState.items || [];
     var allDated = (d.collateral || []).concat(d.esop || [])
-      .concat((newsState.items || []).map(function (n) { return { date: n.published }; }));
+      .concat(newsItems.map(function (n) { return { date: n.published }; }));
     var weekCutoff = new Date(refDate + "T00:00:00");
     weekCutoff.setDate(weekCutoff.getDate() - 6);
     var weekCutStr = weekCutoff.toISOString().slice(0, 10);
 
     var todayCount = allDated.filter(function (x) { return x.date === refDate; }).length;
     var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= refDate; }).length;
-    var monthlyCollateral = (d.collateral || []).filter(function (x) { return x.date.slice(0, 7) === refMonth; }).length;
+
+    var inMonth = function (x) { return (x.date || "").slice(0, 7) === refMonth; };
+    var inheritMonthly = (d.collateral || []).filter(inMonth).length + newsItems.filter(inMonth).length;
+    var monthly = (d.esop_monthly || []).filter(function (m) { return m.month === refMonth; })[0] || { rights: 0, ipo: 0 };
 
     document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
       ["오늘 신규 리드", todayCount + "건", "최근 7일 " + weekCount + "건 · DART+뉴스"],
-      ["상속·증여 공시(" + monthLabel(refMonth) + ")", monthlyCollateral + "건", "DART 자동 감지"],
+      ["상속·증여 공시·뉴스(" + monthLabel(refMonth) + ")", inheritMonthly + "건", "DART + AI 뉴스 분석"],
+      ["우리사주 금융 수요(" + monthLabel(refMonth) + ")", monthly.rights + "건", "유상증자 · 이미 상장된 회사"],
+      ["우리사주 금융 IPO(" + monthLabel(refMonth) + ")", monthly.ipo + "건", "상장 전 공모"],
     ]);
 
     renderEsopKpisAndMonthly(d, refMonth);
   }
 
-  function renderEsopKpisAndMonthly(d, refMonth) {
-    var monthly = d.esop_monthly || [];
-    document.getElementById("leads-esop-month").textContent = "— " + monthLabel(refMonth) + " 기준";
-
-    var cur = monthly.filter(function (m) { return m.month === refMonth; })[0] || { rights: 0, ipo: 0 };
-    document.getElementById("leads-esop-kpis").innerHTML = leadKpiHTML([
-      ["유상증자 공시(" + monthLabel(refMonth) + ")", cur.rights + "건", "이미 상장된 회사"],
-      ["IPO 공시(" + monthLabel(refMonth) + ")", cur.ipo + "건", "상장 전 공모"],
-    ]);
-
-    var monthlyBox = document.getElementById("leads-esop-monthly");
-    if (!monthly.length) {
-      monthlyBox.innerHTML = "";
-    } else {
-      monthlyBox.innerHTML = '<div class="esop-monthly">' + monthly.map(function (m) {
-        return '<div class="esop-month-row"><span class="esop-month-label">' + monthLabel(m.month) + "</span>" +
-          '<span class="esop-month-count">유상증자 ' + m.rights + "건 · IPO " + m.ipo + "건</span></div>";
-      }).join("") + "</div>";
+  /* ── AI 브리핑(담보대출 수요 레이더 / 우리사주 금융 수요) ── */
+  function bulletsHTML(bullets) {
+    if (!bullets || !bullets.length) {
+      return '<div class="page-note">브리핑을 아직 생성하지 못했습니다.</div>';
     }
+    return '<ul class="gal-mini-bullets">' + bullets.map(function (b) {
+      return "<li>" + esc(b) + "</li>";
+    }).join("") + "</ul>";
   }
 
+  function loadBriefings() {
+    get("/api/credit/lead-briefings").then(function (d) {
+      briefState.data = d;
+      document.getElementById("leads-collateral-brief").innerHTML = bulletsHTML(d.collateral_briefing);
+      document.getElementById("leads-esop-brief").innerHTML = bulletsHTML(d.esop_briefing);
+    }).catch(function () {
+      document.getElementById("leads-collateral-brief").innerHTML =
+        '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
+      document.getElementById("leads-esop-brief").innerHTML =
+        '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
+    });
+  }
+
+  /* ── 상속·증여 상세: DART 리드 + 뉴스를 날짜순으로 합침 ── */
   function collateralRowHTML(it) {
     return (
       '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
@@ -121,77 +133,6 @@
     );
   }
 
-  function esopRowHTML(it) {
-    var tag = it.category === "ipo" ? "IPO" : "유상증자";
-    return (
-      '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
-        '<div class="lead-row-head">' +
-          '<span class="pg-badge">' + tag + "</span>" +
-          '<span class="lead-title">' + esc(it.name) + " — " + esc(it.title) + "</span>" +
-          '<span class="lead-date">' + esc(it.date) + "</span>" +
-        "</div>" +
-        '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>" +
-      "</a>"
-    );
-  }
-
-  function renderLeadLists() {
-    var d = leadsState.data;
-    if (!d) return;
-    var sub = leadsState.sub;
-    var collateral = (d.collateral || []).filter(function () { return sub === "all" || sub === "inherit"; });
-    var showEsop = sub === "all" || sub === "esop";
-    document.getElementById("leads-esop-block").hidden = !showEsop;
-    document.getElementById("leads-news-block").hidden = sub === "esop";
-
-    var colList = document.getElementById("leads-collateral-list");
-    if (sub === "esop") {
-      colList.innerHTML = "";
-    } else if (!collateral.length) {
-      colList.innerHTML = '<div class="page-note">최근 60일 내 해당 공시가 없습니다.</div>';
-    } else {
-      colList.innerHTML = collateral.map(collateralRowHTML).join("");
-    }
-
-    if (showEsop) {
-      var esop = d.esop || [];
-      document.getElementById("leads-esop-list").innerHTML = esop.length
-        ? esop.map(esopRowHTML).join("")
-        : '<div class="page-note">최근 60일 내 유상증자·IPO 공시가 없습니다.</div>';
-    }
-  }
-
-  var leadsLoaded = false;
-  function loadLeads() {
-    if (leadsLoaded) return;
-    leadsLoaded = true;
-    get("/api/credit/leads").then(function (d) {
-      leadsState.data = d;
-      if (d.pending) {
-        document.getElementById("leads-kpis").innerHTML = "";
-        document.getElementById("leads-asof").textContent = "";
-        document.getElementById("leads-collateral-list").innerHTML =
-          '<div class="page-note">코스피 전 종목 데이터를 처음 수집하는 중입니다. 잠시 후 새로고침해주세요.</div>';
-        document.getElementById("leads-esop-list").innerHTML = "";
-        document.getElementById("leads-scope-note").textContent = "";
-        leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
-        return;
-      }
-      renderTopKpis();
-      renderLeadLists();
-      document.getElementById("leads-scope-note").textContent =
-        "대상 범위: 상속·증여 리드는 코스피 전체 상장종목(" + (d.universe || 0) + "종목) · " +
-        "우리사주 리드는 전 시장(유상증자) + 상장 전 IPO 공모 공시 포함 · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
-        (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
-    }).catch(function (e) {
-      leadsLoaded = false;
-      document.getElementById("leads-collateral-list").innerHTML =
-        '<div class="chart-error">' + (e.message || "리드 데이터를 불러오지 못했습니다") + "</div>";
-      document.getElementById("leads-esop-list").innerHTML = "";
-    });
-  }
-
-  /* ── 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단) ── */
   function newsRowHTML(it) {
     return (
       '<a class="lead-row" href="' + esc(it.url || "#") + '" target="_blank" rel="noopener">' +
@@ -205,19 +146,98 @@
     );
   }
 
+  function renderInheritList() {
+    var d = leadsState.data;
+    if (!d || newsState.items === null) return;
+    var collateral = (d.collateral || []).map(function (it) { return { date: it.date, html: collateralRowHTML(it) }; });
+    var news = (newsState.items || []).map(function (n) { return { date: n.published, html: newsRowHTML(n) }; });
+    var rows = collateral.concat(news).sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+    document.getElementById("leads-inherit-list").innerHTML = rows.length
+      ? rows.map(function (r) { return r.html; }).join("")
+      : '<div class="page-note">최근 60일 내 해당 공시·뉴스가 없습니다.</div>';
+  }
+
+  /* ── 우리사주 상세: 유상증자·IPO ── */
+  function renderEsopKpisAndMonthly(d, refMonth) {
+    var monthly = d.esop_monthly || [];
+    document.getElementById("leads-esop-month").textContent = "— " + monthLabel(refMonth) + " 기준";
+
+    var cur = monthly.filter(function (m) { return m.month === refMonth; })[0] || { rights: 0, ipo: 0 };
+    document.getElementById("leads-esop-kpis").innerHTML = leadKpiHTML([
+      ["유상증자 공시(" + monthLabel(refMonth) + ")", cur.rights + "건", "이미 상장된 회사"],
+      ["IPO 공시(" + monthLabel(refMonth) + ")", cur.ipo + "건", "상장 전 공모"],
+    ]);
+
+    var monthlyBox = document.getElementById("leads-esop-monthly");
+    monthlyBox.innerHTML = !monthly.length ? "" : '<div class="esop-monthly">' + monthly.map(function (m) {
+      return '<div class="esop-month-row"><span class="esop-month-label">' + monthLabel(m.month) + "</span>" +
+        '<span class="esop-month-count">유상증자 ' + m.rights + "건 · IPO " + m.ipo + "건</span></div>";
+    }).join("") + "</div>";
+  }
+
+  function esopRowHTML(it) {
+    var isIpo = it.category === "ipo";
+    return (
+      '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+        '<div class="lead-row-head">' +
+          '<span class="pg-badge' + (isIpo ? " badge-ipo" : "") + '">' + (isIpo ? "IPO" : "유상증자") + "</span>" +
+          '<span class="lead-title">' + esc(it.name) + " — " + esc(it.title) + "</span>" +
+          '<span class="lead-date">' + esc(it.date) + "</span>" +
+        "</div>" +
+        '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>" +
+      "</a>"
+    );
+  }
+
+  function renderEsopList() {
+    var d = leadsState.data;
+    if (!d) return;
+    var esop = d.esop || [];
+    document.getElementById("leads-esop-list").innerHTML = esop.length
+      ? esop.map(esopRowHTML).join("")
+      : '<div class="page-note">최근 60일 내 유상증자·IPO 공시가 없습니다.</div>';
+  }
+
+  var leadsLoaded = false;
+  function loadLeads() {
+    if (leadsLoaded) return;
+    leadsLoaded = true;
+    get("/api/credit/leads").then(function (d) {
+      leadsState.data = d;
+      if (d.pending) {
+        document.getElementById("leads-kpis").innerHTML = "";
+        document.getElementById("leads-asof").textContent = "";
+        document.getElementById("leads-inherit-list").innerHTML =
+          '<div class="page-note">코스피·코스닥 전 종목 데이터를 처음 수집하는 중입니다. 잠시 후 새로고침해주세요.</div>';
+        document.getElementById("leads-esop-list").innerHTML = "";
+        document.getElementById("leads-scope-note").textContent = "";
+        leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
+        return;
+      }
+      renderTopKpis();
+      renderInheritList();
+      renderEsopList();
+      document.getElementById("leads-scope-note").textContent =
+        "대상 범위: 상속·증여 리드는 코스피·코스닥 전체 상장종목(" + (d.universe || 0) + "종목) · " +
+        "우리사주 리드는 전 시장(유상증자) + 상장 전 IPO 공모 공시 포함 · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
+        (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
+    }).catch(function (e) {
+      leadsLoaded = false;
+      document.getElementById("leads-inherit-list").innerHTML =
+        '<div class="chart-error">' + (e.message || "리드 데이터를 불러오지 못했습니다") + "</div>";
+      document.getElementById("leads-esop-list").innerHTML = "";
+    });
+  }
+
   function loadInheritNews() {
     get("/api/credit/inherit-news").then(function (d) {
-      var items = d.items || [];
-      newsState.items = items;
-      document.getElementById("leads-news-list").innerHTML = items.length
-        ? items.map(newsRowHTML).join("")
-        : '<div class="page-note">최근 관련 있다고 판단된 뉴스가 없습니다.</div>';
+      newsState.items = d.items || [];
       renderTopKpis();
+      renderInheritList();
     }).catch(function () {
-      newsState.items = [];              // 실패해도 리드 KPI 계산은 진행되게
-      document.getElementById("leads-news-list").innerHTML =
-        '<div class="page-note">뉴스 동향을 불러오지 못했습니다.</div>';
+      newsState.items = [];              // 실패해도 KPI·리스트 계산은 진행되게
       renderTopKpis();
+      renderInheritList();
     });
   }
 
@@ -225,11 +245,24 @@
     var p = document.querySelector('.tab-panel[data-panel="credit"]');
     return p && !p.hidden;
   }
-  var newsLoaded = false;
+  var newsLoaded = false, briefLoaded = false;
   function maybeLoadLeads() {
     if (!creditTabVisible()) return;
     loadLeads();
     if (!newsLoaded) { newsLoaded = true; loadInheritNews(); }
+    if (!briefLoaded) { briefLoaded = true; loadBriefings(); }
+  }
+
+  function selectSub(sub) {
+    var bar = document.getElementById("leads-subtabs");
+    if (bar) {
+      bar.querySelectorAll(".subtab-btn").forEach(function (b) {
+        b.classList.toggle("active", b.dataset.sub === sub);
+      });
+    }
+    document.querySelectorAll(".leads-panel").forEach(function (p) {
+      p.hidden = p.dataset.panel !== sub;
+    });
   }
 
   function initLeadsSubtabs() {
@@ -237,10 +270,7 @@
     if (!bar) return;
     bar.addEventListener("click", function (e) {
       var btn = e.target.closest(".subtab-btn");
-      if (!btn) return;
-      bar.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
-      leadsState.sub = btn.dataset.sub;
-      renderLeadLists();
+      if (btn) selectSub(btn.dataset.sub);
     });
   }
 

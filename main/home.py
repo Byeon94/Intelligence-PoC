@@ -1,7 +1,7 @@
-"""홈 대시보드: 정책·리서치 통합 브리핑 + 자본시장/정책/발행시장 알림.
+"""홈 대시보드: 정책·리서치 통합 브리핑 + 자본시장/여신심사/정책 알림.
 
 각 탭이 이미 하루 1회 캐시해둔 스냅샷(get_policy_digest/get_research_digest/
-get_issuance_digest)과 ttl_cache 된 자본시장 유동성 요약을 재사용한다. 그날 첫
+get_leads/get_inherit_news)과 ttl_cache 된 자본시장 유동성 요약을 재사용한다. 그날 첫
 호출이면 해당 스냅샷이 새로 수집될 수 있으나, /internal/warmup 이 매일 아침
 미리 데워두므로 평소엔 캐시만 읽는다.
 """
@@ -10,8 +10,9 @@ from __future__ import annotations
 import logging
 from typing import Callable, TypeVar
 
-from capital.issuance.calendar import get_issuance_digest
 from capital.liquidity import get_liquidity_summary
+from credit.inherit_news import get_inherit_news
+from credit.leads import get_leads
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
 
@@ -23,8 +24,8 @@ T = TypeVar("T")
 _RATIO_ALERT_PP = 1.0
 
 # 홈 화면 알림은 최대 이만큼만(과다 노출 방지). 우선순위: ①이상징후(유동성)
-# ②발행시장(IPO·유상증자) 공시 ③금융당국 동향(최대 1건 — 금융위원회 우선순위,
-# AUTHORITY_ORGS 순서를 그대로 따름).
+# ②여신·심사 신규 리드(상속·증여/우리사주) ③금융당국 동향(최대 1건 — 금융위원회
+# 우선순위, AUTHORITY_ORGS 순서를 그대로 따름).
 _MAX_ALERTS = 3
 _MAX_POLICY_ALERTS = 1
 
@@ -82,35 +83,36 @@ def _policy_org_alerts(policy: dict | None) -> list[dict]:
     return alerts
 
 
-def _issuance_alert(as_of: str | None) -> dict | None:
-    """조회 기준일(비영업일이면 직전 영업일)에 발행시장(IPO 수요예측·청약·상장,
-    유상증자 공시) 일정이 있으면 알림 카드를 만든다."""
-    if not as_of:
+def _credit_leads_alert() -> dict | None:
+    """여신·심사 메인 화면의 "오늘 신규 리드"(상속·증여/우리사주 DART 공시 + 관련
+    뉴스)와 같은 기준으로, 실제로 찍힌 날짜 중 최신값(비영업일이면 자동으로 전
+    영업일)에 새로 잡힌 건이 있으면 알림 카드를 만든다."""
+    leads = _safe("여신·심사 리드", get_leads)
+    if not leads or leads.get("pending"):
         return None
-    digest = _safe("발행시장", get_issuance_digest)
-    if not digest:
+    news = _safe("여신·심사 상속증여 뉴스", get_inherit_news) or {}
+    dated = [x.get("date") for x in (leads.get("collateral") or []) + (leads.get("esop") or []) if x.get("date")]
+    dated += [n.get("published") for n in (news.get("items") or []) if n.get("published")]
+    if not dated:
         return None
-    events = [e for e in (digest.get("events") or []) if e.get("date") == as_of]
-    if not events:
+    ref_date = max(dated)
+    count = sum(1 for d in dated if d == ref_date)
+    if count == 0:
         return None
-    first = events[0]
-    more = f" 외 {len(events) - 1}건" if len(events) > 1 else ""
     return {
         "level": "info",
-        "title": f"발행시장 공시 {len(events)}건",
-        "detail": f"{as_of} 기준 · [{first.get('type')}] {first.get('company')}{more}",
-        "tab": "capital",
-        "sub": "issuance",
+        "title": f"여신·심사 신규 리드 {count}건",
+        "detail": f"{ref_date} 기준 · 상속·증여/우리사주 관련 신규 공시·뉴스",
+        "tab": "credit",
     }
 
 
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
-    as_of = policy.get("as_of") if policy else None
     alerts = (
         [a for a in (_liquidity_alert(),) if a]
-        + [a for a in (_issuance_alert(as_of),) if a]
+        + [a for a in (_credit_leads_alert(),) if a]
         + _policy_org_alerts(policy)
     )
     alerts = alerts[:_MAX_ALERTS]

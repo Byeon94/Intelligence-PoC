@@ -285,6 +285,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
   font-size: .68rem; font-weight: 800; color: var(--accent); background: var(--accent-bg);
   border: 1px solid var(--border); border-radius: 5px; padding: 2px 7px;
 }
+/* IPO 리드는 유상증자(기본 파란색)와 구분되게 빨간색으로 */
+.pg-badge.badge-ipo { color: var(--down); background: rgba(220,38,38,.08); border-color: var(--down); }
 .pg-name { font-size: .84rem; font-weight: 700; }
 .pol-item {
   display: block; text-decoration: none; color: inherit;

@@ -664,10 +664,11 @@
       if (!filings.length) {
         html += '<div class="gal-mini-note">' + esc((fil && fil.note) || "최근 공시가 없습니다.") + "</div>";
       } else {
-        html += '<ul class="gal-mini-filings">' + filings.map(function (it) {
+        html += '<ul class="gal-mini-reports">' + filings.map(function (it, i) {
           return '<li><a href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
-            '<span class="gmf-date">' + esc(it.date || "") + "</span>" +
-            '<span class="gmf-title">' + esc(it.title || "") + "</span></a></li>";
+            '<span class="gmr-no">' + (i + 1) + "</span>" +
+            '<span class="gmr-broker">' + esc(it.date || "") + "</span>" +
+            '<span class="gmr-title">' + esc(it.title || "") + "</span></a></li>";
         }).join("") + "</ul>";
       }
       resultEl.innerHTML = html;
