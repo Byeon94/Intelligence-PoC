@@ -32,14 +32,20 @@ KST = ZoneInfo("Asia/Seoul")
 _ENDPOINT = "https://openapi.naver.com/v1/search/news.json"
 _TABLE = "credit_inherit_news_snapshots"
 
-_KEYWORDS = ["오너 지분 증여", "최대주주 지분 상속", "지분 증여 공시", "상속 지분 매각"]
+_KEYWORDS = [
+    "오너 지분 증여", "최대주주 지분 상속", "지분 증여 공시", "상속 지분 매각",
+    "오너家 지분 매입", "2세 승계 지분", "가업승계 지분", "특수관계인 지분 이전",
+]
 _STRIP_TAG = re.compile(r"<[^>]+>")
 
 _SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 여신심사 담당자를 위한 리서치 어시스턴트야.\n"
-    "아래는 뉴스 기사 제목 목록이다. 상장회사 오너·대주주 개인의 '주식 상속' 또는 "
-    "'주식 증여' 이벤트를 다루는 기사만 관련 있다고 판단해라. 상속세·증여세 정책·세법 "
-    "개정처럼 특정 회사 지분 이전과 무관한 일반 기사는 관련 없음으로 처리해.\n"
+    "아래는 뉴스 기사 제목 목록이다. 상장회사 오너·대주주 개인 또는 그 자녀 등 특수관계인의 "
+    "'주식 상속·증여' 이벤트뿐 아니라, 경영권 승계 과정에서 나타나는 지분 매입·확대·축소· "
+    "특수관계인 회사로의 지분 이전처럼 '오너家 승계·지분 이동'과 관련된 기사도 관련 있다고 "
+    "판단해라(실제 상속·증여 재원 마련용 대출 수요로 이어질 수 있는 선행 신호이기 때문). "
+    "다만 특정 회사·인물의 지분 이동과 무관한 상속세·증여세 정책·세법 개정 같은 일반 기사는 "
+    "관련 없음으로 처리해.\n"
     "각 줄에 대해 제목에 적힌 내용만 근거로 판단하고, 제목에 없는 회사명·금액·지분율· "
     "날짜를 지어내지 마.\n"
     "출력 형식: 각 줄에 '번호. 판단' — 관련 있으면 어느 회사·어떤 맥락인지 한 문장으로, "
@@ -83,7 +89,7 @@ def _search(keyword: str, display: int = 15) -> list[dict]:
     return out
 
 
-def _collect_candidates(limit: int = 20) -> list[dict]:
+def _collect_candidates(limit: int = 35) -> list[dict]:
     seen: set[str] = set()
     pool: list[dict] = []
     for kw in _KEYWORDS:
@@ -128,10 +134,10 @@ def _filter_with_ai(candidates: list[dict]) -> list[dict]:
         if not note or "관련 없음" in note:
             continue
         out.append({**c, "ai_note": note})
-    return out[:8]
+    return out[:15]
 
 
-_SCHEMA_V = 1
+_SCHEMA_V = 2  # v2: 키워드·판단기준 확대(승계·지분 이동까지 포함) + 후보/노출 개수 확대
 
 
 def get_inherit_news(force: bool = False) -> dict:

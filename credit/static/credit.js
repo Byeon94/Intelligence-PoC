@@ -3,8 +3,9 @@
    리포트 조회는 전사위젯 > 내 위젯의 개별 위젯에서 제공한다(이 탭에서는 제공하지 않음).
 
    탭 구성:
-     전체     — 요약 KPI 4개 + AI 브리핑 2개(증권담보대출 수요 레이더 / 우리사주 금융 수요),
-                브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용
+     전체     — 요약 KPI 4개 + AI 브리핑 2개(증권담보대출 수요 레이더 / 우리사주대출 수요 레이더,
+                브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용) +
+                기준일에 실제로 찍힌 공시·뉴스만 모은 "오늘 신규 리드" 목록
      증권담보대출 — DART 공시(상속·증여)와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계
      우리사주    — 유상증자·IPO DART 공시와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계 */
 (function () {
@@ -112,6 +113,7 @@
 
     var todayCount = allDated.filter(function (x) { return x.date === refDate; }).length;
     var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= refDate; }).length;
+    renderTodayLeadsList(refDate);
 
     var inMonth = function (x) { return (x.date || "").slice(0, 7) === refMonth; };
     var inheritMonthly = (d.collateral || []).filter(inMonth).length + newsItems.filter(inMonth).length;
@@ -305,6 +307,19 @@
     renderEsopNewsList();
   }
 
+  /* ── 전체: AI 브리핑 하단에 "오늘 신규 리드"(기준일에 실제로 찍힌 공시·뉴스) 목록 ── */
+  function renderTodayLeadsList(refDate) {
+    var d = leadsState.data;
+    if (!d) return;
+    var rows = [];
+    (d.collateral || []).forEach(function (it) { if (it.date === refDate) rows.push(collateralRowHTML(it)); });
+    (d.esop || []).forEach(function (it) { if (it.date === refDate) rows.push(esopRowHTML(it)); });
+    (newsState.items || []).forEach(function (n) { if (n.published === refDate) rows.push(newsRowHTML(n)); });
+    (esopNewsState.items || []).forEach(function (n) { if (n.published === refDate) rows.push(newsRowHTML(n)); });
+    renderExpandableList("leads-today-list", rows, function (html) { return html; },
+      refDate + " 기준 신규 공시·뉴스가 없습니다.", function () { renderTodayLeadsList(refDate); });
+  }
+
   var leadsLoaded = false;
   function loadLeads() {
     if (leadsLoaded) return;
@@ -319,6 +334,7 @@
         document.getElementById("leads-inherit-news-list").innerHTML = "";
         document.getElementById("leads-esop-disclosures").innerHTML = "";
         document.getElementById("leads-esop-news-list").innerHTML = "";
+        document.getElementById("leads-today-list").innerHTML = "";
         document.getElementById("leads-scope-note").textContent = "";
         leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
         return;
@@ -337,6 +353,7 @@
       document.getElementById("leads-inherit-news-list").innerHTML = "";
       document.getElementById("leads-esop-disclosures").innerHTML = "";
       document.getElementById("leads-esop-news-list").innerHTML = "";
+      document.getElementById("leads-today-list").innerHTML = "";
     });
   }
 
