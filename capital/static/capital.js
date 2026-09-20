@@ -197,8 +197,29 @@
   }
   function maybeLoad() { if (capitalVisible()) ensure("liquidity"); }
 
+  // "!" 기준일 안내 아이콘 — 클릭하면 작은 팝업으로 안내 문구를 보여준다(호버 툴팁 대신).
+  function closeAsofPopups() {
+    document.querySelectorAll(".asof-popup").forEach(function (p) { p.remove(); });
+  }
+  function initAsofInfo() {
+    document.querySelectorAll(".asof-info").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var already = btn.parentElement.querySelector(".asof-popup");
+        closeAsofPopups();
+        if (already) return;               // 같은 버튼 다시 누르면 닫기만
+        var pop = document.createElement("div");
+        pop.className = "asof-popup";
+        pop.textContent = btn.dataset.msg || "";
+        btn.parentElement.appendChild(pop);
+      });
+    });
+    document.addEventListener("click", closeAsofPopups);
+  }
+
   function boot() {
     initSubtabs();
+    initAsofInfo();
     maybeLoad();
     var tabs = document.getElementById("main-tabs");
     if (tabs) tabs.addEventListener("click", function () { setTimeout(maybeLoad, 0); });

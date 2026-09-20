@@ -632,8 +632,12 @@
 
       var ps = d.price_series;
       if (ps && ps.values && ps.values.length > 1) {
+        // 실적분석 차트 박스와 같은 크기로 보이도록 동일한 gm-ca-charts/gm-ca-chart-box 래퍼를 재사용
         html += miniSubtitle("주가흐름") +
-          '<div class="gal-mini-chart" id="' + resultEl.id + '-pricechart"></div>';
+          '<div class="gm-ca-charts"><div class="gm-ca-chart-box">' +
+            '<div class="gm-ca-chart-label">종가(최근 120거래일, 원)</div>' +
+            '<div class="gal-mini-chart" id="' + resultEl.id + '-pricechart"></div>' +
+          "</div></div>";
       }
 
       if (fin && fin.annual && fin.annual.labels && fin.annual.labels.length) {

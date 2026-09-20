@@ -4,8 +4,10 @@
   --bg: #ffffff; --bg2: #f7f9fc; --card: #ffffff; --card2: #f5f7fb;
   --border: #e6e9f1; --border2: #eef1f7;
   --fg: #1b2333; --muted: #667085; --accent: #2f6fed; --accent-bg: rgba(47,111,237,.08);
-  /* 국내 증권 관행: 상승=빨강, 하락=파랑 */
-  --up: #dc2626; --down: #2563eb;
+  --up: #12805c; --down: #dc2626;
+  /* 주가 등락 전용(국내 증권 관행: 상승=빨강, 하락=파랑) — --up/--down 은 "전사 등재"·
+     "연결됨" 같은 일반 성공/강조 배지에도 쓰이므로 등락 표시는 이 변수만 쓴다 */
+  --stock-up: #dc2626; --stock-down: #2563eb;
   --c1: #2f6fed; --c2: #e8912d; --c3: #12a150; --c4: #e0489e; --c5: #8b5cf6; --c6: #ef4444;
   --shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.045);
 }
@@ -14,8 +16,8 @@
   --bg: #0f1420; --bg2: #0b0f18; --card: #161c28; --card2: #10151f;
   --border: #262d3b; --border2: #1d2330;
   --fg: #e6ebf3; --muted: #8b94a7; --accent: #5b8def; --accent-bg: rgba(91,141,239,.14);
-  /* 국내 증권 관행: 상승=빨강, 하락=파랑 */
-  --up: #f87171; --down: #60a5fa;
+  --up: #3fb978; --down: #f87171;
+  --stock-up: #f87171; --stock-down: #60a5fa;
   --c1: #5b8def; --c2: #e0a33a; --c3: #3fb978; --c4: #e069b0; --c5: #a78bfa; --c6: #f87171;
   --shadow: none;
 }
@@ -143,6 +145,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
   border-radius: 2px; margin-right: 7px; vertical-align: -1px;
 }
 .asof, .unit-tag { color: var(--muted); font-size: .72rem; white-space: nowrap; }
+.asof { position: relative; }
 .unit-tag { border: 1px solid var(--border2); border-radius: 6px; padding: 1px 6px; }
 
 /* ── KPI ── */
@@ -405,11 +408,18 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .asof-info {
   display: inline-flex; align-items: center; justify-content: center;
   width: 15px; height: 15px; margin-left: 5px; padding: 0; vertical-align: middle;
-  font-size: .66rem; font-weight: 800; line-height: 1; cursor: help;
+  font-size: .66rem; font-weight: 800; line-height: 1; cursor: pointer;
   color: var(--c2); background: none; border: 1px solid var(--c2); border-radius: 50%;
 }
-.k-up { color: var(--up); font-weight: 700; }
-.k-dn { color: var(--down); font-weight: 700; }
+.asof-popup {
+  position: absolute; top: 100%; right: 0; margin-top: 6px; z-index: 20;
+  width: 220px; max-width: 60vw; text-align: left; white-space: normal;
+  background: var(--card); color: var(--fg); font-size: .74rem; line-height: 1.45;
+  border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
+  box-shadow: var(--shadow), 0 4px 14px rgba(16,24,40,.12);
+}
+.k-up { color: var(--stock-up); font-weight: 700; }
+.k-dn { color: var(--stock-down); font-weight: 700; }
 
 /* 기초정보 KPI: 금액·주식수가 길어서 종가/시총/거래대금/거래량/상장주식수만 조금 작게 */
 #eq-kpis .k-value { font-size: 1.2rem; }
