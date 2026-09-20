@@ -3,9 +3,10 @@
    리포트 조회는 전사위젯 > 내 위젯의 개별 위젯에서 제공한다(이 탭에서는 제공하지 않음).
 
    탭 구성:
-     전체     — 요약 KPI 4개 + AI 브리핑 2개(담보대출 수요 레이더 / 우리사주 금융 수요)
-     상속·증여 — DART 리드 + 관련 뉴스를 날짜순으로 합친 상세 목록
-     우리사주  — 유상증자·IPO 상세 목록 + 월별 집계 */
+     전체   — 요약 KPI 4개 + AI 브리핑 2개(담보대출 수요 레이더 / 우리사주 금융 수요),
+              브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용
+     담보대출 — DART 리드(상속·증여) + 관련 뉴스를 날짜순으로 합친 상세 목록
+     우리사주 — 유상증자·IPO 상세 목록 + 월별 집계 */
 (function () {
   "use strict";
 
@@ -35,6 +36,7 @@
   var leadsState = { data: null };
   var newsState = { items: null };
   var briefState = { data: null };
+  var CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
 
   function leadKpiHTML(items) {
     return items.map(function (k) {
@@ -88,29 +90,56 @@
 
     document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
       ["오늘 신규 리드", todayCount + "건", "최근 7일 " + weekCount + "건 · DART+뉴스"],
-      ["상속·증여 공시·뉴스(" + monthLabel(refMonth) + ")", inheritMonthly + "건", "DART + AI 뉴스 분석"],
-      ["우리사주 금융 수요(" + monthLabel(refMonth) + ")", monthly.rights + "건", "유상증자 · 이미 상장된 회사"],
-      ["우리사주 금융 IPO(" + monthLabel(refMonth) + ")", monthly.ipo + "건", "상장 전 공모"],
+      ["담보대출 수요 - 상속증여 공시뉴스(" + monthLabel(refMonth) + ")", inheritMonthly + "건", "DART + AI 뉴스 분석"],
+      ["우리사주 수요 - 유상증자(" + monthLabel(refMonth) + ")", monthly.rights + "건", "이미 상장된 회사"],
+      ["우리사주 수요 - IPO(" + monthLabel(refMonth) + ")", monthly.ipo + "건", "상장 전 공모"],
     ]);
 
     renderEsopKpisAndMonthly(d, refMonth);
   }
 
-  /* ── AI 브리핑(담보대출 수요 레이더 / 우리사주 금융 수요) ── */
-  function bulletsHTML(bullets) {
-    if (!bullets || !bullets.length) {
-      return '<div class="page-note">브리핑을 아직 생성하지 못했습니다.</div>';
+  /* ── AI 브리핑(담보대출 수요 레이더 / 우리사주 금융 수요) — 홈 대시보드의
+     "오늘의 AI 통합 브리핑" 카드와 같은 디자인(원형 번호 불릿 + 자세히 보기 버튼) ── */
+  function briefCardHTML(opts) {
+    var head = '<div class="brief-head"><span class="brief-label">' + opts.label + "</span>" +
+      '<span class="brief-when">' + esc(opts.when || "") + "</span></div>";
+    var body;
+    if (opts.bullets && opts.bullets.length) {
+      body = '<ol class="brief-list">' + opts.bullets.map(function (b, i) {
+        return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + '</span><span class="bl-tx">' +
+          esc(b) + "</span></li>";
+      }).join("") + "</ol>";
+    } else {
+      body = '<div class="brief-note">브리핑을 아직 생성하지 못했습니다.</div>';
     }
-    return '<ul class="gal-mini-bullets">' + bullets.map(function (b) {
-      return "<li>" + esc(b) + "</li>";
-    }).join("") + "</ul>";
+    return (
+      '<div class="brief-card">' + head + body +
+        '<button type="button" class="dart-btn home-brief-more" data-sub="' + opts.sub + '">자세히 보기 →</button>' +
+      "</div>"
+    );
+  }
+
+  function bindBriefButtons(scope) {
+    scope.querySelectorAll(".home-brief-more[data-sub]").forEach(function (btn) {
+      btn.addEventListener("click", function () { selectSub(btn.dataset.sub); });
+    });
   }
 
   function loadBriefings() {
     get("/api/credit/lead-briefings").then(function (d) {
       briefState.data = d;
-      document.getElementById("leads-collateral-brief").innerHTML = bulletsHTML(d.collateral_briefing);
-      document.getElementById("leads-esop-brief").innerHTML = bulletsHTML(d.esop_briefing);
+      var colBox = document.getElementById("leads-collateral-brief");
+      var esopBox = document.getElementById("leads-esop-brief");
+      colBox.innerHTML = briefCardHTML({
+        label: "💰 담보대출 수요 레이더", when: "AI 브리핑",
+        bullets: d.collateral_briefing, sub: "inherit",
+      });
+      esopBox.innerHTML = briefCardHTML({
+        label: "🧑‍🤝‍🧑 우리사주 금융 수요", when: "AI 브리핑",
+        bullets: d.esop_briefing, sub: "esop",
+      });
+      bindBriefButtons(colBox);
+      bindBriefButtons(esopBox);
     }).catch(function () {
       document.getElementById("leads-collateral-brief").innerHTML =
         '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
@@ -218,7 +247,7 @@
       renderInheritList();
       renderEsopList();
       document.getElementById("leads-scope-note").textContent =
-        "대상 범위: 상속·증여 리드는 코스피·코스닥 전체 상장종목(" + (d.universe || 0) + "종목) · " +
+        "대상 범위: 담보대출(상속·증여) 리드는 코스피·코스닥 전체 상장종목(" + (d.universe || 0) + "종목) · " +
         "우리사주 리드는 전 시장(유상증자) + 상장 전 IPO 공모 공시 포함 · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
         (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
     }).catch(function (e) {

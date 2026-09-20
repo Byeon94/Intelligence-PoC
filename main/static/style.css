@@ -542,6 +542,18 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .esop-month-label { font-weight: 700; }
 .esop-month-count { color: var(--muted); }
 
+/* 여신·심사 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
+.credit #leads-subtabs { margin-bottom: 20px; }
+.credit .kpi-grid { gap: 14px; margin-bottom: 24px; }
+.credit .leads-asof { margin-bottom: 14px; }
+.credit .block { margin-bottom: 30px; }
+.credit .block-head { margin-bottom: 14px; }
+.credit .lead-row { margin-bottom: 14px; padding: 14px 16px; }
+.credit .lead-row-head { margin-bottom: 8px; }
+.credit .brief-card { margin-bottom: 16px; }
+.credit .brief-card:last-child { margin-bottom: 0; }
+.credit .brief-list li { padding: 10px 0; }
+
 /* 리포트: 컨센서스 요약 카드 — 값 글씨 축소 */
 #eq-rpt-kpis .k-value { font-size: 1.05rem; }
 @media (min-width: 720px) { #eq-rpt-kpis .k-value { font-size: 1.15rem; } }
