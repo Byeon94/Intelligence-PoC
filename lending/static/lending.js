@@ -1,4 +1,5 @@
-/* 증권대차 탭: 주식대차 / 채권대차 (KPI·상위종목·AI 해설은 예시 데이터, 관련 뉴스는 실데이터) */
+/* 증권대차 탭: 주식대차 / 채권대차. 대차잔고·상위종목 등 KPI 데이터는 정식 연동 전이라
+   "준비중" 안내만 표시하고(lending.html), 관련 뉴스만 실데이터로 보여준다. */
 (function () {
   "use strict";
 
@@ -6,79 +7,6 @@
     return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
     });
-  }
-
-  function chgClass(up) {
-    return up === true ? "up" : (up === false ? "down" : "flat");
-  }
-
-  function kpiHTML(items) {
-    return (items || []).map(function (k) {
-      var arrow = k.up === true ? "▲ " : (k.up === false ? "▼ " : "");
-      var sub = k.change_period ? " (" + esc(k.change_period) + ")" : "";
-      return (
-        '<div class="kpi">' +
-          '<div class="k-label">' + esc(k.label) + "</div>" +
-          '<div class="k-value">' + esc(k.value) + "</div>" +
-          '<div class="k-delta ' + chgClass(k.up) + '">' + arrow + esc(k.change) + sub + "</div>" +
-        "</div>"
-      );
-    }).join("");
-  }
-
-  function stockTableHTML(d) {
-    var rows = d.top_stocks || [];
-    if (!rows.length) return '<div class="chart-error">데이터가 없습니다.</div>';
-    var table =
-      '<div class="lend-card"><table class="api-table"><thead><tr>' +
-        "<th>종목</th><th>대차잔고</th><th>주간증감</th><th>공매도비중</th><th>시그널</th>" +
-      "</tr></thead><tbody>" +
-        rows.map(function (r) {
-          return (
-            "<tr><td>" + esc(r.name) + "</td>" +
-            "<td>" + esc(r.balance) + "</td>" +
-            '<td class="lend-chg ' + chgClass(r.up) + '">' + esc(r.change) + "</td>" +
-            "<td>" + esc(r.short_ratio) + "</td>" +
-            '<td><span class="lend-signal ' + esc(r.signal_type || "") + '">' + esc(r.signal) + "</span></td></tr>"
-          );
-        }).join("") +
-      "</tbody></table>" +
-      (d.footnote ? '<div class="lend-note">' + esc(d.footnote) + "</div>" : "") +
-      "</div>";
-    return table;
-  }
-
-  function bondTableHTML(rows) {
-    if (!rows || !rows.length) return '<div class="chart-error">데이터가 없습니다.</div>';
-    return (
-      '<div class="lend-card"><table class="api-table"><thead><tr>' +
-        "<th>종목군</th><th>대차잔고</th><th>주간증감</th><th>대차료율</th><th>비고</th>" +
-      "</tr></thead><tbody>" +
-        rows.map(function (r) {
-          return (
-            "<tr><td>" + esc(r.group) + "</td>" +
-            "<td>" + esc(r.balance) + "</td>" +
-            '<td class="lend-chg ' + chgClass(r.up) + '">' + esc(r.change) + "</td>" +
-            "<td>" + esc(r.rate) + "</td>" +
-            "<td>" + esc(r.note) + "</td></tr>"
-          );
-        }).join("") +
-      "</tbody></table></div>"
-    );
-  }
-
-  function alertHTML(a) {
-    if (!a) return "";
-    return (
-      '<div class="lend-alert">' +
-        '<div class="lend-alert-head">' +
-          '<span class="pg-badge">' + esc(a.badge) + "</span>" +
-          '<span class="lend-alert-title">' + esc(a.title) + "</span>" +
-          '<span class="lend-alert-src">' + esc(a.source) + "</span>" +
-        "</div>" +
-        '<div class="lend-alert-ai">💬 AI 해설: ' + esc(a.ai_note) + "</div>" +
-      "</div>"
-    );
   }
 
   function newsHTML(items) {
@@ -97,14 +25,7 @@
   var cache = null;
 
   function render(d) {
-    document.getElementById("lend-stock-kpis").innerHTML = kpiHTML(d.stock.kpi);
-    document.getElementById("lend-stock-table").innerHTML = stockTableHTML(d.stock);
-    document.getElementById("lend-stock-alert").innerHTML = alertHTML(d.stock.alert);
     document.getElementById("lend-stock-news").innerHTML = newsHTML(d.stock.news);
-
-    document.getElementById("lend-bond-kpis").innerHTML = kpiHTML(d.bond.kpi);
-    document.getElementById("lend-bond-alert").innerHTML = alertHTML(d.bond.alert);
-    document.getElementById("lend-bond-table").innerHTML = bondTableHTML(d.bond.table);
     document.getElementById("lend-bond-news").innerHTML = newsHTML(d.bond.news);
   }
 
@@ -116,7 +37,7 @@
       .then(function (d) { cache = d; render(d); })
       .catch(function () {
         loaded = false;
-        var box = document.getElementById("lend-stock-kpis");
+        var box = document.getElementById("lend-stock-news");
         if (box) box.innerHTML = '<div class="chart-error">데이터를 불러오지 못했습니다.</div>';
       });
   }

@@ -74,6 +74,22 @@
     }).catch(function () { sugEl.hidden = true; });
   }
 
+  function showDetail() {
+    var landing = document.getElementById("credit-landing");
+    var detail = document.getElementById("credit-detail");
+    if (landing) landing.hidden = true;
+    if (detail) detail.hidden = false;
+  }
+  function showLanding() {
+    var landing = document.getElementById("credit-landing");
+    var detail = document.getElementById("credit-detail");
+    if (detail) detail.hidden = true;
+    if (landing) landing.hidden = false;
+    state.code = null;
+    state.name = null;
+    qEl.value = "";
+  }
+
   function choose(code, name) {
     state.code = code;
     state.name = name || code;
@@ -81,6 +97,7 @@
     state.rptFor = null;
     qEl.value = state.name + " (" + code + ")";
     sugEl.hidden = true;
+    showDetail();
     document.getElementById("eq-cur-name").textContent = state.name;
     document.getElementById("eq-cur-code").textContent = code;
     document.getElementById("eq-cur-tags").innerHTML = "";
@@ -89,6 +106,131 @@
     loadFinancials();
     if (filingSubtabActive()) loadFilings();
     if (reportSubtabActive()) loadReports();
+  }
+
+  /* ── 메인 화면: 담보대출·우리사주 금융 수요 리드 레이더 ── */
+  var leadsState = { data: null, sub: "all" };
+
+  function leadKpiHTML(items) {
+    return items.map(function (k) {
+      return '<div class="kpi"><div class="k-label">' + k[0] + "</div>" +
+        '<div class="k-value">' + k[1] + "</div>" +
+        (k[2] ? '<div class="k-sub">' + k[2] + "</div>" : "") + "</div>";
+    }).join("");
+  }
+
+  function countSince(items, days) {
+    var cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    var cutStr = cutoff.toISOString().slice(0, 10);
+    return items.filter(function (it) { return it.date >= cutStr; }).length;
+  }
+
+  function renderLeadKpis(d) {
+    var all = (d.collateral || []).concat(d.esop || []);
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var inherit = (d.collateral || []).filter(function (x) { return x.kind === "inherit"; });
+    var pledge = (d.collateral || []).filter(function (x) { return x.kind === "pledge"; });
+    document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
+      ["오늘 신규 리드", all.filter(function (x) { return x.date === todayStr; }).length + "건",
+        "이번 주 " + countSince(all, 7) + "건"],
+      ["상속·증여 공시", inherit.length + "건", "DART 자동 감지"],
+      ["우리사주 배정 시그널", (d.esop || []).length + "건", "유상증자 추적"],
+      ["담보계약 공시", pledge.length + "건", "지분 담보 감지"],
+    ]);
+  }
+
+  function badgeCls(badge) { return badge === "감지" ? "fil-tag" : "pg-badge"; }
+
+  function collateralRowHTML(it) {
+    return (
+      '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+        '<div class="lead-row-head">' +
+          '<span class="' + badgeCls(it.badge) + '">' + esc(it.badge) + "</span>" +
+          '<span class="lead-title">' + esc(it.name) + " — " + esc(it.reporter || it.reason) + "</span>" +
+          '<span class="lead-date">' + esc(it.date) + "</span>" +
+        "</div>" +
+        '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>" +
+      "</a>"
+    );
+  }
+
+  function esopRowHTML(it) {
+    return (
+      '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+        '<div class="lead-row-head">' +
+          '<span class="pg-badge">LEAD</span>' +
+          '<span class="lead-title">' + esc(it.name) + " — " + esc(it.title) + "</span>" +
+          '<span class="lead-date">' + esc(it.date) + "</span>" +
+        "</div>" +
+        '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>" +
+      "</a>"
+    );
+  }
+
+  function renderLeadLists() {
+    var d = leadsState.data;
+    if (!d) return;
+    var sub = leadsState.sub;
+    var collateral = (d.collateral || []).filter(function (it) {
+      return sub === "all" || sub === it.kind;
+    });
+    var showEsop = sub === "all" || sub === "esop";
+    var esopBlock = document.getElementById("leads-esop-block");
+    esopBlock.hidden = !showEsop;
+
+    var colList = document.getElementById("leads-collateral-list");
+    if (sub === "esop") {
+      colList.innerHTML = "";
+    } else if (!collateral.length) {
+      colList.innerHTML = '<div class="page-note">최근 60일 내 해당 공시가 없습니다.</div>';
+    } else {
+      colList.innerHTML = collateral.map(collateralRowHTML).join("");
+    }
+
+    if (showEsop) {
+      var esop = d.esop || [];
+      document.getElementById("leads-esop-list").innerHTML = esop.length
+        ? esop.map(esopRowHTML).join("")
+        : '<div class="page-note">최근 60일 내 유상증자 공시가 없습니다.</div>';
+    }
+  }
+
+  var leadsLoaded = false;
+  function loadLeads() {
+    if (leadsLoaded) return;
+    leadsLoaded = true;
+    get("/api/credit/leads").then(function (d) {
+      leadsState.data = d;
+      renderLeadKpis(d);
+      renderLeadLists();
+      document.getElementById("leads-scope-note").textContent =
+        "대상 범위: 코스피 시가총액 상위 " + (d.universe || 30) + "종목 · DART 전자공시 실데이터 기준, 매일 1회 갱신 · " +
+        "코스피 상위 종목은 이미 상장돼 있어 'IPO(신규상장)' 리드는 없고 유상증자 공시로 우리사주 수요를 추적합니다.";
+    }).catch(function (e) {
+      leadsLoaded = false;
+      document.getElementById("leads-collateral-list").innerHTML =
+        '<div class="chart-error">' + (e.message || "리드 데이터를 불러오지 못했습니다") + "</div>";
+      document.getElementById("leads-esop-list").innerHTML = "";
+    });
+  }
+
+  function creditTabVisible() {
+    var p = document.querySelector('.tab-panel[data-panel="credit"]');
+    return p && !p.hidden;
+  }
+  function maybeLoadLeads() { if (creditTabVisible()) loadLeads(); }
+
+  function initLeadsSubtabs() {
+    var bar = document.getElementById("leads-subtabs");
+    if (!bar) return;
+    bar.addEventListener("click", function (e) {
+      var btn = e.target.closest(".subtab-btn");
+      if (!btn) return;
+      bar.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+      leadsState.sub = btn.dataset.sub;
+      renderLeadLists();
+    });
   }
 
   /* ── 기초정보 + 가격범위 ── */
@@ -424,6 +566,14 @@
     qEl = document.getElementById("eq-q");
     sugEl = document.getElementById("eq-suggest");
     initSubtabs();
+    initLeadsSubtabs();
+    maybeLoadLeads();
+    var mainTabs = document.getElementById("main-tabs");
+    if (mainTabs) mainTabs.addEventListener("click", function () { setTimeout(maybeLoadLeads, 0); });
+    var workTabs = document.getElementById("work-subtabs");
+    if (workTabs) workTabs.addEventListener("click", function () { setTimeout(maybeLoadLeads, 0); });
+    var backBtn = document.getElementById("leads-back-btn");
+    if (backBtn) backBtn.addEventListener("click", showLanding);
 
     qEl.addEventListener("input", function () {
       clearTimeout(tmr);

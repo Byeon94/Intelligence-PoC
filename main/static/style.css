@@ -203,24 +203,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
   background: var(--card); border: 1px solid var(--border); border-radius: 12px;
   padding: 14px; box-shadow: var(--shadow); overflow-x: auto;
 }
-.lend-note { font-size: .74rem; color: var(--muted); margin-top: 8px; }
-.lend-chg.up { color: var(--up); }
-.lend-chg.down { color: var(--down); }
-.lend-chg.flat { color: var(--muted); }
-.lend-signal {
-  font-size: .68rem; font-weight: 700; border-radius: 5px; padding: 2px 7px;
-  border: 1px solid var(--border); white-space: nowrap;
-}
-.lend-signal.warn { color: var(--down); border-color: var(--down); background: rgba(220,38,38,.08); }
-.lend-signal.info { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
-.lend-alert {
-  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-  border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; box-shadow: var(--shadow);
-}
-.lend-alert-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-.lend-alert-title { font-weight: 700; font-size: .86rem; }
-.lend-alert-src { font-size: .72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
-.lend-alert-ai { font-size: .8rem; color: var(--muted); line-height: 1.5; }
 
 /* ── 표 ── */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
@@ -524,6 +506,20 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
   .fil-title { grid-column: 1 / -1; grid-row: 2; }
   .fil-go { display: none; }
 }
+
+/* 여신·심사 메인: 담보대출·우리사주 리드 레이더 */
+#leads-back-btn { margin-bottom: 12px; }
+.lead-row {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.lead-row:hover { background: var(--accent-bg); }
+.lead-row-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.lead-title { font-weight: 700; font-size: .86rem; }
+.lead-date { font-size: .72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.lead-note { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+.leads-scope-note { margin-top: 4px; }
 
 /* 리포트: 컨센서스 요약 카드 — 값 글씨 축소 */
 #eq-rpt-kpis .k-value { font-size: 1.05rem; }

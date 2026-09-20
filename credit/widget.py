@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, render_template, request
 from .equity import get_stock_basics, search_stocks
 from .filings import get_filings
 from .financials import get_financials
+from .leads import get_leads
 from .reports import get_market_report_digest, get_reports
 
 credit_bp = Blueprint(
@@ -78,3 +79,10 @@ def market_reports():
     """전사 위젯: 특정 종목이 아닌 시장 전체 증권사 리포트 동향(건수 + AI 브리핑)."""
     force = request.args.get("refresh") in ("1", "true", "yes")
     return _safe(lambda: get_market_report_digest(force=force), "시장 리포트 동향")
+
+
+@credit_bp.route("/api/credit/leads")
+def leads():
+    """여신·심사 메인 화면: 코스피 상위 30종목 담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
+    force = request.args.get("refresh") in ("1", "true", "yes")
+    return _safe(lambda: get_leads(force=force), "담보대출·우리사주 리드")

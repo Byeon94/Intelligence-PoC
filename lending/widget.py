@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, render_template
 
 from .news import get_lending_news
-from .sample import BOND_LENDING, STOCK_LENDING
 
 lending_bp = Blueprint(
     "lending",
@@ -25,6 +24,6 @@ def data():
         lending_bp.logger.exception("증권대차 뉴스 조회 실패")
         news = {"stock": [], "bond": []}
     return jsonify({
-        "stock": {**STOCK_LENDING, "news": news.get("stock", [])},
-        "bond": {**BOND_LENDING, "news": news.get("bond", [])},
+        "stock": {"news": news.get("stock", [])},
+        "bond": {"news": news.get("bond", [])},
     })

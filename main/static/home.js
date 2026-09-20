@@ -33,6 +33,9 @@
         encodeURIComponent("금융IT 정보보호 생성형AI"),
       title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️", creditBadge: "IT부 변OO 과장 제작",
       desc: "IT·정보보호 관련 참고하기 좋은 뉴스 및 AI 브리핑", status: "live" },
+    { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
+      creditBadge: "투자금융부 박OO 과장 제작",
+      desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
@@ -504,6 +507,7 @@
   function galCardHTML(w, opts) {
     opts = opts || {};
     if (opts.mini && w.id === "credit-analysis") return creditAnalysisCardHTML(w);
+    if (opts.mini && w.id === "credit-equity-glance") return creditGlanceCardHTML(w);
     var mine = getMyWidgetIds().indexOf(w.id) >= 0;
     var miniHTML = (opts.mini && MINI_LOADERS[w.id])
       ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
@@ -568,6 +572,111 @@
     );
   }
 
+  // "한눈에 보는 기업분석 정보"(내 위젯 전용) — 종목 검색 1번으로 기초정보 + 최근 공시를
+  // 한 카드 안에서 같이 보여준다(기업분석/공시 위젯을 따로 추가할 필요 없음).
+  function creditGlanceCardHTML(w) {
+    return (
+      '<div class="gal-card gal-card-glance">' +
+        '<div class="gm-ca-topsearch">' +
+          '<div class="gm-ca-topsearch-label">🔍 종목 입력</div>' +
+          '<div class="eq-search gm-ca-search">' +
+            '<input type="text" class="gm-ca-input" placeholder="종목명 또는 코드 검색">' +
+            '<div class="eq-suggest gm-ca-suggest" hidden></div>' +
+          "</div>" +
+        "</div>" +
+        '<div class="gal-top">' +
+          '<span class="gal-emoji">' + w.emoji + "</span>" +
+          '<span class="gal-badges">' + statusBadgesHTML(w) + "</span>" +
+        "</div>" +
+        '<div class="gal-title">' + esc(w.title) + "</div>" +
+        '<div class="gal-desc">' + esc(w.desc) + "</div>" +
+        '<div class="gal-mini" id="mini-' + w.id + '"><div class="gm-ca-result" id="mini-' + w.id + '-result">' +
+          '<div class="gal-mini-note">종목을 검색해보세요.</div></div></div>' +
+        '<div class="gal-actions">' +
+          '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '">자세히 보기 →</button>' +
+          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderGlancePreview(resultEl, code, name) {
+    resultEl.innerHTML = '<span class="page-note">불러오는 중…</span>';
+    Promise.all([
+      get("/api/credit/equity/basics?code=" + code),
+      get("/api/credit/equity/filings?code=" + code).catch(function () { return null; })
+    ]).then(function (res) {
+      var d = res[0], fil = res[1];
+      var chg = d.change_pct;
+      var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
+
+      var html = '<div class="gm-ca-stockhead">' + esc(d.name || name) +
+        ' <span class="mono">(' + esc(d.code || code) + ')</span>' +
+        (d.market ? '<span class="eq-mkt">' + esc(mktNameShort(d.market)) + "</span>" : "") + "</div>";
+
+      html += miniSubtitle("기초정보") + miniRow([
+        ["종가", d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
+        ["등락", chgTxt],
+        ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
+      ]) + miniRow([
+        ["PER", d.valuation && d.valuation.per != null ? Number(d.valuation.per).toFixed(1) : "-"],
+        ["PBR", d.valuation && d.valuation.pbr != null ? Number(d.valuation.pbr).toFixed(1) : "-"],
+        ["PSR", d.valuation && d.valuation.psr != null ? Number(d.valuation.psr).toFixed(1) : "-"]
+      ]) + rangeBarHTML(d.ranges && d.ranges.w52);
+
+      var filings = (fil && fil.items || []).slice(0, 5);
+      html += miniSubtitle("최근 공시(DART)");
+      if (!filings.length) {
+        html += '<div class="gal-mini-note">' + esc((fil && fil.note) || "최근 공시가 없습니다.") + "</div>";
+      } else {
+        html += '<ul class="gal-mini-filings">' + filings.map(function (it) {
+          return '<li><a href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+            '<span class="gmf-date">' + esc(it.date || "") + "</span>" +
+            '<span class="gmf-title">' + esc(it.title || "") + "</span></a></li>";
+        }).join("") + "</ul>";
+      }
+      resultEl.innerHTML = html;
+    }).catch(function () {
+      resultEl.innerHTML = '<div class="gal-mini-note">불러오지 못했습니다.</div>';
+    });
+  }
+
+  function initCreditGlanceSearch() {
+    var card = document.querySelector(".gal-card-glance");
+    if (!card) return;
+    var input = card.querySelector(".gm-ca-input");
+    var sugBox = card.querySelector(".gm-ca-suggest");
+    var resultEl = card.querySelector(".gm-ca-result");
+    var timer = null;
+
+    function search() {
+      var q = input.value.trim();
+      if (q.length < 2) { sugBox.hidden = true; return; }
+      get("/api/credit/equity/search?q=" + encodeURIComponent(q)).then(function (d) {
+        if (!d.items || !d.items.length) { sugBox.hidden = true; return; }
+        sugBox.innerHTML = d.items.map(function (it) {
+          return '<button type="button" class="eq-sug" data-code="' + esc(it.code) +
+            '" data-name="' + esc(it.name) + '"><b>' + esc(it.name) + "</b> " +
+            '<span class="mono">' + esc(it.code) + "</span>" +
+            '<span class="eq-sug-mkt">' + esc(mktNameShort(it.market)) + "</span></button>";
+        }).join("");
+        sugBox.hidden = false;
+      }).catch(function () { sugBox.hidden = true; });
+    }
+    input.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(search, 250);
+    });
+    sugBox.addEventListener("click", function (e) {
+      var btn = e.target.closest(".eq-sug");
+      if (!btn) return;
+      var code = btn.dataset.code, name = btn.dataset.name;
+      input.value = name + " (" + code + ")";
+      sugBox.hidden = true;
+      renderGlancePreview(resultEl, code, name);
+    });
+  }
+
   function bindGalleryCardEvents(scope) {
     // data-work 가 있는(=내부 화면으로 이동하는) 버튼만 SPA 네비게이션을 건다.
     // externalUrl 카드는 <a href target=_blank> 자체로 동작하므로 별도 바인딩 불필요.
@@ -630,6 +739,7 @@
     bindGalleryCardEvents(box);
     loadMiniPreviews(items);
     if (items.some(function (w) { return w.id === "credit-analysis"; })) initCreditAnalysisSearch();
+    if (items.some(function (w) { return w.id === "credit-equity-glance"; })) initCreditGlanceSearch();
   }
 
   // ── 홈 대시보드: 통합 브리핑 + 알림 ──

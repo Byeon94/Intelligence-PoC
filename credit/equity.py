@@ -154,6 +154,11 @@ def _listed_snapshot() -> list[dict]:
     return []
 
 
+def listed_snapshot() -> list[dict]:
+    """`_listed_snapshot()`의 공개 래퍼 (leads.py 등 패키지 내 다른 모듈에서 재사용)."""
+    return _listed_snapshot()
+
+
 def _market_cap_rank(code: str, market: str | None) -> dict:
     """전체 / 동일시장(코스피·코스닥) 내 시가총액 순위."""
     snap = [s for s in _listed_snapshot() if s.get("market_cap")]
