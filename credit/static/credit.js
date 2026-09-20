@@ -116,7 +116,8 @@
     renderTodayLeadsList(refDate);
 
     var inMonth = function (x) { return (x.date || "").slice(0, 7) === refMonth; };
-    var inheritMonthly = (d.collateral || []).filter(inMonth).length + newsItems.filter(inMonth).length;
+    var newsInMonth = function (n) { return (n.published || "").slice(0, 7) === refMonth; };
+    var inheritMonthly = (d.collateral || []).filter(inMonth).length + newsItems.filter(newsInMonth).length;
     var monthly = (d.esop_monthly || []).filter(function (m) { return m.month === refMonth; })[0] || { rights: 0, ipo: 0 };
 
     document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
