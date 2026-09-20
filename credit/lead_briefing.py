@@ -1,4 +1,4 @@
-"""여신·심사 메인 화면 — 담보대출/우리사주 리드에 대한 AI 브리핑.
+"""여신·심사 메인 화면 — 증권담보대출/우리사주 리드에 대한 AI 브리핑.
 
 get_leads()(DART 상속·증여·유상증자·IPO 리드)와 get_inherit_news()(상속·증여 관련
 뉴스, AI 관련도 판단 완료)의 결과물을 다시 Gemini에 넣어, "최근 동향 + 당사가 대출
@@ -27,15 +27,15 @@ _TABLE = "credit_lead_briefing_snapshots"
 
 _COLLATERAL_SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 여신심사 담당자를 위한 브리핑 어시스턴트야.\n"
-    "아래는 최근 60일 내 상속·증여 관련 ①DART 공시 목록과 ②관련 뉴스(AI가 관련 있다고 "
-    "판단한 것만)다.\n"
-    "이 데이터만 근거로 최근 상속·증여 동향과, 당사가 주식담보대출 영업을 확대하려면 "
-    "무엇을 고려해야 하는지 불릿 3개로 정리해.\n"
+    "아래는 최근 60일 내 상속·증여 관련 ①월별 건수 ②DART 공시 목록 ③관련 뉴스(AI가 "
+    "관련 있다고 판단한 것만)다.\n"
+    "이 데이터만 근거로 최근 상속·증여 동향(월별 증감 포함)과, 당사가 증권담보대출 영업을 "
+    "확대하려면 무엇을 고려해야 하는지 불릿 3개로 정리해.\n"
     "- 각 불릿은 '- '로 시작하는 한 문장, 100자 이내. 수식어·부연 없이.\n"
     "- 목록에 없는 회사명·금액·지분율·날짜를 지어내지 마.\n"
     "- DART 공시가 없고 뉴스만 있으면 '공시 기준 신규 리드는 없지만 언론 보도로는…' 식으로 "
     "그 사실을 그대로 반영해. 데이터가 아예 없으면 '최근 특이 동향 없음'과 함께 상속·증여세 "
-    "재원 마련용 담보대출은 통상 시차를 두고 발생한다는 일반적 시사점만 제시해.\n"
+    "재원 마련용 증권담보대출은 통상 시차를 두고 발생한다는 일반적 시사점만 제시해.\n"
     "- 소제목(#)·구분선(---)·서두·출처 표기 없이 불릿 3개만 출력."
 )
 
@@ -52,8 +52,31 @@ _ESOP_SYSTEM_PROMPT = (
 )
 
 
+def _collateral_monthly_with_news(collateral: list[dict], news: list[dict]) -> list[dict]:
+    """DART 건수(월별)에 뉴스 건수(월별)를 합쳐, 우리사주 프롬프트와 같은 형태로 만든다."""
+    counts: dict[str, dict[str, int]] = {}
+    for it in collateral:
+        m = it["date"][:7]
+        counts.setdefault(m, {"dart": 0, "news": 0})["dart"] += 1
+    for n in news:
+        pub = n.get("published") or ""
+        if len(pub) < 7:
+            continue
+        m = pub[:7]
+        counts.setdefault(m, {"dart": 0, "news": 0})["news"] += 1
+    return [{"month": m, "dart": counts[m]["dart"], "news": counts[m]["news"]}
+            for m in sorted(counts, reverse=True)]
+
+
 def _collateral_prompt(collateral: list[dict], news: list[dict]) -> str:
-    lines = ["[DART 공시]"]
+    monthly = _collateral_monthly_with_news(collateral, news)
+    lines = ["[월별 건수]"]
+    if monthly:
+        for m in monthly[:3]:
+            lines.append(f"- {m['month']}: DART 공시 {m['dart']}건, 관련 뉴스 {m['news']}건")
+    else:
+        lines.append("- (해당 없음)")
+    lines.append("\n[DART 공시]")
     if collateral:
         for it in collateral[:20]:
             lines.append(f"- {it['date']} {it['name']} — 보고사유 '{it['reason']}'")
@@ -110,7 +133,7 @@ def _generate() -> dict:
         )
         result["collateral_briefing"] = _bullets_from(text)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("담보대출 리드 AI 브리핑 생성 실패: %s", exc)
+        logger.warning("증권담보대출 리드 AI 브리핑 생성 실패: %s", exc)
 
     try:
         text = generate_text(

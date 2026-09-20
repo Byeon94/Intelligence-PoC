@@ -93,7 +93,7 @@ def _run_warmup() -> None:
         try:
             get_leads(force=True)   # 이미 백그라운드 스레드 안이라 동기 실행해도 안전
         except Exception:  # noqa: BLE001
-            logger.exception("여신·심사 리드(담보대출·우리사주) 워밍업 실패")
+            logger.exception("여신·심사 리드(증권담보대출·우리사주) 워밍업 실패")
         try:
             get_inherit_news()
         except Exception:  # noqa: BLE001

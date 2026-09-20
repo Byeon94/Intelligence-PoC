@@ -85,9 +85,9 @@ def market_reports():
 
 @credit_bp.route("/api/credit/leads")
 def leads():
-    """여신·심사 메인 화면: 코스피·코스닥 전 종목 담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
+    """여신·심사 메인 화면: 코스피·코스닥 전 종목 증권담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
     force = request.args.get("refresh") in ("1", "true", "yes")
-    return _safe(lambda: get_leads(force=force), "담보대출·우리사주 리드")
+    return _safe(lambda: get_leads(force=force), "증권담보대출·우리사주 리드")
 
 
 @credit_bp.route("/api/credit/inherit-news")
@@ -99,6 +99,6 @@ def inherit_news():
 
 @credit_bp.route("/api/credit/lead-briefings")
 def lead_briefings():
-    """여신·심사 메인 화면(전체 탭): 담보대출·우리사주 리드에 대한 AI 브리핑."""
+    """여신·심사 메인 화면(전체 탭): 증권담보대출·우리사주 리드에 대한 AI 브리핑."""
     force = request.args.get("refresh") in ("1", "true", "yes")
     return _safe(lambda: get_lead_briefings(force=force), "리드 AI 브리핑")

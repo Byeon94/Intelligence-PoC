@@ -1,12 +1,12 @@
-/* 여신·심사 탭 메인 화면: 담보대출·우리사주 금융 수요 리드 레이더(DART 실데이터) +
+/* 여신·심사 탭 메인 화면: 증권담보대출·우리사주 금융 수요 리드 레이더(DART 실데이터) +
    상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단) + AI 브리핑. 종목별 기업분석/공시/
    리포트 조회는 전사위젯 > 내 위젯의 개별 위젯에서 제공한다(이 탭에서는 제공하지 않음).
 
    탭 구성:
-     전체   — 요약 KPI 4개 + AI 브리핑 2개(담보대출 수요 레이더 / 우리사주 금융 수요),
-              브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용
-     담보대출 — DART 리드(상속·증여) + 관련 뉴스를 날짜순으로 합친 상세 목록
-     우리사주 — 유상증자·IPO 상세 목록 + 월별 집계 */
+     전체     — 요약 KPI 4개 + AI 브리핑 2개(증권담보대출 수요 레이더 / 우리사주 금융 수요),
+                브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용
+     증권담보대출 — DART 리드(상속·증여) + 관련 뉴스를 날짜순으로 합친 상세 목록 + 월별 집계
+     우리사주    — 유상증자·IPO 상세 목록 + 월별 집계 */
 (function () {
   "use strict";
 
@@ -90,7 +90,7 @@
 
     document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
       ["오늘 신규 리드", todayCount + "건", "최근 7일 " + weekCount + "건 · DART+뉴스"],
-      ["담보대출 수요 - 상속증여 공시뉴스(" + monthLabel(refMonth) + ")", inheritMonthly + "건", "DART + AI 뉴스 분석"],
+      ["증권담보대출 수요 - 상속증여 공시뉴스(" + monthLabel(refMonth) + ")", inheritMonthly + "건", "DART + AI 뉴스 분석"],
       ["우리사주 수요 - 유상증자(" + monthLabel(refMonth) + ")", monthly.rights + "건", "이미 상장된 회사"],
       ["우리사주 수요 - IPO(" + monthLabel(refMonth) + ")", monthly.ipo + "건", "상장 전 공모"],
     ]);
@@ -98,7 +98,7 @@
     renderEsopKpisAndMonthly(d, refMonth);
   }
 
-  /* ── AI 브리핑(담보대출 수요 레이더 / 우리사주 금융 수요) — 홈 대시보드의
+  /* ── AI 브리핑(증권담보대출 수요 레이더 / 우리사주 금융 수요) — 홈 대시보드의
      "오늘의 AI 통합 브리핑" 카드와 같은 디자인(원형 번호 불릿 + 자세히 보기 버튼) ── */
   function briefCardHTML(opts) {
     var head = '<div class="brief-head"><span class="brief-label">' + opts.label + "</span>" +
@@ -131,7 +131,7 @@
       var colBox = document.getElementById("leads-collateral-brief");
       var esopBox = document.getElementById("leads-esop-brief");
       colBox.innerHTML = briefCardHTML({
-        label: "💰 담보대출 수요 레이더", when: "AI 브리핑",
+        label: "💰 증권담보대출 수요 레이더", when: "AI 브리핑",
         bullets: d.collateral_briefing, sub: "inherit",
       });
       esopBox.innerHTML = briefCardHTML({
@@ -184,6 +184,29 @@
     document.getElementById("leads-inherit-list").innerHTML = rows.length
       ? rows.map(function (r) { return r.html; }).join("")
       : '<div class="page-note">최근 60일 내 해당 공시·뉴스가 없습니다.</div>';
+    renderInheritMonthly();
+  }
+
+  // 우리사주(esop_monthly)와 짝을 맞춰, 증권담보대출도 월별로 DART 공시·뉴스 건수를 보여준다.
+  function renderInheritMonthly() {
+    var d = leadsState.data;
+    var box = document.getElementById("leads-inherit-monthly");
+    if (!d || newsState.items === null || !box) return;
+    var counts = {};
+    (d.collateral_monthly || []).forEach(function (m) {
+      counts[m.month] = { dart: m.count, news: 0 };
+    });
+    (newsState.items || []).forEach(function (n) {
+      var m = (n.published || "").slice(0, 7);
+      if (!m) return;
+      counts[m] = counts[m] || { dart: 0, news: 0 };
+      counts[m].news++;
+    });
+    var months = Object.keys(counts).sort().reverse();
+    box.innerHTML = !months.length ? "" : '<div class="esop-monthly">' + months.map(function (m) {
+      return '<div class="esop-month-row"><span class="esop-month-label">' + monthLabel(m) + "</span>" +
+        '<span class="esop-month-count">DART 공시 ' + counts[m].dart + "건 · 관련 뉴스 " + counts[m].news + "건</span></div>";
+    }).join("") + "</div>";
   }
 
   /* ── 우리사주 상세: 유상증자·IPO ── */
@@ -247,7 +270,7 @@
       renderInheritList();
       renderEsopList();
       document.getElementById("leads-scope-note").textContent =
-        "대상 범위: 담보대출(상속·증여) 리드는 코스피·코스닥 전체 상장종목(" + (d.universe || 0) + "종목) · " +
+        "대상 범위: 증권담보대출(상속·증여) 리드는 코스피·코스닥 전체 상장종목(" + (d.universe || 0) + "종목) · " +
         "우리사주 리드는 전 시장(유상증자) + 상장 전 IPO 공모 공시 포함 · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
         (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
     }).catch(function (e) {

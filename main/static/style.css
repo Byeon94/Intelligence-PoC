@@ -550,9 +550,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .credit .block-head { margin-bottom: 14px; }
 .credit .lead-row { margin-bottom: 14px; padding: 14px 16px; }
 .credit .lead-row-head { margin-bottom: 8px; }
-.credit .brief-card { margin-bottom: 16px; }
+.credit .brief-card { margin-bottom: 14px; }
 .credit .brief-card:last-child { margin-bottom: 0; }
-.credit .brief-list li { padding: 10px 0; }
+.credit .brief-list li { padding: 5px 0; line-height: 1.45; }
+.credit .brief-head { margin-bottom: 8px; }
 
 /* 리포트: 컨센서스 요약 카드 — 값 글씨 축소 */
 #eq-rpt-kpis .k-value { font-size: 1.05rem; }
