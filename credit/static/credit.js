@@ -28,7 +28,11 @@
   }
 
   /* ── 메인 화면: 담보대출·우리사주 금융 수요 리드 레이더 ── */
+  // 기준일은 벽시계 "오늘"이 아니라 DART·뉴스에 실제로 찍힌 날짜 중 최신값을 쓴다.
+  // DART·뉴스 모두 비영업일에는 새 항목이 생기지 않으므로, 이렇게 하면 주말/공휴일에도
+  // 자동으로 "전 영업일" 기준이 된다.
   var leadsState = { data: null, sub: "all" };
+  var newsState = { items: null };
 
   function leadKpiHTML(items) {
     return items.map(function (k) {
@@ -38,38 +42,59 @@
     }).join("");
   }
 
-  function countSince(items, days) {
-    var cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    var cutStr = cutoff.toISOString().slice(0, 10);
-    return items.filter(function (it) { return it.date >= cutStr; }).length;
-  }
-
-  function renderLeadKpis(d) {
-    var all = (d.collateral || []).concat(d.esop || []);
-    var todayStr = new Date().toISOString().slice(0, 10);
-    document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
-      ["오늘 신규 리드", all.filter(function (x) { return x.date === todayStr; }).length + "건",
-        "이번 주 " + countSince(all, 7) + "건"],
-      ["상속·증여 공시", (d.collateral || []).length + "건", "DART 자동 감지"],
-    ]);
-  }
-
   function monthLabel(ym) {
     var parts = ym.split("-");
     return parts[0] + "년 " + Number(parts[1]) + "월";
   }
 
-  function renderEsopKpisAndMonthly(d) {
-    var monthly = d.esop_monthly || [];
-    var thisMonth = new Date().toISOString().slice(0, 7);
-    document.getElementById("leads-esop-month").textContent =
-      "— " + monthLabel(thisMonth) + " 기준";
+  function refDateInfo() {
+    var d = leadsState.data;
+    if (!d) return null;
+    var dates = (d.collateral || []).map(function (x) { return x.date; })
+      .concat((d.esop || []).map(function (x) { return x.date; }))
+      .concat((newsState.items || []).map(function (n) { return n.published; }))
+      .filter(Boolean);
+    if (!dates.length) return null;
+    var refDate = dates.reduce(function (a, b) { return b > a ? b : a; });
+    return { refDate: refDate, refMonth: refDate.slice(0, 7) };
+  }
 
-    var cur = monthly.filter(function (m) { return m.month === thisMonth; })[0] || { rights: 0, ipo: 0 };
+  function renderTopKpis() {
+    var d = leadsState.data;
+    if (!d || d.pending || newsState.items === null) return;   // 리드·뉴스 둘 다 응답한 뒤에 계산
+    var ref = refDateInfo();
+    var refDate = ref ? ref.refDate : new Date().toISOString().slice(0, 10);
+    var refMonth = ref ? ref.refMonth : new Date().toISOString().slice(0, 7);
+
+    document.getElementById("leads-asof").textContent =
+      refDate + " 기준 (DART·뉴스에 실제로 올라온 최신 날짜 — 비영업일이면 자동으로 전 영업일)";
+
+    var allDated = (d.collateral || []).concat(d.esop || [])
+      .concat((newsState.items || []).map(function (n) { return { date: n.published }; }));
+    var weekCutoff = new Date(refDate + "T00:00:00");
+    weekCutoff.setDate(weekCutoff.getDate() - 6);
+    var weekCutStr = weekCutoff.toISOString().slice(0, 10);
+
+    var todayCount = allDated.filter(function (x) { return x.date === refDate; }).length;
+    var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= refDate; }).length;
+    var monthlyCollateral = (d.collateral || []).filter(function (x) { return x.date.slice(0, 7) === refMonth; }).length;
+
+    document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
+      ["오늘 신규 리드", todayCount + "건", "최근 7일 " + weekCount + "건 · DART+뉴스"],
+      ["상속·증여 공시(" + monthLabel(refMonth) + ")", monthlyCollateral + "건", "DART 자동 감지"],
+    ]);
+
+    renderEsopKpisAndMonthly(d, refMonth);
+  }
+
+  function renderEsopKpisAndMonthly(d, refMonth) {
+    var monthly = d.esop_monthly || [];
+    document.getElementById("leads-esop-month").textContent = "— " + monthLabel(refMonth) + " 기준";
+
+    var cur = monthly.filter(function (m) { return m.month === refMonth; })[0] || { rights: 0, ipo: 0 };
     document.getElementById("leads-esop-kpis").innerHTML = leadKpiHTML([
-      ["유상증자 공시(이번 달)", cur.rights + "건", "이미 상장된 회사"],
-      ["IPO 공시(이번 달)", cur.ipo + "건", "상장 전 공모"],
+      ["유상증자 공시(" + monthLabel(refMonth) + ")", cur.rights + "건", "이미 상장된 회사"],
+      ["IPO 공시(" + monthLabel(refMonth) + ")", cur.ipo + "건", "상장 전 공모"],
     ]);
 
     var monthlyBox = document.getElementById("leads-esop-monthly");
@@ -144,6 +169,7 @@
       leadsState.data = d;
       if (d.pending) {
         document.getElementById("leads-kpis").innerHTML = "";
+        document.getElementById("leads-asof").textContent = "";
         document.getElementById("leads-collateral-list").innerHTML =
           '<div class="page-note">코스피 전 종목 데이터를 처음 수집하는 중입니다. 잠시 후 새로고침해주세요.</div>';
         document.getElementById("leads-esop-list").innerHTML = "";
@@ -151,8 +177,7 @@
         leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
         return;
       }
-      renderLeadKpis(d);
-      renderEsopKpisAndMonthly(d);
+      renderTopKpis();
       renderLeadLists();
       document.getElementById("leads-scope-note").textContent =
         "대상 범위: 상속·증여 리드는 코스피 전체 상장종목(" + (d.universe || 0) + "종목) · " +
@@ -183,12 +208,16 @@
   function loadInheritNews() {
     get("/api/credit/inherit-news").then(function (d) {
       var items = d.items || [];
+      newsState.items = items;
       document.getElementById("leads-news-list").innerHTML = items.length
         ? items.map(newsRowHTML).join("")
         : '<div class="page-note">최근 관련 있다고 판단된 뉴스가 없습니다.</div>';
+      renderTopKpis();
     }).catch(function () {
+      newsState.items = [];              // 실패해도 리드 KPI 계산은 진행되게
       document.getElementById("leads-news-list").innerHTML =
         '<div class="page-note">뉴스 동향을 불러오지 못했습니다.</div>';
+      renderTopKpis();
     });
   }
 
