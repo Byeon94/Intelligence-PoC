@@ -186,11 +186,14 @@
     {% include "credit.html" %}
   </section>
 
+  <section class="tab-panel" data-panel="lending" hidden>
+    {% include "lending.html" %}
+  </section>
+
   {% for tab, name in [
       ('ib', '투자금융'),
       ('custody', '수탁'),
-      ('funding', '자금·외화'),
-      ('lending', '증권대차')
+      ('funding', '자금·외화')
   ] %}
   <section class="tab-panel" data-panel="{{ tab }}" hidden>
     <div class="card placeholder-card">
@@ -287,6 +290,7 @@ document.getElementById('home-link').addEventListener('click', function (e) {
 <script src="{{ url_for('policy.static', filename='policy.js') }}"></script>
 <script src="{{ url_for('research.static', filename='research.js') }}"></script>
 <script src="{{ url_for('credit.static', filename='credit.js') }}"></script>
+<script src="{{ url_for('lending.static', filename='lending.js') }}"></script>
 <script src="{{ url_for('static', filename='home.js') }}"></script>
 <script>
   // HomeDashboard(home.js) 로드가 끝난 뒤에 초기 화면을 적용해야

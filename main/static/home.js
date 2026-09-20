@@ -244,7 +244,7 @@
     },
     "it-news": function (el) {
       return get("/api/it-news/digest").then(function (d) {
-        var html = miniBullets(d.briefing, d.briefing_note);
+        var html = asOfLine(d.date) + miniBullets(d.briefing, d.briefing_note);
         var top = (d.articles || []).slice(0, 5);
         if (top.length) {
           html += miniSubtitle("오늘의 기사(AI 추천)") + '<ul class="gal-mini-reports">' + top.map(function (a) {

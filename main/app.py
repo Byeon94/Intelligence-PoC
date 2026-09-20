@@ -15,6 +15,8 @@ from credit.reports import get_market_report_digest
 from credit.widget import credit_bp
 from it_news.curate import get_it_news_digest
 from it_news.widget import it_news_bp
+from lending.news import get_lending_news
+from lending.widget import lending_bp
 from main.config import get_settings
 from main.home import get_home_summary
 from policy.briefing import get_policy_digest
@@ -33,6 +35,7 @@ app.register_blueprint(research_bp)
 app.register_blueprint(issuance_bp)
 app.register_blueprint(credit_bp)
 app.register_blueprint(it_news_bp)
+app.register_blueprint(lending_bp)
 
 
 @app.route("/")
@@ -80,6 +83,10 @@ def _run_warmup() -> None:
             get_it_news_digest()
         except Exception:  # noqa: BLE001
             logger.exception("IT·정보보호 뉴스 워밍업 실패")
+        try:
+            get_lending_news()
+        except Exception:  # noqa: BLE001
+            logger.exception("증권대차 뉴스 워밍업 실패")
     finally:
         _warmup_lock.release()
 
@@ -87,7 +94,7 @@ def _run_warmup() -> None:
 @app.route("/internal/warmup")
 def warmup():
     """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/시장 리포트
-    동향/IT·정보보호 뉴스 스냅샷을 미리 생성.
+    동향/IT·정보보호 뉴스/증권대차 뉴스 스냅샷을 미리 생성.
 
     스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.

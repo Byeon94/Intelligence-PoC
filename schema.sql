@@ -48,6 +48,14 @@ create table if not exists it_news_snapshots (
     created_at timestamptz not null default now()
 );
 
+-- 증권대차 탭: 공매도·주식대차/채권대차 관련 뉴스 3건씩(실데이터)을 하루 1건 스냅샷.
+-- (대차잔고·상위종목 KPI는 lending/sample.py 예시값이라 별도 테이블 불필요)
+create table if not exists lending_news_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
 -- 여신·심사 > 기업분석 탭: 종목별 '오늘자' 조회 결과 캐시(기초정보·재무정보).
 -- 같은 종목을 하루 안에 다시 열면 외부 API(data.go.kr·DART·네이버)를 재호출하지 않는다.
 -- code='_corpmap' 행은 DART 종목코드→corp_code 매핑(하루치).
