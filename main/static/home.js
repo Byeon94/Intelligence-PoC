@@ -33,7 +33,7 @@
         encodeURIComponent("금융IT 정보보호 생성형AI"),
       title: "오늘의 IT·정보보호 뉴스", emoji: "🖥️", creditBadge: "IT부 변OO 과장 제작",
       desc: "IT·정보보호 관련 참고하기 좋은 뉴스 및 AI 브리핑", status: "live" },
-    { id: "credit-equity-glance", tab: "credit", sub: "stock", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
+    { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
@@ -46,11 +46,11 @@
       desc: "금융당국·유관기관 보도자료 + AI 3줄 요약", status: "live" },
     { id: "research-briefing", tab: "research", title: "리서치·뉴스 브리핑", emoji: "📰",
       desc: "업무 관련 기사 AI 선별·태깅 + 요약", status: "live" },
-    { id: "credit-analysis", tab: "credit", sub: "stock", title: "기업분석", emoji: "🏦",
+    { id: "credit-analysis", tab: "credit", title: "기업분석", emoji: "🏦",
       desc: "종목 기초정보·가격범위·재무요약·실적분석", status: "live" },
-    { id: "credit-filing", tab: "credit", sub: "stock", title: "공시", emoji: "🗂️",
+    { id: "credit-filing", tab: "credit", title: "공시", emoji: "🗂️",
       desc: "종목별 DART 공시 목록", status: "live" },
-    { id: "credit-report", tab: "credit", sub: "stock", title: "증권사 리포트", emoji: "📊",
+    { id: "credit-report", tab: "credit", title: "증권사 리포트", emoji: "📊",
       desc: "당해 연도 리포트 + 목표주가 컨센서스", status: "live" },
     { id: "ib-deals", tab: "ib", title: "투자금융", emoji: "💼",
       desc: "IB·인수·발행시장 동향", status: "soon" },
@@ -90,7 +90,6 @@
 
   function goWork(tab, sub) {
     if (window.AppNav) window.AppNav.go("work", tab);
-    if (sub && tab === "credit" && window.CreditNav) window.CreditNav.goSub(sub);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
     // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #work-subtabs 클릭을 감지해 처음 한 번
     // 데이터를 지연 로딩한다. 홈/전사 위젯에서 곧장 이동할 때도 그 로딩이 걸리도록
@@ -109,8 +108,9 @@
   }
   function miniRow(pairs) {
     return '<div class="gal-mini-row">' + pairs.map(function (p) {
+      var cls = p[2] ? " " + p[2] : "";
       return '<div class="gal-mini-item"><span class="gmi-label">' + esc(p[0]) + '</span>' +
-        '<span class="gmi-value">' + esc(String(p[1])) + '</span></div>';
+        '<span class="gmi-value' + cls + '">' + esc(String(p[1])) + '</span></div>';
     }).join("") + "</div>";
   }
   function miniRateTable(rows) {
@@ -330,15 +330,16 @@
     ]).then(function (res) {
       var d = res[0], fin = res[1];
       var chg = d.change_pct;
-      var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
+      var chgUp = chg != null && chg > 0, chgDn = chg != null && chg < 0;
+      var chgTxt = chg == null ? "-" : (chgUp ? "▲" : chgDn ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
 
       var html = '<div class="gm-ca-stockhead">' + esc(d.name || name) +
         ' <span class="mono">(' + esc(d.code || code) + ')</span>' +
         (d.market ? '<span class="eq-mkt">' + esc(mktNameShort(d.market)) + "</span>" : "") + "</div>";
 
       html += miniSubtitle("기초정보") + miniRow([
-        ["종가", d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
-        ["등락", chgTxt],
+        ["종가" + (d.as_of ? "(" + d.as_of + " 기준)" : ""), d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
+        ["등락", chgTxt, chgUp ? "k-up" : chgDn ? "k-dn" : ""],
         ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
       ]) + miniRow([
         ["PER", d.valuation && d.valuation.per != null ? Number(d.valuation.per).toFixed(1) : "-"],
@@ -612,21 +613,28 @@
     ]).then(function (res) {
       var d = res[0], fin = res[1], fil = res[2];
       var chg = d.change_pct;
-      var chgTxt = chg == null ? "-" : (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
+      var chgUp = chg != null && chg > 0, chgDn = chg != null && chg < 0;
+      var chgTxt = chg == null ? "-" : (chgUp ? "▲" : chgDn ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
 
       var html = '<div class="gm-ca-stockhead">' + esc(d.name || name) +
         ' <span class="mono">(' + esc(d.code || code) + ')</span>' +
         (d.market ? '<span class="eq-mkt">' + esc(mktNameShort(d.market)) + "</span>" : "") + "</div>";
 
       html += miniSubtitle("기초정보") + miniRow([
-        ["종가", d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
-        ["등락", chgTxt],
+        ["종가" + (d.as_of ? "(" + d.as_of + " 기준)" : ""), d.close != null ? Number(d.close).toLocaleString("ko-KR") + "원" : "-"],
+        ["등락", chgTxt, chgUp ? "k-up" : chgDn ? "k-dn" : ""],
         ["시가총액", d.market_cap != null ? jo(d.market_cap / 1e12) : "-"]
       ]) + miniRow([
         ["거래대금", d.trade_value != null ? jo(d.trade_value / 1e12) : "-"],
         ["거래량", d.volume != null ? Number(d.volume).toLocaleString("ko-KR") + "주" : "-"],
         ["상장주식수", d.shares != null ? Number(d.shares).toLocaleString("ko-KR") + "주" : "-"]
       ]);
+
+      var ps = d.price_series;
+      if (ps && ps.values && ps.values.length > 1) {
+        html += miniSubtitle("주가흐름") +
+          '<div class="gal-mini-chart" id="' + resultEl.id + '-pricechart"></div>';
+      }
 
       if (fin && fin.annual && fin.annual.labels && fin.annual.labels.length) {
         var a = fin.annual;
@@ -659,6 +667,16 @@
         }).join("") + "</ul>";
       }
       resultEl.innerHTML = html;
+
+      if (ps && ps.values && ps.values.length > 1 && window.Charts) {
+        var pc = document.getElementById(resultEl.id + "-pricechart");
+        if (pc) {
+          window.Charts.line(pc, {
+            labels: ps.labels,
+            series: [{ name: "종가", values: ps.values, varName: "--c1" }]
+          });
+        }
+      }
 
       if (fin && fin.annual && window.Charts) {
         var L = fin.annual.labels;

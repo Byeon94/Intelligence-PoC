@@ -3,146 +3,35 @@
     <button class="subtab-btn active" data-sub="all">전체</button>
     <button class="subtab-btn" data-sub="inherit">상속·증여</button>
     <button class="subtab-btn" data-sub="esop">우리사주</button>
-    <button class="subtab-btn" data-sub="stock">종목별 자세히보기</button>
   </div>
 
-  <!-- ── 담보대출·우리사주 금융 수요 리드 레이더 (전체/상속증여/우리사주) ── -->
-  <div id="leads-panel">
-    <div class="kpi-grid" id="leads-kpis"></div>
+  <div class="kpi-grid" id="leads-kpis"></div>
 
-    <section class="block">
-      <div class="block-head">
-        <h3>담보대출 수요 레이더 — DART 상속·증여 공시 기반 리드</h3>
-      </div>
-      <div id="leads-collateral-list"><div class="page-note">불러오는 중…</div></div>
-    </section>
-
-    <section class="block" id="leads-esop-block">
-      <div class="block-head">
-        <h3>우리사주 금융 수요 — 유상증자 공시 추적</h3>
-      </div>
-      <div id="leads-esop-list"><div class="page-note">불러오는 중…</div></div>
-    </section>
-
-    <p class="page-note leads-scope-note" id="leads-scope-note"></p>
-  </div>
-
-  <!-- ── 종목별 자세히보기: 검색해서 기업분석/공시/리포트 확인 ── -->
-  <div id="stock-panel" hidden>
-    <div class="eq-search">
-      <input id="eq-q" type="text" autocomplete="off" spellcheck="false"
-             placeholder="종목명 또는 종목코드 (예: 삼성전자 · 005930)">
-      <button type="button" id="eq-q-btn">조회</button>
-      <div class="eq-suggest" id="eq-suggest" hidden></div>
+  <section class="block">
+    <div class="block-head">
+      <h3>담보대출 수요 레이더 — DART 상속·증여 공시 기반 리드</h3>
     </div>
+    <div id="leads-collateral-list"><div class="page-note">불러오는 중…</div></div>
+  </section>
 
-    <div class="eq-current" id="eq-current" hidden>
-      <span class="eq-name" id="eq-cur-name"></span>
-      <span class="eq-code mono" id="eq-cur-code"></span>
-      <span class="eq-tags" id="eq-cur-tags"></span>
+  <section class="block" id="leads-news-block">
+    <div class="block-head">
+      <h3>상속·증여 관련 뉴스 동향 (참고용)</h3>
+      <span class="src-badge sample" title="네이버 뉴스 검색 + AI 관련도 판단 결과입니다. DART 공시로 확인된 건이 아니므로 실제 지분 이전 여부는 원문에서 확인이 필요합니다.">뉴스·AI 분석 · DART 공시 아님</span>
     </div>
+    <p class="page-note fil-hint">DART 공시(위)는 5% 대량보유·1%p 이상 지분 변동처럼 신고 의무 기준을 넘는 건만 잡힙니다.
+      그 기준에 못 미치거나 아직 공시 전인 오너家 상속·증여 이슈는 언론 보도로 먼저 알려지는 경우가 많아, 참고용으로 함께 보여줍니다.</p>
+    <div id="leads-news-list"><div class="page-note">불러오는 중…</div></div>
+  </section>
 
-    <div class="subtabs" id="credit-subtabs" role="tablist">
-      <button class="subtab-btn active" data-sub="analysis">기업분석</button>
-      <button class="subtab-btn" data-sub="filing">공시</button>
-      <button class="subtab-btn" data-sub="report">리포트</button>
+  <section class="block" id="leads-esop-block">
+    <div class="block-head">
+      <h3>우리사주 금융 수요 <span id="leads-esop-month"></span></h3>
     </div>
+    <div class="kpi-grid" id="leads-esop-kpis"></div>
+    <div id="leads-esop-monthly"></div>
+    <div id="leads-esop-list"><div class="page-note">불러오는 중…</div></div>
+  </section>
 
-  <!-- ── 기업분석 ── -->
-  <div class="sub-panel" data-sub="analysis">
-    <div class="eq-empty" id="eq-empty">종목을 검색하면 기초정보가 표시됩니다.</div>
-
-    <section class="block" id="eq-basic-block" hidden>
-      <div class="block-head">
-        <h3>기초정보</h3>
-        <span class="asof" id="eq-asof">
-          <span id="eq-asof-date"></span>
-          <button type="button" class="asof-info" id="eq-asof-info"
-                  title="공공데이터(KRX 확정치) 특성상 전 영업일 종가 기준입니다. 당일 장중·마감 직후 시세는 반영되지 않습니다."
-                  aria-label="기준일자 안내">!</button>
-        </span>
-      </div>
-      <div class="kpi-grid" id="eq-kpis"></div>
-      <div class="val-grid" id="eq-val"></div>
-    </section>
-
-    <section class="block" id="eq-range-block" hidden>
-      <div class="block-head">
-        <h3>가격 범위</h3>
-        <span class="unit-tag">현재가 위치</span>
-      </div>
-      <div class="range-list" id="eq-ranges"></div>
-    </section>
-
-    <section class="block" id="eq-fin-block" hidden>
-      <div class="block-head">
-        <h3>재무요약</h3>
-        <span class="asof" id="eq-fin-asof"></span>
-      </div>
-      <div class="table-wrap" id="eq-fin-table"></div>
-      <p class="page-note" id="eq-fin-note"></p>
-    </section>
-
-    <section class="block" id="eq-perf-block" hidden>
-      <div class="block-head">
-        <h3>실적분석</h3>
-        <span class="unit-tag" id="eq-perf-unit">억원 · 연간</span>
-      </div>
-      <div class="perf-grid">
-        <div class="perf-card"><h4>매출액</h4><div class="chart-wrap" id="pf-rev"></div></div>
-        <div class="perf-card"><h4>영업이익</h4><div class="chart-wrap" id="pf-opi"></div></div>
-        <div class="perf-card"><h4>순이익</h4><div class="chart-wrap" id="pf-ni"></div></div>
-        <div class="perf-card"><h4>자산 · 부채 · 자본</h4><div class="chart-wrap" id="pf-bs"></div></div>
-        <div class="perf-card"><h4>부채비율</h4><div class="chart-wrap" id="pf-dr"></div></div>
-      </div>
-    </section>
-  </div>
-
-  <!-- ── 공시 (DART) ── -->
-  <div class="sub-panel" data-sub="filing" hidden>
-    <div class="eq-empty" id="eq-fil-empty">종목을 검색하면 DART 공시 목록이 표시됩니다.</div>
-    <section class="block" id="eq-fil-block" hidden>
-      <div class="block-head fil-head">
-        <h3>DART 공시</h3>
-        <a class="dart-btn" id="eq-fil-more" href="https://dart.fss.or.kr/" target="_blank" rel="noopener">
-          DART에서 전체 공시 보기
-          <span class="dart-btn-ico" aria-hidden="true">↗</span>
-        </a>
-      </div>
-      <div class="fil-meta">
-        <span class="asof" id="eq-fil-asof"></span>
-        <span class="fil-hint">· 항목을 누르면 DART 원문으로 이동합니다</span>
-      </div>
-      <div class="fil-list" id="eq-fil-list"></div>
-    </section>
-  </div>
-
-  <!-- ── 리포트 (한경컨센서스) ── -->
-  <div class="sub-panel" data-sub="report" hidden>
-    <div class="eq-empty" id="eq-rpt-empty">종목을 검색하면 증권사 리포트가 표시됩니다.</div>
-
-    <section class="block" id="eq-rpt-con-block" hidden>
-      <div class="block-head">
-        <h3>목표주가 컨센서스</h3>
-        <span class="asof" id="eq-rpt-asof"></span>
-      </div>
-      <div class="kpi-grid" id="eq-rpt-kpis"></div>
-      <p class="page-note fil-hint" id="eq-rpt-basis"></p>
-    </section>
-
-    <section class="block" id="eq-rpt-list-block" hidden>
-      <div class="block-head fil-head">
-        <h3>증권사 리포트</h3>
-        <a class="dart-btn" id="eq-rpt-more" href="https://consensus.hankyung.com/" target="_blank" rel="noopener">
-          한경컨센서스에서 전체 리포트 보기
-          <span class="dart-btn-ico" aria-hidden="true">↗</span>
-        </a>
-      </div>
-      <div class="fil-meta">
-        <span class="fil-hint">제목을 누르면 리포트 PDF로 이동 · 변동은 같은 증권사 직전 목표주가 대비 · 최신 20건</span>
-      </div>
-      <div class="rpt-list" id="eq-rpt-list"></div>
-    </section>
-  </div>
-  </div>
+  <p class="page-note leads-scope-note" id="leads-scope-note"></p>
 </div>

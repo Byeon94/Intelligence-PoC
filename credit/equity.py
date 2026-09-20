@@ -247,6 +247,10 @@ def get_stock_basics(code: str) -> dict:
             "w20": _range(rows, 140),
             "w10": _range(rows, 70),
         },
+        "price_series": {
+            "labels": [_fmt_date(pick(r, "basDt", "BAS_DT")) for r in rows[-120:]],
+            "values": [to_float(pick(r, "clpr", "CLPR")) for r in rows[-120:]],
+        },
         "source": "live",
     }
     store.save_cached(code, "basics", result)

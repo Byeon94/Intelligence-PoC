@@ -4,7 +4,8 @@
   --bg: #ffffff; --bg2: #f7f9fc; --card: #ffffff; --card2: #f5f7fb;
   --border: #e6e9f1; --border2: #eef1f7;
   --fg: #1b2333; --muted: #667085; --accent: #2f6fed; --accent-bg: rgba(47,111,237,.08);
-  --up: #12805c; --down: #dc2626;
+  /* 국내 증권 관행: 상승=빨강, 하락=파랑 */
+  --up: #dc2626; --down: #2563eb;
   --c1: #2f6fed; --c2: #e8912d; --c3: #12a150; --c4: #e0489e; --c5: #8b5cf6; --c6: #ef4444;
   --shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.045);
 }
@@ -13,7 +14,8 @@
   --bg: #0f1420; --bg2: #0b0f18; --card: #161c28; --card2: #10151f;
   --border: #262d3b; --border2: #1d2330;
   --fg: #e6ebf3; --muted: #8b94a7; --accent: #5b8def; --accent-bg: rgba(91,141,239,.14);
-  --up: #3fb978; --down: #f87171;
+  /* 국내 증권 관행: 상승=빨강, 하락=파랑 */
+  --up: #f87171; --down: #60a5fa;
   --c1: #5b8def; --c2: #e0a33a; --c3: #3fb978; --c4: #e069b0; --c5: #a78bfa; --c6: #f87171;
   --shadow: none;
 }
@@ -519,6 +521,13 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 .lead-date { font-size: .72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
 .lead-note { font-size: .8rem; color: var(--muted); line-height: 1.5; }
 .leads-scope-note { margin-top: 4px; }
+.esop-monthly {
+  display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px;
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--card2);
+}
+.esop-month-row { display: flex; justify-content: space-between; font-size: .82rem; }
+.esop-month-label { font-weight: 700; }
+.esop-month-count { color: var(--muted); }
 
 /* 리포트: 컨센서스 요약 카드 — 값 글씨 축소 */
 #eq-rpt-kpis .k-value { font-size: 1.05rem; }
@@ -663,10 +672,10 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-note { font-size: .78rem; color: var(--muted); }
 .gal-mini-stock { font-size: .82rem; font-weight: 800; margin-bottom: 6px; }
 .gal-mini-subtitle {
-  font-size: .68rem; font-weight: 800; color: var(--muted); text-transform: uppercase;
-  letter-spacing: .03em; margin: 10px 0 4px;
+  font-size: .8rem; font-weight: 800; color: var(--fg);
+  margin: 16px 0 6px; padding-top: 12px; border-top: 1px solid var(--border2);
 }
-.gal-mini-subtitle:first-child { margin-top: 0; }
+.gal-mini-subtitle:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .gal-mini-table { width: 100%; border-collapse: collapse; font-size: .72rem; margin-top: 2px; }
 .gal-mini-table th, .gal-mini-table td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--border2); }
 .gal-mini-table th { color: var(--muted); font-weight: 700; }

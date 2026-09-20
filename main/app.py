@@ -11,6 +11,7 @@ from capital.cma import get_cma_rates
 from capital.issuance.calendar import get_issuance_digest
 from capital.issuance.widget import issuance_bp
 from capital.widget import capital_bp
+from credit.inherit_news import get_inherit_news
 from credit.leads import get_leads
 from credit.reports import get_market_report_digest
 from credit.widget import credit_bp
@@ -89,9 +90,13 @@ def _run_warmup() -> None:
         except Exception:  # noqa: BLE001
             logger.exception("증권대차 뉴스 워밍업 실패")
         try:
-            get_leads()
+            get_leads(force=True)   # 이미 백그라운드 스레드 안이라 동기 실행해도 안전
         except Exception:  # noqa: BLE001
             logger.exception("여신·심사 리드(담보대출·우리사주) 워밍업 실패")
+        try:
+            get_inherit_news()
+        except Exception:  # noqa: BLE001
+            logger.exception("상속·증여 뉴스 동향 워밍업 실패")
     finally:
         _warmup_lock.release()
 
@@ -99,7 +104,7 @@ def _run_warmup() -> None:
 @app.route("/internal/warmup")
 def warmup():
     """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/시장 리포트
-    동향/IT·정보보호 뉴스/증권대차 뉴스/여신·심사 리드 스냅샷을 미리 생성.
+    동향/IT·정보보호 뉴스/증권대차 뉴스/여신·심사 리드·상속증여 뉴스 스냅샷을 미리 생성.
 
     스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.

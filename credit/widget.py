@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, render_template, request
 from .equity import get_stock_basics, search_stocks
 from .filings import get_filings
 from .financials import get_financials
+from .inherit_news import get_inherit_news
 from .leads import get_leads
 from .reports import get_market_report_digest, get_reports
 
@@ -86,3 +87,10 @@ def leads():
     """여신·심사 메인 화면: 코스피 전 종목 담보대출·우리사주 금융 수요 리드(DART 실데이터)."""
     force = request.args.get("refresh") in ("1", "true", "yes")
     return _safe(lambda: get_leads(force=force), "담보대출·우리사주 리드")
+
+
+@credit_bp.route("/api/credit/inherit-news")
+def inherit_news():
+    """여신·심사 메인 화면: 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단)."""
+    force = request.args.get("refresh") in ("1", "true", "yes")
+    return _safe(lambda: get_inherit_news(force=force), "상속·증여 뉴스 동향")
