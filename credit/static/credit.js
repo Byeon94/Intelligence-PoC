@@ -51,7 +51,10 @@
     if (!items.length) { box.innerHTML = '<div class="page-note">' + emptyMsg + "</div>"; return; }
     var expanded = !!expandState[boxId];
     var shown = expanded ? items : items.slice(0, LIST_LIMIT);
-    var html = shown.map(rowFn).join("");
+    // rowFn 은 반드시 인자 1개로만 호출한다 — Array#map 은 (item, index, array)를
+    // 넘겨서, rowFn 이 2번째 인자를 옵션으로 쓰는 경우(collateralRowHTML의 hideNote
+    // 등) index가 실수로 그 옵션값이 되어버리는 문제가 있었다.
+    var html = shown.map(function (it) { return rowFn(it); }).join("");
     if (items.length > LIST_LIMIT) {
       html += '<button type="button" class="lead-more-btn" data-box="' + boxId + '">' +
         (expanded ? "접기 ▲" : "더보기 (전체 " + items.length + "건) ▼") + "</button>";
@@ -193,8 +196,10 @@
     });
   }
 
-  /* ── 상속·증여 상세: DART 리드 + 뉴스를 날짜순으로 합침 ── */
-  function collateralRowHTML(it) {
+  /* ── 상속·증여 상세: DART 리드 + 뉴스를 날짜순으로 합침 ──
+     hideNote: true 면 해설 줄을 생략(전체 탭 "오늘 신규 리드" 요약에서 사용 —
+     증권담보대출 상세 탭에서는 종목마다 지분율·가치가 달라 그대로 보여준다). */
+  function collateralRowHTML(it, hideNote) {
     return (
       '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
         '<div class="lead-row-head">' +
@@ -202,7 +207,7 @@
           '<span class="lead-title">' + esc(it.name) + " — " + esc(it.reporter || it.reason) + "</span>" +
           '<span class="lead-date">' + esc(it.date) + "</span>" +
         "</div>" +
-        '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>" +
+        (hideNote ? "" : '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>") +
       "</a>"
     );
   }
@@ -286,6 +291,8 @@
     }).join("") + "</div>";
   }
 
+  // 우리사주 공시의 해설은 종목명·제목만 다를 뿐 문구가 사실상 고정 템플릿이라
+  // (자본시장법상 20% 우선배정 안내) 매 줄 반복돼 가독성만 떨어져 표시하지 않는다.
   function esopRowHTML(it) {
     var isIpo = it.category === "ipo";
     return (
@@ -295,7 +302,6 @@
           '<span class="lead-title">' + esc(it.name) + " — " + esc(it.title) + "</span>" +
           '<span class="lead-date">' + esc(it.date) + "</span>" +
         "</div>" +
-        '<div class="lead-note">💡 해설: ' + esc(it.note) + "</div>" +
       "</a>"
     );
   }
@@ -327,7 +333,7 @@
     var d = leadsState.data;
     if (!d) return;
     var rows = [];
-    (d.collateral || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(collateralRowHTML(it)); });
+    (d.collateral || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(collateralRowHTML(it, true)); });
     (d.esop || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(esopRowHTML(it)); });
     (newsState.items || []).forEach(function (n) { if (n.published === newsRefDate) rows.push(newsRowHTML(n)); });
     (esopNewsState.items || []).forEach(function (n) { if (n.published === newsRefDate) rows.push(newsRowHTML(n)); });
