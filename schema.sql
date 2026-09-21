@@ -95,6 +95,14 @@ create table if not exists equity_snapshots (
     primary key (snapshot_date, code)
 );
 
+-- 전사 위젯 > 국내 업종별 시가총액 맵: 전 상장종목 업종 분류(Gemini, 약 30일 주기로만 재분류).
+-- 화면은 이 스냅샷만 읽고(get_cached_classification), 실제 재분류는 /internal/warmup 배치에서만.
+create table if not exists sector_classification_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
 -- 서버가 publishable(anon) 키로 접속한다면 아래 RLS 정책을 추가해야 읽기/쓰기가 됩니다.
 -- (service_role / sb_secret_ 키를 쓰면 RLS를 우회하므로 불필요합니다.)
 -- alter table policy_snapshots  enable row level security;

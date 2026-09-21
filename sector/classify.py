@@ -19,17 +19,23 @@ from zoneinfo import ZoneInfo
 
 from credit.equity import listed_snapshot
 from main.gemini import generate_text
-from main.snapshot_store import get_snapshot, save_snapshot
+from main.snapshot_store import latest_snapshot, save_snapshot
 
 from .constituents import SECTOR_TAXONOMY
 
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
 
+# 다른 snapshot 테이블과 동일하게 snapshot_date(date 타입) 를 키로 쓴다 — "latest" 같은
+# 고정 문자열 키를 쓰면 컬럼이 date 타입일 때 저장이 실패한다. 최신값은 latest_snapshot()
+# (snapshot_date desc 정렬)으로 가져온다.
 _TABLE = "sector_classification_snapshots"
-_KEY = "latest"
 _REFRESH_DAYS = 30      # 업종 구성은 거의 안 바뀌므로 이 이상 지나야 재분류
-_BATCH_SIZE = 150
+# 한글 위주 JSON 응답은 토큰 소모가 커서 150개씩 배치하면 max_output_tokens 안에
+# 못 들어가고 잘린다(실측: 150개→중간에 truncate, 100개→8192 토큰 내 정상 완료).
+# 여유를 더 두기 위해 배치 크기를 줄이고 토큰 한도도 올린다.
+_BATCH_SIZE = 100
+_MAX_OUTPUT_TOKENS = 16384
 
 _PROMPT_TMPL = (
     "아래는 한국 코스피·코스닥 상장회사 목록(종목코드 종목명)이다. 각 회사를 다음 업종 "
@@ -45,7 +51,7 @@ _PROMPT_TMPL = (
 def _classify_batch(stocks: list[dict]) -> dict[str, str]:
     companies_txt = "\n".join(f"{s['code']} {s['name']}" for s in stocks)
     prompt = _PROMPT_TMPL.format(companies=companies_txt)
-    text = generate_text(prompt, max_output_tokens=8192, thinking=False)
+    text = generate_text(prompt, max_output_tokens=_MAX_OUTPUT_TOKENS, thinking=False)
     a, b = text.find("["), text.rfind("]")
     if a < 0 or b < 0:
         raise ValueError("JSON 배열 응답 없음")
@@ -77,7 +83,7 @@ def _classify_all(stocks: list[dict]) -> dict[str, str]:
 
 def get_cached_classification() -> dict[str, str]:
     """저장된 최신 분류 스냅샷만 읽는다(Gemini 호출 없음) — 화면 요청에서 안전하게 쓰기 위함."""
-    snap = get_snapshot(_TABLE, _KEY)
+    snap = latest_snapshot(_TABLE)
     return (snap or {}).get("classified") or {}
 
 
@@ -87,7 +93,7 @@ def refresh_sector_classification(force: bool = False) -> dict[str, str]:
     호출 비용이 크므로(전 상장종목을 배치로 나눠 순차 Gemini 호출) /internal/warmup
     배치에서만 호출해야 한다(화면 라우트에서 직접 호출 금지).
     """
-    snap = get_snapshot(_TABLE, _KEY)
+    snap = latest_snapshot(_TABLE)
     if snap and snap.get("classified") and not force:
         generated = _parse_dt(snap.get("generated_at"))
         if generated and datetime.now(KST) - generated < timedelta(days=_REFRESH_DAYS):
@@ -110,7 +116,7 @@ def refresh_sector_classification(force: bool = False) -> dict[str, str]:
         "total_stocks": len(stocks),
         "classified": classified,
     }
-    save_snapshot(_TABLE, _KEY, payload)
+    save_snapshot(_TABLE, datetime.now(KST).date().isoformat(), payload)
     logger.info("업종 분류 갱신 완료: %d/%d건", len(classified), len(stocks))
     return classified
 
