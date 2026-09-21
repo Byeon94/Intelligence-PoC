@@ -11,7 +11,9 @@
 
 /* ── 시가총액 맵(트리맵) ── */
 .sector-treemap {
-  position: relative; width: 100%; aspect-ratio: 4 / 3;
+  /* 업종이 20개 이상이라 모바일처럼 폭이 좁을 땐 세로 공간을 넉넉히 줘야 대부분의
+     칸에 라벨이 들어간다(기존 4:3은 너무 낮아서 반도체·기타 정도만 보였다). */
+  position: relative; width: 100%; aspect-ratio: 3 / 4;
   border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
   background: var(--card2);
 }
@@ -37,6 +39,12 @@
 /* ── 업종 순위 표 ── */
 .sector-rank th, .sector-rank td { text-align: right; }
 .sector-rank th:first-child, .sector-rank td:first-child { text-align: left; }
+/* .rate-table 기본 스타일은 컬럼이 많은 금리비교표용으로 첫 컬럼을 sticky(고정)해 두는데,
+   이 표는 4컬럼짜리라 그럴 필요가 없고 모바일에서 좌우로 드래그하면 sticky 컬럼만 따로
+   떠서 헤더·본문이 어긋나 보이는 렌더링 문제가 있었다. 이 표에서는 sticky를 꺼서 표 전체가
+   한 덩어리로 자연스럽게 스크롤되게 한다. */
+.rate-table.sector-rank th:first-child,
+.rate-table.sector-rank td:first-child { position: static; }
 
 /* ── 업종별 밸류체인 ── */
 .sector-vc-buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
