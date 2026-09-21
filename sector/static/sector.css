@@ -1,0 +1,60 @@
+/* 국내 업종별 시가총액 맵 및 밸류체인 (전사 위젯 · 투자금융부 이OO 과장 제작) */
+
+.sector-intro h2 { font-size: 1.15rem; margin-bottom: 6px; }
+.sector-intro .gal-status { margin-right: 8px; }
+.sector-note { margin-top: 8px; }
+
+/* ── 시가총액 맵(트리맵) ── */
+.sector-treemap {
+  position: relative; width: 100%; aspect-ratio: 4 / 3;
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  background: var(--card2);
+}
+@media (min-width: 720px) {
+  .sector-treemap { aspect-ratio: 16 / 8; }
+}
+.st-box {
+  position: absolute; box-sizing: border-box; border: 1px solid var(--card2);
+  padding: 6px 8px; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.st-box .st-name { font-weight: 800; font-size: .78rem; line-height: 1.25; color: var(--fg); }
+.st-box .st-sub { font-size: .68rem; color: var(--fg); opacity: .8; margin-top: 1px; }
+.st-box .st-chg { font-size: .7rem; font-weight: 800; margin-top: 1px; }
+.st-box.st-up { background: rgba(220, 38, 38, var(--st-a, .12)); }
+.st-box.st-down { background: rgba(37, 99, 235, var(--st-a, .12)); }
+.st-box.st-flat { background: var(--card); }
+.st-box .st-chg.st-c-up { color: var(--stock-up); }
+.st-box .st-chg.st-c-down { color: var(--stock-down); }
+
+/* ── 업종 순위 표 ── */
+#sector-rank-table .rate-table th, #sector-rank-table .rate-table td { text-align: right; }
+#sector-rank-table .rate-table th:first-child, #sector-rank-table .rate-table td:first-child { text-align: left; }
+
+/* ── 업종별 밸류체인 ── */
+.vc-chain { margin-bottom: 24px; }
+.vc-chain:last-child { margin-bottom: 0; }
+.vc-chain-title {
+  font-weight: 800; font-size: .92rem; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
+}
+.vc-stages { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.vc-stage {
+  flex: 0 0 190px; background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow);
+}
+.vc-stage-name {
+  font-size: .72rem; font-weight: 800; color: var(--accent);
+  margin-bottom: 8px; line-height: 1.3;
+}
+.vc-company {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  padding: 5px 0; border-top: 1px solid var(--border2);
+}
+.vc-company:first-child { border-top: none; }
+.vc-co-name { font-size: .8rem; font-weight: 600; }
+.vc-co-chg { font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.vc-arrow {
+  flex: 0 0 18px; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 1.05rem;
+}

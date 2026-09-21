@@ -36,6 +36,9 @@
     { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
+    { id: "sector-map", externalUrl: "/sector",
+      title: "국내 업종별 시가총액 맵 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
+      desc: "업종별 시가총액 비교 맵 + 반도체·2차전지·바이오·자동차 밸류체인", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
@@ -245,6 +248,22 @@
           }).join("") + "</ul>";
         }
         el.innerHTML = html;
+      });
+    },
+    "sector-map": function (el) {
+      return get("/api/sector/map").then(function (d) {
+        var top = (d.sectors || []).slice(0, 5);
+        if (!top.length) { el.innerHTML = '<div class="gal-mini-note">데이터를 불러오지 못했습니다.</div>'; return; }
+        el.innerHTML = miniSubtitle("업종별 시가총액 상위 5") +
+          '<table class="gal-mini-table"><thead><tr><th>업종</th><th>시가총액</th><th>등락</th></tr></thead><tbody>' +
+          top.map(function (s) {
+            var chg = s.change_pct;
+            var chgUp = chg != null && chg > 0, chgDn = chg != null && chg < 0;
+            var chgTxt = chg == null ? "-" : (chgUp ? "▲" : chgDn ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
+            var cls = chgUp ? "k-up" : chgDn ? "k-dn" : "";
+            return "<tr><td>" + esc(s.sector) + "</td><td>" + jo(s.market_cap / 1e12) +
+              '</td><td class="' + cls + '">' + chgTxt + "</td></tr>";
+          }).join("") + "</tbody></table>";
       });
     },
     "it-news": function (el) {

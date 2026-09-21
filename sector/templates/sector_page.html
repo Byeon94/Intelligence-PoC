@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>국내 업종별 시가총액 맵 및 밸류체인 · 증금 인텔리전스</title>
+<script>
+// 새로 열면 항상 라이트로 시작. 다크는 현재 탭 세션에서만 유지(index.html과 동일 규칙).
+(function () {
+  var saved = null;
+  try { saved = sessionStorage.getItem('theme'); } catch (e) {}
+  document.documentElement.setAttribute('data-theme', saved === 'dark' ? 'dark' : 'light');
+})();
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('sector.static', filename='sector.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row topbar-brand">
+    <a class="logo" href="/">증금 인텔리전스<span class="poc-badge">PoC</span></a>
+    <a class="ghost-btn" href="/#gallery">← 전사 위젯</a>
+    <button class="ghost-btn theme-btn" id="theme-btn" type="button" onclick="toggleTheme()">🌙 다크</button>
+  </div>
+</header>
+
+<main>
+  <div class="card intro-card sector-intro">
+    <h2>🗺️ 국내 업종별 시가총액 맵 및 밸류체인</h2>
+    <p class="page-note">
+      <span class="gal-status st-credit">투자금융부 이OO 과장 제작</span>
+      업종별 시가총액을 한눈에 비교하고, 반도체·2차전지·바이오·자동차 4대 산업의 밸류체인을 확인합니다.
+    </p>
+  </div>
+
+  <div class="subtabs" id="sector-subtabs" role="tablist">
+    <button class="subtab-btn active" data-sub="map">시가총액 맵</button>
+    <button class="subtab-btn" data-sub="chain">업종별 밸류체인</button>
+  </div>
+
+  <div class="sub-panel" data-sub="map">
+    <section class="block">
+      <div class="block-head">
+        <h3>업종별 시가총액 맵</h3>
+        <span class="unit-tag">색상 = 등락률(빨강 상승·파랑 하락) · 크기 = 시가총액</span>
+      </div>
+      <div id="sector-treemap" class="sector-treemap"><div class="chart-loading">불러오는 중…</div></div>
+      <p class="page-note sector-note" id="map-note"></p>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h3>업종 순위</h3></div>
+      <div class="table-wrap" id="sector-rank-table"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+  </div>
+
+  <div class="sub-panel" data-sub="chain" hidden>
+    <section class="block">
+      <div class="block-head"><h3>4대 산업 밸류체인</h3></div>
+      <p class="page-note sector-note" id="chain-note"></p>
+      <div id="sector-chains"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+  </div>
+</main>
+
+<script>
+function themeLabel(t) { return t === 'dark' ? '☀️ 라이트' : '🌙 다크'; }
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  document.getElementById('theme-btn').textContent = themeLabel(t);
+  try { sessionStorage.setItem('theme', t); } catch (e) {}
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+}
+document.getElementById('theme-btn').textContent =
+  themeLabel(document.documentElement.dataset.theme || 'light');
+</script>
+<script src="{{ url_for('sector.static', filename='sector.js') }}"></script>
+</body>
+</html>

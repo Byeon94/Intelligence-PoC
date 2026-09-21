@@ -147,6 +147,7 @@ def _listed_snapshot() -> list[dict]:
                 "market": pick(r, "mrktCtg", "MRKT_CTG"),
                 "close": to_float(pick(r, "clpr", "CLPR")),
                 "market_cap": to_float(pick(r, "mrktTotAmt", "MRKT_TOT_AMT")),
+                "change_pct": to_float(pick(r, "fltRt", "FLT_RT")),
             }
         if out:
             return list(out.values())
