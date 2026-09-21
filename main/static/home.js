@@ -67,8 +67,7 @@
   // 홈 "오늘의 알림"에 항상 함께 보여주는 위젯 추천 카드(실데이터 알림이 아닌 고정 안내).
   var WIDGET_RECOMMENDATION = {
     level: "info", icon: "💡",
-    title: "오늘의 위젯 추천 — 국내 업종별 시가총액 및 밸류체인",
-    detail: "투자금융부 이OO 과장 제작 · 전사 위젯에서 내 위젯에 추가해보세요",
+    title: "국내 업종별 시가총액 및 밸류체인 (투자금융부 이OO 과장 제작)",
     tab: "gallery"
   };
 
@@ -926,6 +925,13 @@
     );
   }
 
+  // 알림 상세문구(detail)에서 날짜만 뽑아 "제목 (YYYY-MM-DD 기준)" 한 줄로 압축한다
+  // (부연설명 줄은 없앰 — 요청에 따라).
+  function alertLineTitle(a) {
+    var m = a.detail ? /(\d{4}-\d{2}-\d{2})/.exec(a.detail) : null;
+    return esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
+  }
+
   function renderAlerts(alerts) {
     var box = document.getElementById("home-alerts");
     if (!box) return;
@@ -937,8 +943,7 @@
       return (
         '<div class="home-alert ' + (a.level === "warn" ? "al-warn" : "al-info") + '">' +
           '<div class="al-body">' +
-            '<div class="al-title">' + (a.icon || "⚠️") + " " + esc(a.title) + "</div>" +
-            '<div class="al-detail">' + esc(a.detail) + "</div>" +
+            '<div class="al-title">' + (a.icon || "⚠️") + " " + alertLineTitle(a) + "</div>" +
           "</div>" +
           '<button type="button" class="al-go" data-work="' + a.tab + '"' +
             (a.sub ? ' data-sub="' + a.sub + '"' : "") + '>확인 →</button>' +
