@@ -31,7 +31,12 @@
     <section class="block">
       <div class="block-head">
         <h3>국내 주식시장 거래대금</h3>
-        <span class="asof" id="turnover-asof"></span>
+        <span class="asof" id="turnover-asof">
+          <span id="turnover-asof-date"></span>
+          <button type="button" class="asof-info" id="turnover-asof-info"
+                  data-msg="진행 중인 이번 달은 거래대금 집계가 아직 끝나지 않아 제외하고, 가장 최근에 마감된 달 기준으로 보여줍니다. 다음 달이 되면 자동으로 최신 달로 넘어갑니다."
+                  aria-label="집계 기준 안내">!</button>
+        </span>
       </div>
       <div class="kpi-grid" id="turnover-kpis"></div>
     </section>
@@ -81,8 +86,7 @@
   <!-- ── 발행시장 ── -->
   <div class="sub-panel" data-sub="issuance" hidden>
     <section class="block">
-      <div class="block-head"><h3>💡 발행시장 브리핑</h3>
-        <button type="button" class="brief-regen" id="iss-regen">↻ 재생성</button></div>
+      <div class="block-head"><h3>💡 발행시장 브리핑</h3></div>
       <div class="brief-card" id="iss-brief"><div class="chart-loading">불러오는 중…</div></div>
     </section>
 

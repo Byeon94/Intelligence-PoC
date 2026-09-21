@@ -64,6 +64,14 @@
     { id: "lending-stock", tab: "lending", title: "증권대차", emoji: "🔄",
       desc: "대차잔고·공매도·이용률", status: "soon" }
   ];
+  // 홈 "오늘의 알림"에 항상 함께 보여주는 위젯 추천 카드(실데이터 알림이 아닌 고정 안내).
+  var WIDGET_RECOMMENDATION = {
+    level: "info", icon: "💡",
+    title: "오늘의 위젯 추천 — 국내 업종별 시가총액 및 밸류체인",
+    detail: "투자금융부 이OO 과장 제작 · 전사 위젯에서 내 위젯에 추가해보세요",
+    tab: "gallery"
+  };
+
   var STATUS_LABEL = { live: "전사 등재", dept: "부서 검증중", soon: "준비중" };
   var STATUS_CLASS = { live: "st-live", dept: "st-dept", soon: "st-soon" };
 
@@ -927,7 +935,7 @@
       return (
         '<div class="home-alert ' + (a.level === "warn" ? "al-warn" : "al-info") + '">' +
           '<div class="al-body">' +
-            '<div class="al-title">⚠️ ' + esc(a.title) + "</div>" +
+            '<div class="al-title">' + (a.icon || "⚠️") + " " + esc(a.title) + "</div>" +
             '<div class="al-detail">' + esc(a.detail) + "</div>" +
           "</div>" +
           '<button type="button" class="al-go" data-work="' + a.tab + '"' +
@@ -940,7 +948,11 @@
 
   function bindGoWorkButtons(scope) {
     scope.querySelectorAll("[data-work]").forEach(function (btn) {
-      btn.addEventListener("click", function () { goWork(btn.dataset.work, btn.dataset.sub); });
+      btn.addEventListener("click", function () {
+        // "gallery"는 업무 화면이 아니라 전사 위젯 탭이라 goWork 대신 곧장 이동시킨다.
+        if (btn.dataset.work === "gallery") { if (window.AppNav) window.AppNav.go("gallery"); }
+        else goWork(btn.dataset.work, btn.dataset.sub);
+      });
     });
   }
 
@@ -965,10 +977,10 @@
       }
       briefBox.innerHTML = cards || '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
       bindGoWorkButtons(briefBox);
-      renderAlerts(d.alerts);
+      renderAlerts((d.alerts || []).concat([WIDGET_RECOMMENDATION]));
     }).catch(function (e) {
       briefBox.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
-      renderAlerts([]);
+      renderAlerts([WIDGET_RECOMMENDATION]);
       briefingLoaded = false; // 재방문 시 재시도
     });
   }

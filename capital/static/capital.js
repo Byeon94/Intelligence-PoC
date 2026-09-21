@@ -72,7 +72,7 @@
     loading("turnover-kpis");
     get("/api/capital/turnover/summary").then(function (d) {
       var it = d.items, u = "조원";
-      document.getElementById("turnover-asof").textContent =
+      document.getElementById("turnover-asof-date").textContent =
         (d.month || "") + " · 거래일 " + (d.trading_days || "-") + "일";
       document.getElementById("turnover-kpis").innerHTML = [
         kpi({ label: "코스피 월 거래대금", value: num(it.kospi_month_total.value, 1), unit: u,
