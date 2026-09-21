@@ -80,9 +80,11 @@ def equity_reports():
 
 @credit_bp.route("/api/credit/market-reports")
 def market_reports():
-    """전사 위젯: 특정 종목이 아닌 시장 전체 증권사 리포트 동향(건수 + AI 브리핑)."""
-    force = request.args.get("refresh") in ("1", "true", "yes")
-    return _safe(lambda: get_market_report_digest(force=force), "시장 리포트 동향")
+    """전사 위젯: 특정 종목이 아닌 시장 전체 증권사 리포트 동향(건수 + AI 브리핑).
+
+    AI 브리핑은 /internal/warmup 배치에서만 생성한다 — 쿼리로 재생성을 트리거하지
+    못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""
+    return _safe(lambda: get_market_report_digest(), "시장 리포트 동향")
 
 
 @credit_bp.route("/api/credit/leads")
@@ -106,20 +108,26 @@ def today_summary():
 
 @credit_bp.route("/api/credit/inherit-news")
 def inherit_news():
-    """여신·심사 메인 화면: 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단)."""
-    force = request.args.get("refresh") in ("1", "true", "yes")
-    return _safe(lambda: get_inherit_news(force=force), "상속·증여 뉴스 동향")
+    """여신·심사 메인 화면: 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단).
+
+    AI 판단은 /internal/warmup 배치에서만 수행한다 — 쿼리로 재생성을 트리거하지
+    못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""
+    return _safe(lambda: get_inherit_news(), "상속·증여 뉴스 동향")
 
 
 @credit_bp.route("/api/credit/esop-news")
 def esop_news():
-    """여신·심사 메인 화면: 우리사주(유상증자·IPO) 관련 뉴스 동향(참고용, AI 관련도 판단)."""
-    force = request.args.get("refresh") in ("1", "true", "yes")
-    return _safe(lambda: get_esop_news(force=force), "우리사주 뉴스 동향")
+    """여신·심사 메인 화면: 우리사주(유상증자·IPO) 관련 뉴스 동향(참고용, AI 관련도 판단).
+
+    AI 판단은 /internal/warmup 배치에서만 수행한다 — 쿼리로 재생성을 트리거하지
+    못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""
+    return _safe(lambda: get_esop_news(), "우리사주 뉴스 동향")
 
 
 @credit_bp.route("/api/credit/lead-briefings")
 def lead_briefings():
-    """여신·심사 메인 화면(전체 탭): 증권담보대출·우리사주 리드에 대한 AI 브리핑."""
-    force = request.args.get("refresh") in ("1", "true", "yes")
-    return _safe(lambda: get_lead_briefings(force=force), "리드 AI 브리핑")
+    """여신·심사 메인 화면(전체 탭): 증권담보대출·우리사주 리드에 대한 AI 브리핑.
+
+    AI 브리핑은 /internal/warmup 배치에서만 생성한다 — 쿼리로 재생성을 트리거하지
+    못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""
+    return _safe(lambda: get_lead_briefings(), "리드 AI 브리핑")

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template
 
 from .curate import get_research_digest
 
@@ -21,9 +21,10 @@ def research_tab():
 
 @research_bp.route("/api/research/digest")
 def digest():
-    force = request.args.get("refresh") in ("1", "true", "yes")
+    # AI 브리핑은 /internal/warmup 배치에서만 생성한다 — 쿼리로 재생성을 트리거하지
+    # 못하게 이 라우트는 항상 저장된 스냅샷만 반환한다.
     try:
-        data = get_research_digest(force=force)
+        data = get_research_digest()
         return jsonify({k: data.get(k) for k in _PUBLIC})  # 후보 원본(candidates)은 제외
     except Exception:  # noqa: BLE001
         research_bp.logger.exception("리서치 다이제스트 조회 실패")

@@ -79,23 +79,21 @@
   }
 
 
-  function fetchDigest(refresh) {
-    var btn = document.getElementById("iss-regen");
-    if (refresh && btn) { btn.disabled = true; btn.textContent = "재생성 중…"; }
-    fetch("/api/issuance/digest" + (refresh ? "?refresh=1" : ""))
+  // AI 브리핑은 새벽 배치(/internal/warmup)에서만 생성한다 — 화면에는 재생성 버튼을
+  // 두지 않는다(사용자가 직접 Gemini 호출을 트리거하지 못하게).
+  function fetchDigest() {
+    fetch("/api/issuance/digest")
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; }); })
       .then(function (d) {
         var mo = document.getElementById("iss-month");
         if (mo) mo.textContent = "— " + (d.month_label || "");
         var as = document.getElementById("iss-asof");
         if (as) as.textContent = (d.generated_at || "") + " 수집" + (d.stale ? " · 이전 자료" : "");
-        if (btn) { btn.disabled = false; btn.textContent = "↻ 재생성"; }
         renderBrief(d); renderCalendar(d);
       })
       .catch(function (e) {
         var box = document.getElementById("iss-calendar");
         if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
-        if (btn) { btn.disabled = false; btn.textContent = "↻ 재생성"; }
       });
   }
 
@@ -104,9 +102,7 @@
     load: function () {
       if (done) return;
       done = true;
-      var b = document.getElementById("iss-regen");
-      if (b) b.addEventListener("click", function () { fetchDigest(true); });
-      fetchDigest(false);
+      fetchDigest();
     },
   };
 })();
