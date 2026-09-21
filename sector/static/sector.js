@@ -79,6 +79,9 @@
     var scale = (TW * TH) / total;
     var rects = squarify(sectors.map(function (s) { return (s.market_cap || 0) * scale; }), { x: 0, y: 0, w: TW, h: TH });
     box.innerHTML = "";
+    // 라벨 표시 여부는 실제 렌더 픽셀 크기로 판단한다(로직 좌표 기준으로만 재면, 모바일처럼
+    // 컨테이너 자체가 좁을 때 작은 칸에도 글씨를 넣으려다 겹쳐 보이는 문제가 있었다).
+    var boxW = box.clientWidth || 320, boxH = box.clientHeight || boxW * 0.75;
     sectors.forEach(function (s, idx) {
       var r = rects[idx];
       var chg = s.change_pct;
@@ -91,7 +94,8 @@
       div.style.top = (r.y / TH) * 100 + "%";
       div.style.width = (r.w / TW) * 100 + "%";
       div.style.height = (r.h / TH) * 100 + "%";
-      if (r.w > 46 && r.h > 26) {
+      var pxW = (r.w / TW) * boxW, pxH = (r.h / TH) * boxH;
+      if (pxW > 60 && pxH > 34) {
         div.innerHTML =
           '<div class="st-name">' + esc(s.sector) + "</div>" +
           '<div class="st-sub">' + jo(s.market_cap) + "조</div>" +

@@ -788,7 +788,7 @@
           '<div class="sector-treemap" id="' + id + '-treemap"><span class="page-note">불러오는 중…</span></div>' +
           '<p class="page-note sector-note" id="' + id + '-map-note"></p>' +
           '<div class="gal-mini-subtitle">2. 업종 순위 (상위 10)</div>' +
-          '<div id="' + id + '-rank"><span class="page-note">불러오는 중…</span></div>' +
+          '<div class="table-wrap" id="' + id + '-rank"><span class="page-note">불러오는 중…</span></div>' +
           '<div class="gal-mini-subtitle">3. 업종별 밸류체인</div>' +
           '<div class="sector-vc-buttons" id="' + id + '-vc-buttons"></div>' +
           '<div id="' + id + '-vc-detail"><span class="page-note">불러오는 중…</span></div>' +
