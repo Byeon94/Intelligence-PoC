@@ -38,8 +38,7 @@
       desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
     { id: "sector-map", externalUrl: "/sector",
       title: "국내 업종별 시가총액 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
-      desc: "국내 업종별 시가총액 맵 및 대표산업(4가지) 밸류체인. KRX 업종분류를 무료로 제공하는 곳이 " +
-        "없어 시가총액 상위 대표 종목을 수기로 분류해 선별했습니다.", status: "live" },
+      desc: "국내 업종별 시가총액 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
@@ -187,12 +186,20 @@
       });
     },
     "capital-cma": function (el) {
-      return Promise.all([get("/api/capital/cma/mix"), get("/api/capital/cma/rates")]).then(function (res) {
-        var mix = res[0], rates = res[1];
+      return Promise.all([get("/api/capital/cma/summary"), get("/api/capital/cma/mix"), get("/api/capital/cma/rates")]).then(function (res) {
+        var summary = res[0], mix = res[1], rates = res[2];
+        var it = summary.items || {};
         var top = (mix.mix || []).slice().sort(function (a, b) { return b.share - a.share; })[0] || {};
         var top5 = (rates.companies || []).slice()
           .sort(function (a, b) { return (b.rp_rate || 0) - (a.rp_rate || 0); }).slice(0, 5);
         el.innerHTML =
+          miniSubtitle("CMA 잔고 현황") + asOfLine(summary.as_of) +
+          miniRow([
+            ["CMA 총잔고", jo(it.total && it.total.value)],
+            ["RP형 잔고", jo(it.rp && it.rp.value)],
+            ["발행어음형 잔고", jo(it.note && it.note.value)],
+            ["RP형 최고금리", (it.rp_top_rate && it.rp_top_rate.value != null) ? it.rp_top_rate.value.toFixed(2) + "%" : "-"]
+          ]) +
           miniSubtitle("CMA 유형별 비중") + asOfLine(mix.as_of) +
           '<div class="gal-mini-chart gal-mini-donut" id="' + el.id + '-donut"></div>' +
           miniSubtitle("증권사별 금리 비교") + asOfLine(rates.as_of) + miniRateTable(top5);
@@ -774,7 +781,6 @@
           '<div class="gal-mini-subtitle">2. 업종 순위 (상위 10)</div>' +
           '<div id="' + id + '-rank"><span class="page-note">불러오는 중…</span></div>' +
           '<div class="gal-mini-subtitle">3. 업종별 밸류체인</div>' +
-          '<p class="page-note sector-note" id="' + id + '-chain-note"></p>' +
           '<div class="sector-vc-buttons" id="' + id + '-vc-buttons"></div>' +
           '<div id="' + id + '-vc-detail"><span class="page-note">불러오는 중…</span></div>' +
         "</div>" +
@@ -791,7 +797,6 @@
     var treemapEl = document.getElementById(id + "-treemap");
     var rankEl = document.getElementById(id + "-rank");
     var mapNoteEl = document.getElementById(id + "-map-note");
-    var chainNoteEl = document.getElementById(id + "-chain-note");
     var btnBox = document.getElementById(id + "-vc-buttons");
     var detailEl = document.getElementById(id + "-vc-detail");
     if (!treemapEl) return;
@@ -799,14 +804,13 @@
     window.SectorWidget.fetchMap().then(function (d) {
       window.SectorWidget.renderTreemap(treemapEl, d.sectors || []);
       window.SectorWidget.renderRankTable(rankEl, (d.sectors || []).slice(0, 10));
-      if (mapNoteEl) mapNoteEl.textContent = (d.as_of ? d.as_of + " 기준 · " : "") + (d.note || "");
+      if (mapNoteEl) mapNoteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
     }).catch(function (e) {
       treemapEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
     });
 
     window.SectorWidget.fetchChains().then(function (d) {
       var chains = d.chains || [];
-      if (chainNoteEl) chainNoteEl.textContent = d.note || "";
       if (!chains.length) { detailEl.innerHTML = '<div class="gal-mini-note">표시할 데이터가 없습니다.</div>'; return; }
       window.SectorWidget.renderChainButtons(btnBox, chains, function (key) {
         window.SectorWidget.renderValueChain(detailEl, window.SectorWidget.findChain(chains, key), d.as_of);

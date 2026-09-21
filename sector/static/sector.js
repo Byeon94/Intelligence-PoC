@@ -117,13 +117,13 @@
 
   /* ── 업종별 밸류체인 ── */
   function companyRowHTML(co) {
-    var cls = chgClass(co.change_pct);
+    // 주가(종가)는 기본 글자색으로 두고, 등락률만 상승/하락 색으로 구분한다.
     return (
       '<div class="vc-company">' +
         '<div class="vc-co-name">' + esc(co.name) + "</div>" +
         '<div class="vc-co-right">' +
-          '<span class="vc-co-close ' + cls + '">' + closeText(co.close) + "</span>" +
-          '<span class="vc-co-chg ' + cls + '">' + chgText(co.change_pct) + "</span>" +
+          '<span class="vc-co-close">' + closeText(co.close) + "</span>" +
+          '<span class="vc-co-chg ' + chgClass(co.change_pct) + '">' + chgText(co.change_pct) + "</span>" +
         "</div>" +
       "</div>"
     );
@@ -132,7 +132,8 @@
     if (!box || !chain) return;
     var stagesHTML = chain.stages.map(function (stage, si) {
       var companiesHTML = stage.companies.map(companyRowHTML).join("");
-      var stageHTML = '<div class="vc-stage"><div class="vc-stage-name">' + esc(stage.name) + "</div>" + companiesHTML + "</div>";
+      var stageHTML = '<div class="vc-stage vc-stage-c' + (si % 6) + '"><div class="vc-stage-name">' +
+        esc(stage.name) + "</div>" + companiesHTML + "</div>";
       return si > 0 ? '<div class="vc-arrow">→</div>' + stageHTML : stageHTML;
     }).join("");
     box.innerHTML =
@@ -185,7 +186,7 @@
         renderTreemap(box, d.sectors || []);
         renderRankTable(rankBox, (d.sectors || []).slice(0, 10));
         var noteEl = document.getElementById("map-note");
-        if (noteEl) noteEl.textContent = (d.as_of ? d.as_of + " 기준 · " : "") + (d.note || "");
+        if (noteEl) noteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
       }).catch(function (e) {
         if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
         if (rankBox) rankBox.innerHTML = "";
@@ -196,8 +197,6 @@
       var btnBox = document.getElementById("chain-buttons");
       var detailBox = document.getElementById("chain-detail");
       fetchChains().then(function (d) {
-        var noteEl = document.getElementById("chain-note");
-        if (noteEl) noteEl.textContent = d.note || "";
         var chains = d.chains || [];
         if (!chains.length) { detailBox.innerHTML = '<div class="chart-error">표시할 데이터가 없습니다</div>'; return; }
         renderChainButtons(btnBox, chains, function (key) {
