@@ -541,9 +541,11 @@
       : '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
         (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
       "</button>";
-    // "오늘의 IT·정보보호 뉴스"는 내 위젯 안에서 기사 링크가 이미 각각 걸려 있어
-    // 별도 "자세히 보기"(네이버 뉴스 검색으로 이동)가 의미가 없어 내 위젯에서만 뺀다.
-    var showActionBtn = !(opts.mini && w.id === "it-news");
+    // 아래 위젯들은 "자세히 보기"가 가리키는 곳이 위젯 내용과 안 맞거나(외부 검색
+    // 결과로 이동 등) 카드 안에 이미 내용이 다 보여 detail 이동 자체가 불필요해
+    // 갤러리·내 위젯 모두에서 버튼을 없앤다.
+    var NO_DETAIL_IDS = ["market-reports", "it-news", "credit-equity-glance", "sector-map"];
+    var showActionBtn = NO_DETAIL_IDS.indexOf(w.id) < 0;
     return (
       '<div class="gal-card">' +
         '<div class="gal-top">' +
