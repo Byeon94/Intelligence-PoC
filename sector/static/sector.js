@@ -1,5 +1,7 @@
-/* 국내 업종별 시가총액 맵 및 밸류체인 — 트리맵(squarified) + 밸류체인 다이어그램 */
-(function () {
+/* 국내 업종별 시가총액 맵 및 밸류체인 — 트리맵(squarified) + 밸류체인 다이어그램.
+ * window.SectorWidget 으로 렌더 함수를 공개해, 독립 페이지(/sector)와 홈(main/static/home.js)의
+ * "내 위젯" 인라인 카드가 같은 렌더 로직을 공유한다(중복 구현 방지). */
+(function (global) {
   "use strict";
 
   function esc(s) {
@@ -18,6 +20,7 @@
     if (chg == null) return "-";
     return (chg > 0 ? "▲" : chg < 0 ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
   }
+  function closeText(v) { return v == null ? "-" : Number(v).toLocaleString("ko-KR") + "원"; }
 
   /* ── squarified treemap: values(합=rect.w*rect.h 로 스케일된 값) → {x,y,w,h}[] (입력 순서 유지) ── */
   function sum(row) { return row.reduce(function (a, it) { return a + it.v; }, 0); }
@@ -69,8 +72,8 @@
 
   var TW = 1000, TH = 600; // 트리맵 계산용 논리 좌표(가로세로 비율은 CSS aspect-ratio가 담당)
 
-  function renderTreemap(sectors) {
-    var box = document.getElementById("sector-treemap");
+  function renderTreemap(box, sectors) {
+    if (!box) return;
     var total = sectors.reduce(function (a, s) { return a + (s.market_cap || 0); }, 0);
     if (!total) { box.innerHTML = '<div class="chart-error">표시할 데이터가 없습니다</div>'; return; }
     var scale = (TW * TH) / total;
@@ -99,81 +102,131 @@
     });
   }
 
-  function renderRankTable(sectors) {
+  function renderRankTable(box, sectors) {
+    if (!box) return;
     var rows = sectors.map(function (s, i) {
       return "<tr><td>" + (i + 1) + ". " + esc(s.sector) + "</td>" +
         "<td>" + jo(s.market_cap) + "조원</td>" +
         '<td class="' + chgClass(s.change_pct) + '">' + chgText(s.change_pct) + "</td>" +
         "<td>" + esc(s.top_name || "-") + "</td></tr>";
     }).join("");
-    document.getElementById("sector-rank-table").innerHTML =
-      "<table class=\"rate-table\"><thead><tr><th>업종</th><th>시가총액</th><th>등락률</th><th>대표 종목</th></tr></thead><tbody>" +
+    box.innerHTML =
+      "<table class=\"rate-table sector-rank\"><thead><tr><th>업종</th><th>시가총액</th><th>등락률</th><th>대표 종목</th></tr></thead><tbody>" +
       rows + "</tbody></table>";
   }
 
-  function loadMap() {
-    get("/api/sector/map").then(function (d) {
-      renderTreemap(d.sectors || []);
-      renderRankTable(d.sectors || []);
-      document.getElementById("map-note").textContent = d.note || "";
-    }).catch(function (e) {
-      document.getElementById("sector-treemap").innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
-      document.getElementById("sector-rank-table").innerHTML = "";
-    });
-  }
-
   /* ── 업종별 밸류체인 ── */
-  function chgHTML(chg) {
-    return '<span class="vc-co-chg ' + chgClass(chg) + '">' + chgText(chg) + "</span>";
+  function companyRowHTML(co) {
+    var cls = chgClass(co.change_pct);
+    return (
+      '<div class="vc-company">' +
+        '<div class="vc-co-name">' + esc(co.name) + "</div>" +
+        '<div class="vc-co-right">' +
+          '<span class="vc-co-close ' + cls + '">' + closeText(co.close) + "</span>" +
+          '<span class="vc-co-chg ' + cls + '">' + chgText(co.change_pct) + "</span>" +
+        "</div>" +
+      "</div>"
+    );
   }
-  function renderChains(chains) {
-    var html = chains.map(function (c) {
-      var stagesHTML = c.stages.map(function (stage, si) {
-        var companiesHTML = stage.companies.map(function (co) {
-          return '<div class="vc-company"><span class="vc-co-name">' + esc(co.name) + "</span>" + chgHTML(co.change_pct) + "</div>";
-        }).join("");
-        var stageHTML = '<div class="vc-stage"><div class="vc-stage-name">' + esc(stage.name) + "</div>" + companiesHTML + "</div>";
-        return si > 0 ? '<div class="vc-arrow">→</div>' + stageHTML : stageHTML;
-      }).join("");
-      return '<div class="vc-chain"><div class="vc-chain-title">' + esc(c.label) + '</div><div class="vc-stages">' + stagesHTML + "</div></div>";
+  function renderValueChain(box, chain, asOf) {
+    if (!box || !chain) return;
+    var stagesHTML = chain.stages.map(function (stage, si) {
+      var companiesHTML = stage.companies.map(companyRowHTML).join("");
+      var stageHTML = '<div class="vc-stage"><div class="vc-stage-name">' + esc(stage.name) + "</div>" + companiesHTML + "</div>";
+      return si > 0 ? '<div class="vc-arrow">→</div>' + stageHTML : stageHTML;
     }).join("");
-    document.getElementById("sector-chains").innerHTML = html || '<div class="chart-error">표시할 데이터가 없습니다</div>';
+    box.innerHTML =
+      (asOf ? '<div class="vc-asof">' + esc(asOf) + " 종가 기준</div>" : "") +
+      '<div class="vc-stages">' + stagesHTML + "</div>";
   }
-
-  function loadChains() {
-    get("/api/sector/value-chain").then(function (d) {
-      renderChains(d.chains || []);
-      document.getElementById("chain-note").textContent = d.note || "";
-    }).catch(function (e) {
-      document.getElementById("sector-chains").innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+  function renderChainButtons(box, chains, onSelect) {
+    if (!box) return;
+    box.innerHTML = chains.map(function (c, i) {
+      return '<button type="button" class="sub-select-btn' + (i === 0 ? " active" : "") +
+        '" data-key="' + esc(c.key) + '">' + esc(c.label) + "</button>";
+    }).join("");
+    box.querySelectorAll(".sub-select-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        box.querySelectorAll(".sub-select-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+        onSelect(btn.dataset.key);
+      });
     });
   }
-
-  var loaded = {};
-  function ensure(sub) {
-    if (loaded[sub]) return;
-    loaded[sub] = true;
-    if (sub === "map") loadMap();
-    else if (sub === "chain") loadChains();
+  function findChain(chains, key) {
+    var found = null;
+    chains.forEach(function (c) { if (c.key === key) found = c; });
+    return found;
   }
 
-  function initSubtabs() {
-    var bar = document.getElementById("sector-subtabs");
-    if (!bar) return;
-    bar.addEventListener("click", function (e) {
+  function fetchMap() { return get("/api/sector/map"); }
+  function fetchChains() { return get("/api/sector/value-chain"); }
+
+  global.SectorWidget = {
+    fetchMap: fetchMap,
+    fetchChains: fetchChains,
+    renderTreemap: renderTreemap,
+    renderRankTable: renderRankTable,
+    renderChainButtons: renderChainButtons,
+    renderValueChain: renderValueChain,
+    findChain: findChain
+  };
+
+  /* ── 독립 페이지(/sector) 전용 부트스트랩 ──
+   * SPA(내 위젯) 컨텍스트에서 이 파일이 로드될 땐 #sector-subtabs 가 없어 그냥 no-op 한다
+   * (내 위젯 카드는 home.js 가 위 SectorWidget API 를 직접 호출해 렌더한다). */
+  function bootStandalonePage() {
+    var subtabs = document.getElementById("sector-subtabs");
+    if (!subtabs) return;
+
+    function loadMap() {
+      var box = document.getElementById("sector-treemap");
+      var rankBox = document.getElementById("sector-rank-table");
+      fetchMap().then(function (d) {
+        renderTreemap(box, d.sectors || []);
+        renderRankTable(rankBox, (d.sectors || []).slice(0, 10));
+        var noteEl = document.getElementById("map-note");
+        if (noteEl) noteEl.textContent = (d.as_of ? d.as_of + " 기준 · " : "") + (d.note || "");
+      }).catch(function (e) {
+        if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+        if (rankBox) rankBox.innerHTML = "";
+      });
+    }
+
+    function loadChains() {
+      var btnBox = document.getElementById("chain-buttons");
+      var detailBox = document.getElementById("chain-detail");
+      fetchChains().then(function (d) {
+        var noteEl = document.getElementById("chain-note");
+        if (noteEl) noteEl.textContent = d.note || "";
+        var chains = d.chains || [];
+        if (!chains.length) { detailBox.innerHTML = '<div class="chart-error">표시할 데이터가 없습니다</div>'; return; }
+        renderChainButtons(btnBox, chains, function (key) {
+          renderValueChain(detailBox, findChain(chains, key), d.as_of);
+        });
+        renderValueChain(detailBox, chains[0], d.as_of);
+      }).catch(function (e) {
+        if (detailBox) detailBox.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      });
+    }
+
+    var loaded = {};
+    function ensure(sub) {
+      if (loaded[sub]) return;
+      loaded[sub] = true;
+      if (sub === "map") loadMap();
+      else if (sub === "chain") loadChains();
+    }
+    subtabs.addEventListener("click", function (e) {
       var btn = e.target.closest(".subtab-btn");
       if (!btn) return;
       var sub = btn.dataset.sub;
-      bar.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+      subtabs.querySelectorAll(".subtab-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
       document.querySelectorAll(".sub-panel").forEach(function (p) { p.hidden = p.dataset.sub !== sub; });
       ensure(sub);
     });
-  }
-
-  function boot() {
-    initSubtabs();
     ensure("map");
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else boot();
-})();
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootStandalonePage);
+  else bootStandalonePage();
+})(window);

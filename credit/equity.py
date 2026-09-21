@@ -124,8 +124,8 @@ def _naver_snapshot(code: str) -> dict:
 
 
 @ttl_cache(60 * 30)
-def _listed_snapshot() -> list[dict]:
-    """최근 거래일 전체 상장종목 1스냅샷 (검색 부분일치 + 시가총액 순위용).
+def _listed_snapshot() -> tuple[str | None, list[dict]]:
+    """최근 거래일 전체 상장종목 1스냅샷 (검색 부분일치 + 시가총액 순위 + 업종 맵용).
 
     data.go.kr 의 likeItmsNm 은 접두어 매칭이라 '하이닉스' 같은 중간어가 안 걸린다.
     그래서 한 거래일 전체(코스피+코스닥 ≈ 2,900건)를 받아 파이썬에서 처리한다.
@@ -150,19 +150,24 @@ def _listed_snapshot() -> list[dict]:
                 "change_pct": to_float(pick(r, "fltRt", "FLT_RT")),
             }
         if out:
-            return list(out.values())
+            return _fmt_date(d), list(out.values())
     logger.info("종목 스냅샷 조회 실패")
-    return []
+    return None, []
 
 
 def listed_snapshot() -> list[dict]:
-    """`_listed_snapshot()`의 공개 래퍼 (leads.py 등 패키지 내 다른 모듈에서 재사용)."""
-    return _listed_snapshot()
+    """`_listed_snapshot()`의 공개 래퍼 (leads.py, sector 패키지 등에서 재사용)."""
+    return _listed_snapshot()[1]
+
+
+def listed_snapshot_as_of() -> str | None:
+    """전 종목 스냅샷의 기준일(YYYY-MM-DD) — 업종 맵·밸류체인의 종가 기준일 표시용."""
+    return _listed_snapshot()[0]
 
 
 def _market_cap_rank(code: str, market: str | None) -> dict:
     """전체 / 동일시장(코스피·코스닥) 내 시가총액 순위."""
-    snap = [s for s in _listed_snapshot() if s.get("market_cap")]
+    snap = [s for s in listed_snapshot() if s.get("market_cap")]
     if not snap:
         return {}
     all_sorted = sorted(snap, key=lambda s: s["market_cap"], reverse=True)
@@ -264,7 +269,7 @@ def search_stocks(q: str) -> list[dict]:
     q = q.strip()
     if len(q) < 2:
         return []
-    pool = _listed_snapshot()
+    pool = listed_snapshot()
     if q.isdigit():
         hits = [s for s in pool if s["code"].startswith(q)]
     else:

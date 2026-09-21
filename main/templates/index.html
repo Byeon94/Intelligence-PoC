@@ -17,6 +17,7 @@
 })();
 </script>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('sector.static', filename='sector.css') }}">
 </head>
 <body>
 
@@ -172,12 +173,13 @@
             </tr>
             <tr>
               <td>전사 위젯 — 국내 업종별 시가총액 맵</td>
-              <td>업종별 대표 종목 시가총액 합산·등락률(트리맵), 업종 순위표 — 시가총액 상위 대표 종목 중심 근사치</td>
+              <td>업종별 대표 종목 시가총액 합산·등락률(트리맵), 업종 순위표(상위 10) — KRX 업종분류를
+                무료로 제공하는 곳이 없어 시가총액 상위 대표 종목을 수기로 분류해 선별</td>
               <td>공공데이터포털(data.go.kr) 금융위원회 주식시세정보 + 큐레이션(업종 구성)</td>
             </tr>
             <tr>
               <td>전사 위젯 — 업종별 밸류체인</td>
-              <td>반도체·2차전지·바이오·자동차 4대 산업 단계별 대표 기업 + 실시간 시세·등락률</td>
+              <td>반도체·2차전지·바이오·자동차 4개 대표산업 단계별 대표 기업 + 기준일 종가·등락률</td>
               <td>큐레이션(밸류체인 구성) + 공공데이터포털(data.go.kr) 금융위원회 주식시세정보</td>
             </tr>
           </tbody>
@@ -345,6 +347,7 @@ document.getElementById('home-link').addEventListener('click', function (e) {
 <script src="{{ url_for('research.static', filename='research.js') }}"></script>
 <script src="{{ url_for('credit.static', filename='credit.js') }}"></script>
 <script src="{{ url_for('lending.static', filename='lending.js') }}"></script>
+<script src="{{ url_for('sector.static', filename='sector.js') }}"></script>
 <script src="{{ url_for('static', filename='home.js') }}"></script>
 <script>
   // HomeDashboard(home.js) 로드가 끝난 뒤에 초기 화면을 적용해야

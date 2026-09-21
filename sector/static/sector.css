@@ -1,8 +1,13 @@
-/* 국내 업종별 시가총액 맵 및 밸류체인 (전사 위젯 · 투자금융부 이OO 과장 제작) */
+/* 국내 업종별 시가총액 및 밸류체인 (전사 위젯 · 투자금융부 이OO 과장 제작)
+ * 독립 페이지(/sector)와 SPA "내 위젯" 인라인 카드(main/static/home.js)가 공유한다. */
 
 .sector-intro h2 { font-size: 1.15rem; margin-bottom: 6px; }
 .sector-intro .gal-status { margin-right: 8px; }
 .sector-note { margin-top: 8px; }
+
+/* 등락 공용 색상(주가 등락 관행: 상승=빨강, 하락=파랑) */
+.st-c-up { color: var(--stock-up); }
+.st-c-down { color: var(--stock-down); }
 
 /* ── 시가총액 맵(트리맵) ── */
 .sector-treemap {
@@ -24,20 +29,22 @@
 .st-box.st-up { background: rgba(220, 38, 38, var(--st-a, .12)); }
 .st-box.st-down { background: rgba(37, 99, 235, var(--st-a, .12)); }
 .st-box.st-flat { background: var(--card); }
-.st-box .st-chg.st-c-up { color: var(--stock-up); }
-.st-box .st-chg.st-c-down { color: var(--stock-down); }
 
 /* ── 업종 순위 표 ── */
-#sector-rank-table .rate-table th, #sector-rank-table .rate-table td { text-align: right; }
-#sector-rank-table .rate-table th:first-child, #sector-rank-table .rate-table td:first-child { text-align: left; }
+.sector-rank th, .sector-rank td { text-align: right; }
+.sector-rank th:first-child, .sector-rank td:first-child { text-align: left; }
 
 /* ── 업종별 밸류체인 ── */
-.vc-chain { margin-bottom: 24px; }
-.vc-chain:last-child { margin-bottom: 0; }
-.vc-chain-title {
-  font-weight: 800; font-size: .92rem; margin-bottom: 10px;
-  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
+.sector-vc-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.sub-select-btn {
+  background: var(--card); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 999px; padding: 7px 16px; font-size: .82rem; font-weight: 700; cursor: pointer;
+  white-space: nowrap;
 }
+.sub-select-btn:hover { border-color: var(--accent); color: var(--accent); }
+.sub-select-btn.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+
+.vc-asof { font-size: .72rem; color: var(--muted); margin-bottom: 8px; }
 .vc-stages { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
 .vc-stage {
   flex: 0 0 190px; background: var(--card); border: 1px solid var(--border);
@@ -48,13 +55,19 @@
   margin-bottom: 8px; line-height: 1.3;
 }
 .vc-company {
-  display: flex; justify-content: space-between; align-items: center; gap: 6px;
-  padding: 5px 0; border-top: 1px solid var(--border2);
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 7px 0; border-top: 1px solid var(--border2);
 }
 .vc-company:first-child { border-top: none; }
-.vc-co-name { font-size: .8rem; font-weight: 600; }
-.vc-co-chg { font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.vc-co-name { font-size: .8rem; font-weight: 700; }
+.vc-co-right { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .7rem; }
+.vc-co-close { font-weight: 700; }
+.vc-co-chg { font-weight: 700; white-space: nowrap; }
 .vc-arrow {
   flex: 0 0 18px; display: flex; align-items: center; justify-content: center;
   color: var(--muted); font-size: 1.05rem;
 }
+
+/* ── SPA "내 위젯" 인라인 카드(gal-card-sector) — 다른 종목검색형 위젯처럼 카드 전체 너비 사용 ── */
+.gal-card-sector { grid-column: 1 / -1; }
+.gal-card-sector .gal-mini-subtitle:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }

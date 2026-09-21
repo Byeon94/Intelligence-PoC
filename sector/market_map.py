@@ -8,20 +8,21 @@ credit.equity.listed_snapshot()(data.go.kr 「금융위원회_주식시세정보
 from __future__ import annotations
 
 from capital._cache import ttl_cache
-from credit.equity import listed_snapshot
+from credit.equity import listed_snapshot, listed_snapshot_as_of
 
 from .constituents import SECTOR_MAP
 
 _NOTE = (
-    "공공데이터포털(data.go.kr) 금융위원회 주식시세정보 실시간 기준 · "
-    "업종별 시가총액 상위 대표 종목 중심 근사치(전 상장종목 대상 아님)"
+    "KRX 업종분류를 무료로 제공하는 곳이 없어, 업종별 시가총액 상위 대표 종목을 "
+    "수기로 분류해 선별했습니다(전 상장종목 대상 아님). "
+    "시세는 공공데이터포털(data.go.kr) 금융위원회 주식시세정보 기준."
 )
 
 
 @ttl_cache(60 * 30)
 def get_sector_map() -> dict:
     snap = {s["code"]: s for s in listed_snapshot()}
-    as_of = None
+    as_of = listed_snapshot_as_of()
     sectors = []
     for name, codes in SECTOR_MAP.items():
         items = []
@@ -58,6 +59,7 @@ def get_sector_map() -> dict:
     return {
         "sectors": sectors,
         "total_market_cap": total,
+        "as_of": as_of,
         "source": "live" if sectors else "sample",
         "note": _NOTE,
     }

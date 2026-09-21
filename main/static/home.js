@@ -37,8 +37,9 @@
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
     { id: "sector-map", externalUrl: "/sector",
-      title: "국내 업종별 시가총액 맵 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
-      desc: "업종별 시가총액 비교 맵 + 반도체·2차전지·바이오·자동차 밸류체인", status: "live" },
+      title: "국내 업종별 시가총액 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
+      desc: "국내 업종별 시가총액 맵 및 대표산업(4가지) 밸류체인. KRX 업종분류를 무료로 제공하는 곳이 " +
+        "없어 시가총액 상위 대표 종목을 수기로 분류해 선별했습니다.", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
@@ -248,22 +249,6 @@
           }).join("") + "</ul>";
         }
         el.innerHTML = html;
-      });
-    },
-    "sector-map": function (el) {
-      return get("/api/sector/map").then(function (d) {
-        var top = (d.sectors || []).slice(0, 5);
-        if (!top.length) { el.innerHTML = '<div class="gal-mini-note">데이터를 불러오지 못했습니다.</div>'; return; }
-        el.innerHTML = miniSubtitle("업종별 시가총액 상위 5") +
-          '<table class="gal-mini-table"><thead><tr><th>업종</th><th>시가총액</th><th>등락</th></tr></thead><tbody>' +
-          top.map(function (s) {
-            var chg = s.change_pct;
-            var chgUp = chg != null && chg > 0, chgDn = chg != null && chg < 0;
-            var chgTxt = chg == null ? "-" : (chgUp ? "▲" : chgDn ? "▼" : "") + Math.abs(chg).toFixed(2) + "%";
-            var cls = chgUp ? "k-up" : chgDn ? "k-dn" : "";
-            return "<tr><td>" + esc(s.sector) + "</td><td>" + jo(s.market_cap / 1e12) +
-              '</td><td class="' + cls + '">' + chgTxt + "</td></tr>";
-          }).join("") + "</tbody></table>";
       });
     },
     "it-news": function (el) {
@@ -531,6 +516,7 @@
     opts = opts || {};
     if (opts.mini && w.id === "credit-analysis") return creditAnalysisCardHTML(w);
     if (opts.mini && w.id === "credit-equity-glance") return creditGlanceCardHTML(w);
+    if (opts.mini && w.id === "sector-map") return sectorMapCardHTML(w);
     var mine = getMyWidgetIds().indexOf(w.id) >= 0;
     var miniHTML = (opts.mini && MINI_LOADERS[w.id])
       ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
@@ -767,6 +753,70 @@
     });
   }
 
+  // "국내 업종별 시가총액 및 밸류체인"(내 위젯 전용) — 별도 페이지로 이동하지 않고
+  // 카드 안에서 트리맵 + 업종 순위(상위 10) + 밸류체인(버튼 선택)을 모두 보여준다.
+  // 렌더 함수 자체는 sector/static/sector.js 가 window.SectorWidget 으로 공개한 것을 그대로 쓴다
+  // (독립 페이지 /sector 와 중복 구현하지 않기 위함).
+  function sectorMapCardHTML(w) {
+    var id = "mini-" + w.id;
+    return (
+      '<div class="gal-card gal-card-sector">' +
+        '<div class="gal-top">' +
+          '<span class="gal-emoji">' + w.emoji + "</span>" +
+          '<span class="gal-badges">' + statusBadgesHTML(w) + "</span>" +
+        "</div>" +
+        '<div class="gal-title">' + esc(w.title) + "</div>" +
+        '<div class="gal-desc">' + esc(w.desc) + "</div>" +
+        '<div class="gal-mini" id="' + id + '">' +
+          '<div class="gal-mini-subtitle">1. 업종별 시가총액 맵</div>' +
+          '<div class="sector-treemap" id="' + id + '-treemap"><span class="page-note">불러오는 중…</span></div>' +
+          '<p class="page-note sector-note" id="' + id + '-map-note"></p>' +
+          '<div class="gal-mini-subtitle">2. 업종 순위 (상위 10)</div>' +
+          '<div id="' + id + '-rank"><span class="page-note">불러오는 중…</span></div>' +
+          '<div class="gal-mini-subtitle">3. 업종별 밸류체인</div>' +
+          '<p class="page-note sector-note" id="' + id + '-chain-note"></p>' +
+          '<div class="sector-vc-buttons" id="' + id + '-vc-buttons"></div>' +
+          '<div id="' + id + '-vc-detail"><span class="page-note">불러오는 중…</span></div>' +
+        "</div>" +
+        '<div class="gal-actions">' +
+          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function initSectorMapWidget() {
+    if (!window.SectorWidget) return;
+    var id = "mini-sector-map";
+    var treemapEl = document.getElementById(id + "-treemap");
+    var rankEl = document.getElementById(id + "-rank");
+    var mapNoteEl = document.getElementById(id + "-map-note");
+    var chainNoteEl = document.getElementById(id + "-chain-note");
+    var btnBox = document.getElementById(id + "-vc-buttons");
+    var detailEl = document.getElementById(id + "-vc-detail");
+    if (!treemapEl) return;
+
+    window.SectorWidget.fetchMap().then(function (d) {
+      window.SectorWidget.renderTreemap(treemapEl, d.sectors || []);
+      window.SectorWidget.renderRankTable(rankEl, (d.sectors || []).slice(0, 10));
+      if (mapNoteEl) mapNoteEl.textContent = (d.as_of ? d.as_of + " 기준 · " : "") + (d.note || "");
+    }).catch(function (e) {
+      treemapEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+    });
+
+    window.SectorWidget.fetchChains().then(function (d) {
+      var chains = d.chains || [];
+      if (chainNoteEl) chainNoteEl.textContent = d.note || "";
+      if (!chains.length) { detailEl.innerHTML = '<div class="gal-mini-note">표시할 데이터가 없습니다.</div>'; return; }
+      window.SectorWidget.renderChainButtons(btnBox, chains, function (key) {
+        window.SectorWidget.renderValueChain(detailEl, window.SectorWidget.findChain(chains, key), d.as_of);
+      });
+      window.SectorWidget.renderValueChain(detailEl, chains[0], d.as_of);
+    }).catch(function (e) {
+      detailEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+    });
+  }
+
   function bindGalleryCardEvents(scope) {
     // data-work 가 있는(=내부 화면으로 이동하는) 버튼만 SPA 네비게이션을 건다.
     // externalUrl 카드는 <a href target=_blank> 자체로 동작하므로 별도 바인딩 불필요.
@@ -830,6 +880,7 @@
     loadMiniPreviews(items);
     if (items.some(function (w) { return w.id === "credit-analysis"; })) initCreditAnalysisSearch();
     if (items.some(function (w) { return w.id === "credit-equity-glance"; })) initCreditGlanceSearch();
+    if (items.some(function (w) { return w.id === "sector-map"; })) initSectorMapWidget();
   }
 
   // ── 홈 대시보드: 통합 브리핑 + 알림 ──
