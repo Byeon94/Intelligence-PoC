@@ -821,10 +821,11 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .gal-actions .dart-btn { padding: 6px 12px; font-size: .74rem; }
 .gal-toggle {
-  background: none; border: 1px solid var(--border); color: var(--muted);
+  background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent);
   border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
 }
-.gal-toggle.active { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+.gal-toggle:hover { filter: brightness(1.05); }
+.gal-toggle.active { color: #fff; border-color: var(--accent); background: var(--accent); }
 .gal-remove {
   background: none; border: 1px solid var(--border); color: var(--muted);
   border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
