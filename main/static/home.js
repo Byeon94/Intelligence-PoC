@@ -984,7 +984,7 @@
       }
       briefBox.innerHTML = cards || '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
       bindGoWorkButtons(briefBox);
-      renderAlerts((d.alerts || []).concat([WIDGET_RECOMMENDATION]));
+      renderAlerts([WIDGET_RECOMMENDATION].concat(d.alerts || []));
     }).catch(function (e) {
       briefBox.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
       renderAlerts([WIDGET_RECOMMENDATION]);
