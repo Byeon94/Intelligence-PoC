@@ -26,6 +26,9 @@
   // ── 전사 갤러리 카탈로그(= 업무별 화면의 주요 섹션 단위) ──
   // sub: 자본시장처럼 내부에 세부탭이 있는 화면일 때, 그 세부탭까지 바로 이동시키기 위한 힌트.
   var WIDGET_CATALOG = [
+    { id: "sector-map", externalUrl: "/sector",
+      title: "국내 업종별 시가총액 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
+      desc: "국내 업종별 시가총액 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
       title: "오늘의 증권사 리포트", emoji: "📑", creditBadge: "기획부 유OO 과장 제작",
       desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
@@ -36,9 +39,6 @@
     { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
-    { id: "sector-map", externalUrl: "/sector",
-      title: "국내 업종별 시가총액 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
-      desc: "국내 업종별 시가총액 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "capital-liquidity", tab: "capital", sub: "liquidity", title: "증시자금·유동성", emoji: "📈",
       desc: "투자자예탁금·신용공여·CMA 잔고 및 추이", status: "live" },
     { id: "capital-cma", tab: "capital", sub: "cma", title: "CMA·단기수신", emoji: "💰",
