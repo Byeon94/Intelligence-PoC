@@ -12,8 +12,9 @@ class Settings:
     # 비어 있으면 각 데이터 모듈이 샘플(mock) 데이터로 응답한다.
     data_go_kr_api_key: str | None
 
-    # Google AI Studio (Gemini) — 각 탭 AI 브리핑용. 429 시 순서대로 폴백.
-    # GEMINI_API_KEY, GEMINI_API_KEY_2 … _5 를 순서대로 읽어 중복 제거한 튜플.
+    # Google AI Studio (Gemini) — 각 탭 AI 브리핑용.
+    # GEMINI_API_KEY 하나만 사용한다(정액제로 사용량 제한 없음 — _2.._5 는 무효 키라
+    # 폴백 시도 자체가 오류 로그만 쌓아 제거함, 2026-09-22).
     gemini_api_keys: tuple[str, ...]
     gemini_model: str
     policy_max_gemini_calls_per_day: int
@@ -47,13 +48,10 @@ def _int(name: str, default: int) -> int:
 
 
 def _gemini_keys() -> tuple[str, ...]:
-    names = ["GEMINI_API_KEY"] + [f"GEMINI_API_KEY_{i}" for i in range(2, 6)]
-    out: list[str] = []
-    for n in names:
-        v = _env(n)
-        if v and v not in out:   # 같은 값을 두 슬롯에 넣어도 중복 제거
-            out.append(v)
-    return tuple(out)
+    # GEMINI_API_KEY 하나만 사용(정액제, 무제한). GEMINI_API_KEY_2.._5 는 더 이상 읽지
+    # 않는다 — 무효 키로 남아 있으면 매 호출마다 실패 폴백 시도가 로그만 채운다.
+    v = _env("GEMINI_API_KEY")
+    return (v,) if v else ()
 
 
 def get_settings() -> Settings:
