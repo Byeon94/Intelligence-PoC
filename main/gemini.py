@@ -1,22 +1,27 @@
 """Gemini(google-genai) 호출 공용 헬퍼.
 
-- GEMINI_API_KEY, _2 .. _5 를 순서대로 시도한다(중복 제거는 config 에서).
-- '이 키의 문제'(429 쿼터·5xx 일시장애·키 무효)면 다음 키로 폴백하고,
-  요청 자체가 잘못된 경우(400 INVALID_ARGUMENT 등)는 즉시 실패시킨다.
+- GEMINI_API_KEY 하나만 사용한다(main/config.py 참고).
 - Gemini 3.x 는 thinking_budget 을 받지 않으므로(400) 모델별로 thinking 설정을 분기한다.
+- 앱 전체(모든 탭 합산) 하루 실호출 수를 GEMINI_MAX_CALLS_PER_DAY(기본 30)로 제한한다
+  — 비용 통제용. 개별 탭의 gemini_attempts 재시도 상한(POLICY_MAX_GEMINI_CALLS_PER_DAY)은
+  탭 하나가 하루에 몇 번까지 "재시도"하는지를 정할 뿐, 앱 전체 합산 상한은 아니었다.
+  업종 분류 배치(sector/classify.py)처럼 이미 자체적으로 월 1회로 제한된 대량 호출은
+  count_against_daily_budget=False 로 이 예산에서 제외한다.
 
 정책·리서치·발행시장·CMA 탭이 모두 이 함수를 쓴다. 여기만 고치면 된다.
 """
 from __future__ import annotations
 
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from main.config import get_settings
 
 logger = logging.getLogger(__name__)
+KST = ZoneInfo("Asia/Seoul")
 
-# 다음 키로 폴백할 오류 코드(할당량·일시 장애·프로젝트 권한).
-_RETRY_CODES = {403, 429, 500, 503}
+_USAGE_TABLE = "gemini_usage_snapshots"
 
 
 def _key_problem(exc: Exception) -> bool:
@@ -32,6 +37,26 @@ def _thinking_config(model: str) -> dict:
     return {"thinking_budget": 0}
 
 
+def _budget_ok(cap: int) -> bool:
+    """오늘 앱 전체 Gemini 실호출 수가 cap 미만이면 카운트를 늘리고 True.
+
+    Supabase 스냅샷(날짜별 카운터)로 워커·재배포 사이에도 유지되게 한다. 약간의
+    동시성 레이스는 있을 수 있지만(정확한 과금 시스템이 아닌 소프트한 비용 캡이라
+    허용), 대략적인 하루 총량 제어에는 충분하다.
+    """
+    if cap <= 0:
+        return True
+    from main.snapshot_store import get_snapshot, save_snapshot
+
+    today = datetime.now(KST).date().isoformat()
+    snap = get_snapshot(_USAGE_TABLE, today) or {"count": 0}
+    if snap.get("count", 0) >= cap:
+        return False
+    snap["count"] = snap.get("count", 0) + 1
+    save_snapshot(_USAGE_TABLE, today, snap)
+    return True
+
+
 def generate_text(
     contents: str,
     *,
@@ -39,8 +64,9 @@ def generate_text(
     max_output_tokens: int = 1024,
     thinking: bool = True,
     tools: list | None = None,
+    count_against_daily_budget: bool = True,
 ) -> str:
-    """여러 키를 순서대로 시도해 첫 성공 응답의 텍스트를 반환. 모두 실패하면 raise."""
+    """Gemini 호출 1회. 앱 전체 일일 예산을 넘으면 호출 전에 실패시킨다."""
     from google.genai import Client
     from google.genai import errors as genai_errors
 
@@ -48,6 +74,9 @@ def generate_text(
     keys = list(s.gemini_api_keys)
     if not keys:
         raise RuntimeError("GEMINI_API_KEY 미설정")
+
+    if count_against_daily_budget and not _budget_ok(s.gemini_max_calls_per_day):
+        raise RuntimeError(f"Gemini 일일 호출 한도({s.gemini_max_calls_per_day}회)에 도달했습니다.")
 
     config: dict = {"max_output_tokens": max_output_tokens}
     if system_instruction:
@@ -71,7 +100,7 @@ def generate_text(
         except genai_errors.APIError as exc:
             last_err = exc
             code = getattr(exc, "code", None)
-            if code in _RETRY_CODES or code is None or _key_problem(exc):
+            if code in {403, 429, 500, 503} or code is None or _key_problem(exc):
                 logger.warning("Gemini 키 #%d 실패(code=%s) → 다음 키 시도: %s", i + 1, code, exc)
                 continue
             raise

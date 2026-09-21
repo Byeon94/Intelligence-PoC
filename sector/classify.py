@@ -51,7 +51,12 @@ _PROMPT_TMPL = (
 def _classify_batch(stocks: list[dict]) -> dict[str, str]:
     companies_txt = "\n".join(f"{s['code']} {s['name']}" for s in stocks)
     prompt = _PROMPT_TMPL.format(companies=companies_txt)
-    text = generate_text(prompt, max_output_tokens=_MAX_OUTPUT_TOKENS, thinking=False)
+    # 앱 전체 일일 Gemini 예산(main/gemini.py)에서 제외 — 이 배치는 이미 자체적으로
+    # _REFRESH_DAYS(약 30일)에 한 번만 도는 대량 호출이라 별도 상한이 있다.
+    text = generate_text(
+        prompt, max_output_tokens=_MAX_OUTPUT_TOKENS, thinking=False,
+        count_against_daily_budget=False,
+    )
     a, b = text.find("["), text.rfind("]")
     if a < 0 or b < 0:
         raise ValueError("JSON 배열 응답 없음")

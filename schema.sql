@@ -103,6 +103,14 @@ create table if not exists sector_classification_snapshots (
     created_at timestamptz not null default now()
 );
 
+-- 앱 전체 Gemini 하루 실호출 수 카운터(비용 통제용, main/gemini.py). 날짜별 1행,
+-- payload = {"count": N}.
+create table if not exists gemini_usage_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
 -- 서버가 publishable(anon) 키로 접속한다면 아래 RLS 정책을 추가해야 읽기/쓰기가 됩니다.
 -- (service_role / sb_secret_ 키를 쓰면 RLS를 우회하므로 불필요합니다.)
 -- alter table policy_snapshots  enable row level security;
