@@ -8,19 +8,14 @@ get_leads/get_inherit_news)과 ttl_cache 된 자본시장 유동성 요약을 �
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Callable, TypeVar
-from zoneinfo import ZoneInfo
 
 from capital.liquidity import get_liquidity_summary
-from credit.esop_news import get_esop_news
-from credit.inherit_news import get_inherit_news
-from credit.leads import get_leads
+from credit.today_summary import get_today_leads_summary
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
 
 logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
 
 T = TypeVar("T")
 
@@ -88,32 +83,16 @@ def _policy_org_alerts(policy: dict | None) -> list[dict]:
 
 
 def _credit_leads_alert() -> dict | None:
-    """여신·심사 메인 화면의 "오늘 신규 리드"와 반드시 같은 기준으로 계산한다
-    (credit/static/credit.js 의 renderTopKpis/refDateInfo 와 동일한 로직 — 한쪽만
-    고치면 두 화면 숫자가 어긋나므로 함께 유지).
-
-    DART 공시는 비영업일에 올라오지 않으므로 '공시 데이터에 실제로 찍힌 최신
-    날짜'가 곧 전 영업일 기준이 되고(dart_ref_date), 뉴스는 주말에도 나올 수
-    있어 조회 시점의 실제 날짜(news_ref_date)를 쓴다 — 이 둘을 하나의 날짜로
-    합쳐서 세면(예전 방식) 비영업일에는 뉴스만 있는 오늘 날짜가 기준이 돼버려
-    전 영업일의 DART 공시 건수가 통째로 빠지는 문제가 있었다."""
-    leads = _safe("여신·심사 리드", get_leads)
-    if not leads or leads.get("pending"):
+    """여신·심사 탭의 "오늘 신규 리드"와 항상 같은 숫자를 보여준다 —
+    credit.today_summary.get_today_leads_summary() 하나로 계산을 단일화해
+    화면마다(홈/여신·심사 탭) 다른 건수가 표시되던 문제를 막는다."""
+    summary = _safe("여신·심사 오늘 신규 리드", get_today_leads_summary)
+    if not summary or summary.get("pending"):
         return None
-    news = _safe("여신·심사 상속증여 뉴스", get_inherit_news) or {}
-    esop_news = _safe("여신·심사 우리사주 뉴스", get_esop_news) or {}
-
-    dart_dates = [x.get("date") for x in (leads.get("collateral") or []) + (leads.get("esop") or []) if x.get("date")]
-    news_dates = [n.get("published") for n in (news.get("items") or []) + (esop_news.get("items") or []) if n.get("published")]
-    if not dart_dates and not news_dates:
-        return None
-
-    news_ref_date = datetime.now(KST).date().isoformat()
-    dart_ref_date = max(dart_dates) if dart_dates else news_ref_date
-    count = sum(1 for d in dart_dates if d == dart_ref_date) + sum(1 for d in news_dates if d == news_ref_date)
+    count = summary.get("count") or 0
     if count == 0:
         return None
-    ref_date = max(dart_ref_date, news_ref_date)
+    ref_date = max(summary["dart_ref_date"], summary["news_ref_date"])
     return {
         "level": "info",
         "title": f"여신·심사 신규 리드 {count}건",

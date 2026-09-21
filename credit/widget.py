@@ -8,6 +8,7 @@ from .inherit_news import get_inherit_news
 from .lead_briefing import get_lead_briefings
 from .leads import get_leads
 from .reports import get_market_report_digest, get_reports
+from .today_summary import get_today_leads_summary
 
 credit_bp = Blueprint(
     "credit",
@@ -93,6 +94,14 @@ def leads():
     받지 않고(쿼리로도 재수집을 못 트리거하게) 저장된 스냅샷만 읽는다.
     """
     return _safe(lambda: get_leads(), "증권담보대출·우리사주 리드")
+
+
+@credit_bp.route("/api/credit/today-summary")
+def today_summary():
+    """여신·심사 전체 탭의 "오늘 신규 리드" — 홈 대시보드 알림과 반드시 같은
+    계산(credit.today_summary.get_today_leads_summary)을 써서 화면마다 건수가
+    어긋나지 않게 한다."""
+    return _safe(lambda: get_today_leads_summary(), "오늘 신규 리드")
 
 
 @credit_bp.route("/api/credit/inherit-news")

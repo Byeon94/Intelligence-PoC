@@ -7,7 +7,12 @@
                 브리핑 카드는 홈 대시보드의 "오늘의 AI 통합 브리핑"과 같은 디자인/버튼 사용) +
                 기준일에 실제로 찍힌 공시·뉴스만 모은 "오늘 신규 리드" 목록
      증권담보대출 — DART 공시(상속·증여)와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계
-     우리사주    — 유상증자·IPO DART 공시와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계 */
+     우리사주    — 유상증자·IPO DART 공시와 관련 뉴스를 각각 최대 5개씩 보여주고, 더보기로 전체 펼침 + 월별 집계
+
+   "오늘 신규 리드"의 기준일·건수·목록은 이 파일에서 계산하지 않고 /api/credit/today-summary
+   (credit/today_summary.py) 하나가 정한다 — 홈 대시보드 알림(main/home.py)도 같은 함수를
+   쓴다. 예전엔 이 화면(JS)과 홈(Python)이 각자 "오늘"을 따로 계산하다가 화면마다 다른
+   건수가 표시되는 문제가 있었다. */
 (function () {
   "use strict";
 
@@ -37,6 +42,7 @@
   var leadsState = { data: null };
   var newsState = { items: null };
   var esopNewsState = { items: null };
+  var todayState = { data: null };
   var briefState = { data: null };
   var CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
   var LIST_LIMIT = 5;
@@ -91,29 +97,17 @@
     return y + "-" + m + "-" + day;
   }
 
-  // DART 공시는 비영업일에 올라오지 않으므로 "공시 데이터에 실제로 찍힌 최신 날짜"가
-  // 곧 전 영업일 기준이 되고, 뉴스는 주말에도 나올 수 있으므로 조회 시점의 실제 날짜를 쓴다.
-  function refDateInfo() {
-    var d = leadsState.data;
-    if (!d) return null;
-    var dartDates = (d.collateral || []).map(function (x) { return x.date; })
-      .concat((d.esop || []).map(function (x) { return x.date; }))
-      .filter(Boolean);
-    var newsRefDate = localISODate();
-    var dartRefDate = dartDates.length
-      ? dartDates.reduce(function (a, b) { return b > a ? b : a; })
-      : newsRefDate;
-    return { dartRefDate: dartRefDate, newsRefDate: newsRefDate, refMonth: dartRefDate.slice(0, 7) };
-  }
-
-  /* ── 전체: 요약 KPI 4개 ── */
+  /* ── 전체: 요약 KPI 4개 ── "오늘"이 언제인지(dart_ref_date/news_ref_date)와
+     오늘 신규 리드 건수·목록은 모두 /api/credit/today-summary 하나가 정한다.
+     여기서 다시 계산하지 않는다 — 예전에 이 화면(JS)과 홈 대시보드(Python)가
+     각자 따로 "오늘"을 계산하다가 서로 다른 건수를 보여주는 문제가 있었다. */
   function renderTopKpis() {
     var d = leadsState.data;
-    if (!d || d.pending || newsState.items === null || esopNewsState.items === null) return;   // 모든 소스가 응답한 뒤에 계산
-    var ref = refDateInfo();
-    var dartRefDate = ref ? ref.dartRefDate : localISODate();
-    var newsRefDate = ref ? ref.newsRefDate : localISODate();
-    var refMonth = ref ? ref.refMonth : localISODate().slice(0, 7);
+    var t = todayState.data;
+    if (!d || d.pending || newsState.items === null || esopNewsState.items === null || !t || t.pending) return;
+    var dartRefDate = t.dart_ref_date;
+    var newsRefDate = t.news_ref_date;
+    var refMonth = t.ref_month;
 
     document.getElementById("leads-asof").textContent =
       "공시 " + dartRefDate + " · 뉴스 " + newsRefDate + " 기준 (공시는 비영업일이면 자동으로 전 영업일, 뉴스는 조회일 기준)";
@@ -126,10 +120,9 @@
     weekCutoff.setDate(weekCutoff.getDate() - 6);
     var weekCutStr = localISODate(weekCutoff);
 
-    var todayCount = (d.collateral || []).concat(d.esop || []).filter(function (x) { return x.date === dartRefDate; }).length
-      + newsItems.concat(esopNewsState.items || []).filter(function (n) { return n.published === newsRefDate; }).length;
+    var todayCount = t.count;
     var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= newsRefDate; }).length;
-    renderTodayLeadsList(dartRefDate, newsRefDate);
+    renderTodayLeadsList();
 
     var inMonth = function (x) { return (x.date || "").slice(0, 7) === refMonth; };
     var newsInMonth = function (n) { return (n.published || "").slice(0, 7) === refMonth; };
@@ -327,19 +320,20 @@
     renderEsopNewsList();
   }
 
-  /* ── 전체: AI 브리핑 하단에 "오늘 신규 리드" 목록 — 공시는 dartRefDate(비영업일이면
-     전 영업일), 뉴스는 newsRefDate(조회 시점의 실제 날짜) 기준으로 각각 필터링한다. ── */
-  function renderTodayLeadsList(dartRefDate, newsRefDate) {
-    var d = leadsState.data;
-    if (!d) return;
+  /* ── 전체: AI 브리핑 하단에 "오늘 신규 리드" 목록 — /api/credit/today-summary 가
+     이미 공시는 dart_ref_date, 뉴스는 news_ref_date 기준으로 걸러서 내려주므로
+     여기서는 받은 걸 그대로 4개 소스 순서대로 나열만 한다. ── */
+  function renderTodayLeadsList() {
+    var t = todayState.data;
+    if (!t || t.pending) return;
     var rows = [];
-    (d.collateral || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(collateralRowHTML(it, true)); });
-    (d.esop || []).forEach(function (it) { if (it.date === dartRefDate) rows.push(esopRowHTML(it)); });
-    (newsState.items || []).forEach(function (n) { if (n.published === newsRefDate) rows.push(newsRowHTML(n)); });
-    (esopNewsState.items || []).forEach(function (n) { if (n.published === newsRefDate) rows.push(newsRowHTML(n)); });
+    (t.collateral || []).forEach(function (it) { rows.push(collateralRowHTML(it, true)); });
+    (t.esop || []).forEach(function (it) { rows.push(esopRowHTML(it)); });
+    (t.inherit_news || []).forEach(function (n) { rows.push(newsRowHTML(n)); });
+    (t.esop_news || []).forEach(function (n) { rows.push(newsRowHTML(n)); });
     renderExpandableList("leads-today-list", rows, function (html) { return html; },
-      "공시 " + dartRefDate + " · 뉴스 " + newsRefDate + " 기준 신규 공시·뉴스가 없습니다.",
-      function () { renderTodayLeadsList(dartRefDate, newsRefDate); });
+      "공시 " + t.dart_ref_date + " · 뉴스 " + t.news_ref_date + " 기준 신규 공시·뉴스가 없습니다.",
+      renderTodayLeadsList);
   }
 
   var leadsLoaded = false;
@@ -403,16 +397,32 @@
     });
   }
 
+  function loadTodaySummary() {
+    get("/api/credit/today-summary").then(function (d) {
+      todayState.data = d;
+      renderTopKpis();
+    }).catch(function () {
+      // 실패해도 KPI 전체가 멈추지 않게: 오늘 신규 리드 0건으로 처리(월은 로컬 날짜로 대체).
+      var today = localISODate();
+      todayState.data = {
+        pending: false, dart_ref_date: today, news_ref_date: today, ref_month: today.slice(0, 7),
+        count: 0, collateral: [], esop: [], inherit_news: [], esop_news: [],
+      };
+      renderTopKpis();
+    });
+  }
+
   function creditTabVisible() {
     var p = document.querySelector('.tab-panel[data-panel="credit"]');
     return p && !p.hidden;
   }
-  var newsLoaded = false, esopNewsLoaded = false, briefLoaded = false;
+  var newsLoaded = false, esopNewsLoaded = false, todayLoaded = false, briefLoaded = false;
   function maybeLoadLeads() {
     if (!creditTabVisible()) return;
     loadLeads();
     if (!newsLoaded) { newsLoaded = true; loadInheritNews(); }
     if (!esopNewsLoaded) { esopNewsLoaded = true; loadEsopNews(); }
+    if (!todayLoaded) { todayLoaded = true; loadTodaySummary(); }
     if (!briefLoaded) { briefLoaded = true; loadBriefings(); }
   }
 
