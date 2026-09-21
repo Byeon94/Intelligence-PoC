@@ -91,10 +91,10 @@
       div.style.top = (r.y / TH) * 100 + "%";
       div.style.width = (r.w / TW) * 100 + "%";
       div.style.height = (r.h / TH) * 100 + "%";
-      if (r.w > 55 && r.h > 34) {
+      if (r.w > 46 && r.h > 26) {
         div.innerHTML =
           '<div class="st-name">' + esc(s.sector) + "</div>" +
-          '<div class="st-sub">' + jo(s.market_cap) + "조 · " + esc(s.top_name || "") + "</div>" +
+          '<div class="st-sub">' + jo(s.market_cap) + "조</div>" +
           (chg != null ? '<div class="st-chg ' + chgClass(chg) + '">' + chgText(chg) + "</div>" : "");
       }
       div.title = s.sector + " — 시가총액 " + jo(s.market_cap) + "조원" + (chg != null ? " · 등락 " + chg.toFixed(2) + "%" : "");
