@@ -926,10 +926,13 @@
   }
 
   // 알림 상세문구(detail)에서 날짜만 뽑아 "제목 (YYYY-MM-DD 기준)" 한 줄로 압축한다
-  // (부연설명 줄은 없앰 — 요청에 따라).
+  // (부연설명 줄은 없앰 — 요청에 따라). 끝에 붙는 "(...)" 부분은 본문보다 작고
+  // 덜 굵게 보이도록 별도 span으로 감싼다.
   function alertLineTitle(a) {
     var m = a.detail ? /(\d{4}-\d{2}-\d{2})/.exec(a.detail) : null;
-    return esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
+    var full = esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
+    var pm = /^(.*?)(\s*\([^()]*\))$/.exec(full);
+    return pm ? pm[1] + '<span class="al-title-sub">' + pm[2] + "</span>" : full;
   }
 
   function renderAlerts(alerts) {

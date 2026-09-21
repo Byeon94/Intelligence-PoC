@@ -670,6 +670,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .home-alert.al-warn { background: rgba(220,38,38,.08); border-color: rgba(220,38,38,.35); }
 .home-alert .al-body { flex: 1; min-width: 0; }
 .home-alert .al-title { font-weight: 800; font-size: .82rem; }
+.home-alert .al-title-sub { font-weight: 500; font-size: .84em; color: var(--muted); }
 .home-alert .al-detail { font-size: .74rem; color: var(--muted); }
 .home-alert .al-go {
   flex: 0 0 auto; background: none; border: 1px solid var(--border); color: var(--fg);
