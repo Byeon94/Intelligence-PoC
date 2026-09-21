@@ -95,7 +95,7 @@ def _credit_leads_alert() -> dict | None:
     ref_date = max(summary["dart_ref_date"], summary["news_ref_date"])
     return {
         "level": "info",
-        "title": f"여신·심사 신규 리드 {count}건",
+        "title": f"여신·심사 신규 공시/뉴스 {count}건",
         "detail": f"{ref_date} 기준 · 상속·증여/우리사주 관련 신규 공시·뉴스",
         "tab": "credit",
     }
