@@ -27,7 +27,6 @@ from policy.briefing import get_policy_digest
 from policy.widget import policy_bp
 from research.curate import get_research_digest
 from research.widget import research_bp
-from sector.classify import refresh_sector_classification
 from sector.widget import sector_bp
 
 logger = logging.getLogger(__name__)
@@ -110,12 +109,10 @@ def _run_warmup() -> None:
             get_lead_briefings(force=True)   # 위 스냅샷들을 방금 새로 만들었으니 브리핑도 같이 갱신
         except Exception:  # noqa: BLE001
             logger.exception("여신·심사 리드 AI 브리핑 워밍업 실패")
-        try:
-            # 대부분의 날은 저장된 분류가 30일 이내라 그냥 읽고 끝남(비용 큰 전종목
-            # 재분류는 sector/classify.py 의 _REFRESH_DAYS 주기로만 실제 실행됨).
-            refresh_sector_classification()
-        except Exception:  # noqa: BLE001
-            logger.exception("업종별 시가총액 맵 — 전종목 업종 분류 워밍업 실패")
+        # 업종별 시가총액 맵의 전종목 재분류(sector.classify.refresh_sector_classification)는
+        # 일부러 새벽 배치에 넣지 않는다 — API 사용량을 최소화하기 위해 사용자가 명시적으로
+        # 요청할 때만(수동으로) 돌린다. 화면은 항상 sector.classify.get_cached_classification()
+        # 로 저장된 분류만 읽으므로 이 배치가 없어도 정상 동작한다.
     finally:
         _warmup_lock.release()
 

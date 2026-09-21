@@ -1,14 +1,14 @@
-"""전 상장종목 업종 분류(Gemini) — 배치 전용.
+"""전 상장종목 업종 분류(Gemini) — 수동 실행 전용(자동 배치 아님).
 
 KRX가 전 종목 업종분류를 무료로 제공하지 않아, Gemini에 종목코드·종목명을 배치로 보내
-SECTOR_TAXONOMY 중 하나로 분류시킨다. 업종 구성은 거의 바뀌지 않으므로 매일이 아니라
-_REFRESH_DAYS 이상 지났을 때만 재분류하고, 그 사이엔 저장된 스냅샷을 그대로 쓴다.
+SECTOR_TAXONOMY 중 하나로 분류시킨다. 업종 구성은 거의 바뀌지 않으므로 _REFRESH_DAYS
+이상 지났을 때만 재분류하면 되는 로직이지만, API 사용량을 최소화하기 위해
+/internal/warmup 새벽 배치에는 일부러 넣지 않았다 — refresh_sector_classification()은
+사용자가 명시적으로 요청했을 때만(수동으로) 실행한다.
 
-호출 비용(순차 Gemini 배치 호출 ~20회, 수 분 소요) 때문에 실제 재분류는 반드시
-refresh_sector_classification()으로만 하고, 이는 /internal/warmup 배치에서만 부른다.
-화면(get_sector_map 등)은 get_cached_classification()으로 저장된 결과만 읽어, 첫 방문
-사용자 요청이 대기 중 Gemini 배치를 트리거하는 일이 없게 한다(credit/leads.py 와 동일한
-"배치 전용" 원칙).
+화면(get_sector_map 등)은 항상 get_cached_classification()으로 저장된 결과만 읽어,
+이 모듈을 아예 건드리지 않아도(=한 번도 재분류하지 않아도) 정상 동작한다
+(credit/leads.py 와 동일한 "화면은 절대 직접 트리거하지 않는다" 원칙).
 """
 from __future__ import annotations
 
