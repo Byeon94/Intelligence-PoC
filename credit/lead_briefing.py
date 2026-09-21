@@ -14,6 +14,7 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from main.config import get_settings
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, save_snapshot
 
@@ -114,49 +115,63 @@ def _bullets_from(text: str) -> list[str]:
     return out[:3]
 
 
-def _generate() -> dict:
+_SCHEMA_V = 2  # v2: 브리핑 2종(담보대출/우리사주) 각각 gemini_attempts 재시도 상한 추가.
+                # 이전엔 단일 시도만 하고 실패하면 그날 내내 빈 브리핑으로 굳었다
+                # (research/policy 등 다른 AI 브리핑과 동일한 문제, 2026-09-22 확인).
+
+
+def _maybe_generate(payload: dict, leads: dict, news: list[dict], force: bool = False) -> dict:
+    """브리핑이 비어 있으면(또는 force=True 면) 항목별로 일일 한도 내에서 한 번 더 시도.
+
+    담보대출·우리사주 브리핑을 독립적으로 재시도한다(한쪽만 실패했을 때 성공한
+    쪽까지 다시 만들지 않도록).
+    """
+    s = get_settings()
+    cap = s.policy_max_gemini_calls_per_day
+    attempts = payload.setdefault("gemini_attempts", {"collateral": 0, "esop": 0})
+
+    if s.gemini_api_keys and (force or not payload.get("collateral_briefing")) and attempts["collateral"] < cap:
+        attempts["collateral"] += 1
+        try:
+            text = generate_text(
+                _collateral_prompt(leads.get("collateral", []), news),
+                system_instruction=_COLLATERAL_SYSTEM_PROMPT, max_output_tokens=1024,
+            )
+            payload["collateral_briefing"] = _bullets_from(text)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("증권담보대출 리드 AI 브리핑 생성 실패(%d/%d회): %s", attempts["collateral"], cap, exc)
+
+    if s.gemini_api_keys and (force or not payload.get("esop_briefing")) and attempts["esop"] < cap:
+        attempts["esop"] += 1
+        try:
+            text = generate_text(
+                _esop_prompt(leads.get("esop", []), leads.get("esop_monthly", [])),
+                system_instruction=_ESOP_SYSTEM_PROMPT, max_output_tokens=1024,
+            )
+            payload["esop_briefing"] = _bullets_from(text)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("우리사주 리드 AI 브리핑 생성 실패(%d/%d회): %s", attempts["esop"], cap, exc)
+
+    return payload
+
+
+def get_lead_briefings(force: bool = False) -> dict:
+    today = datetime.now(KST).date().isoformat()
+    snap = get_snapshot(_TABLE, today)
+    if snap is not None and snap.get("v") != _SCHEMA_V:
+        snap = None
+    if snap is None:
+        snap = {"v": _SCHEMA_V, "collateral_briefing": [], "esop_briefing": []}
+
     leads = get_leads()
     try:
         news = get_inherit_news().get("items", [])
     except Exception:  # noqa: BLE001
         news = []
 
-    collateral = leads.get("collateral", [])
-    esop = leads.get("esop", [])
-    monthly = leads.get("esop_monthly", [])
-
-    result = {"collateral_briefing": [], "esop_briefing": []}
-    try:
-        text = generate_text(
-            _collateral_prompt(collateral, news),
-            system_instruction=_COLLATERAL_SYSTEM_PROMPT, max_output_tokens=1024,
-        )
-        result["collateral_briefing"] = _bullets_from(text)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("증권담보대출 리드 AI 브리핑 생성 실패: %s", exc)
-
-    try:
-        text = generate_text(
-            _esop_prompt(esop, monthly),
-            system_instruction=_ESOP_SYSTEM_PROMPT, max_output_tokens=1024,
-        )
-        result["esop_briefing"] = _bullets_from(text)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("우리사주 리드 AI 브리핑 생성 실패: %s", exc)
-
-    return result
-
-
-_SCHEMA_V = 1
-
-
-def get_lead_briefings(force: bool = False) -> dict:
-    today = datetime.now(KST).date().isoformat()
-    if not force:
-        snap = get_snapshot(_TABLE, today)
-        if snap is not None and snap.get("v") == _SCHEMA_V:
-            return snap
-    payload = _generate()
-    payload["v"] = _SCHEMA_V
-    save_snapshot(_TABLE, today, payload)
-    return payload
+    before = (snap.get("collateral_briefing"), snap.get("esop_briefing"), dict(snap.get("gemini_attempts") or {}))
+    snap = _maybe_generate(snap, leads, news, force=force)
+    after = (snap.get("collateral_briefing"), snap.get("esop_briefing"), dict(snap.get("gemini_attempts") or {}))
+    if after != before:
+        save_snapshot(_TABLE, today, snap)
+    return snap

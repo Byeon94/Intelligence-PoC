@@ -147,19 +147,16 @@ def _collect_candidates(limit: int = 60) -> list[dict]:
 
 
 def _filter_with_ai(candidates: list[dict]) -> list[dict]:
+    """Gemini 호출 자체가 실패하면(네트워크·쿼터 등) 예외를 그대로 올린다 — 호출자가
+    "전부 무관 판정"과 "호출 실패"를 구분해 실패일 때만 재시도하도록 하기 위함."""
     if not candidates:
         return []
     listing = "\n".join(f"{i + 1}. {c['title']}" for i, c in enumerate(candidates))
-    try:
-        resp = generate_text(
-            f"뉴스 제목 목록:\n{listing}",
-            system_instruction=_SYSTEM_PROMPT,
-            max_output_tokens=1024,
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("우리사주 뉴스 AI 판단 실패: %s", exc)
-        return []
-
+    resp = generate_text(
+        f"뉴스 제목 목록:\n{listing}",
+        system_instruction=_SYSTEM_PROMPT,
+        max_output_tokens=1024,
+    )
     verdicts: dict[int, str] = {}
     for line in resp.splitlines():
         m = re.match(r"\s*(\d+)\.\s*(.+)", line)
@@ -175,17 +172,48 @@ def _filter_with_ai(candidates: list[dict]) -> list[dict]:
     return out[:15]
 
 
-_SCHEMA_V = 2  # v2: leads.py 최근 종목명으로 종목별 검색 추가(일반 키워드만으로는 대형주만 잡히는 문제 보완)
+_SCHEMA_V = 3  # v3: 후보 뉴스와 AI 판단을 분리 저장 + gemini_attempts 재시도 상한 추가
+                # (inherit_news.py 와 동일 원칙 — AI 호출 실패로 빈 결과가 하루 종일 굳는 문제 방지)
+
+
+def _maybe_filter(payload: dict, force: bool = False) -> dict:
+    """AI 판단이 비어 있으면(또는 force=True 면) 일일 한도 내에서 한 번 더 시도.
+
+    "전부 무관 판정"과 "Gemini 호출 자체 실패"를 구분해, 호출 실패일 때만 다음 요청에서
+    재시도한다(policy/briefing.py 의 _maybe_add_briefing 과 동일한 원칙).
+    """
+    s = get_settings()
+    has = bool(payload.get("items"))
+    cap = s.policy_max_gemini_calls_per_day
+
+    if has and not force:
+        return payload
+    if not s.gemini_api_keys:
+        return payload
+    if payload.get("gemini_attempts", 0) >= cap:
+        return payload
+
+    payload["gemini_attempts"] = payload.get("gemini_attempts", 0) + 1
+    try:
+        payload["items"] = _filter_with_ai(payload.get("candidates") or [])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("우리사주 뉴스 AI 판단 실패(%d/%d회): %s", payload["gemini_attempts"], cap, exc)
+    return payload
 
 
 def get_esop_news(force: bool = False) -> dict:
     today = datetime.now(KST).date().isoformat()
-    if not force:
-        snap = get_snapshot(_TABLE, today)
-        if snap is not None and snap.get("v") == _SCHEMA_V:
-            return snap
-    candidates = _collect_candidates()
-    items = _filter_with_ai(candidates)
-    payload = {"items": items, "v": _SCHEMA_V}
-    save_snapshot(_TABLE, today, payload)
-    return payload
+    snap = get_snapshot(_TABLE, today)
+    if snap is not None and snap.get("v") != _SCHEMA_V:
+        snap = None
+
+    if snap is None:
+        snap = {"v": _SCHEMA_V, "candidates": _collect_candidates(), "items": [], "gemini_attempts": 0}
+        save_snapshot(_TABLE, today, snap)  # 후보 목록 먼저 저장(재수집 방지, AI 판단은 아래에서)
+
+    before = (bool(snap.get("items")), snap.get("gemini_attempts", 0))
+    snap = _maybe_filter(snap, force=force)
+    if (bool(snap.get("items")), snap.get("gemini_attempts", 0)) != before:
+        save_snapshot(_TABLE, today, snap)
+
+    return {"items": snap.get("items") or [], "v": _SCHEMA_V}
