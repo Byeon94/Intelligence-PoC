@@ -22,14 +22,14 @@
 }
 .st-box {
   position: absolute; box-sizing: border-box; border: 1px solid var(--card2);
-  padding: 5px 7px; overflow: hidden;
+  padding: 4px 5px; overflow: hidden;
   display: flex; flex-direction: column; justify-content: flex-end;
 }
 /* 박스가 좁아도 줄바꿈으로 위쪽이 잘려 보이지 않도록 한 줄 +말줄임표로 처리 */
 .st-box .st-name, .st-box .st-sub, .st-box .st-chg {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.st-box .st-name { font-weight: 800; font-size: .76rem; line-height: 1.25; color: var(--fg); }
+.st-box .st-name { font-weight: 800; font-size: .72rem; line-height: 1.25; color: var(--fg); }
 .st-box .st-sub { font-size: .68rem; color: var(--fg); opacity: .8; margin-top: 1px; }
 .st-box .st-chg { font-size: .7rem; font-weight: 800; margin-top: 1px; }
 .st-box.st-up { background: rgba(220, 38, 38, var(--st-a, .12)); }

@@ -71,18 +71,41 @@
   }
 
   var TW = 1000, TH = 600; // 트리맵 계산용 논리 좌표(가로세로 비율은 CSS aspect-ratio가 담당)
+  // 반도체(업종 1개가 전체의 절반 이상)처럼 극단적으로 쏠린 분포에서 업종 20여 개를 전부
+  // 펼치면, 세로를 아무리 늘려도 꼬리 쪽 업종들은 한 칸 너비가 라벨 표시 기준(60px)에
+  // 못 미치는 좁은 격자가 되어 대부분 빈 칸으로 보인다. 상위 업종만 개별로 보여주고
+  // 나머지는 하나로 묶어서, 화면에 보이는 칸 수 자체를 줄인다(표시 전용 — 순위표는 그대로
+  // 원본 sectors 를 쓴다).
+  var MAX_TREEMAP_ITEMS = 9;
+
+  function forTreemapDisplay(sectors) {
+    if (sectors.length <= MAX_TREEMAP_ITEMS) return sectors;
+    var sorted = sectors.slice().sort(function (a, b) { return (b.market_cap || 0) - (a.market_cap || 0); });
+    var head = sorted.slice(0, MAX_TREEMAP_ITEMS - 1);
+    var rest = sorted.slice(MAX_TREEMAP_ITEMS - 1);
+    var restCap = rest.reduce(function (a, s) { return a + (s.market_cap || 0); }, 0);
+    var restChgW = rest.reduce(function (a, s) { return a + (s.change_pct == null ? 0 : s.change_pct * (s.market_cap || 0)); }, 0);
+    head.push({
+      sector: "그 외 " + rest.length + "개 업종",
+      market_cap: restCap,
+      change_pct: restCap ? restChgW / restCap : null,
+      top_name: null
+    });
+    return head;
+  }
 
   function renderTreemap(box, sectors) {
     if (!box) return;
-    var total = sectors.reduce(function (a, s) { return a + (s.market_cap || 0); }, 0);
+    var display = forTreemapDisplay(sectors);
+    var total = display.reduce(function (a, s) { return a + (s.market_cap || 0); }, 0);
     if (!total) { box.innerHTML = '<div class="chart-error">표시할 데이터가 없습니다</div>'; return; }
     var scale = (TW * TH) / total;
-    var rects = squarify(sectors.map(function (s) { return (s.market_cap || 0) * scale; }), { x: 0, y: 0, w: TW, h: TH });
+    var rects = squarify(display.map(function (s) { return (s.market_cap || 0) * scale; }), { x: 0, y: 0, w: TW, h: TH });
     box.innerHTML = "";
     // 라벨 표시 여부는 실제 렌더 픽셀 크기로 판단한다(로직 좌표 기준으로만 재면, 모바일처럼
     // 컨테이너 자체가 좁을 때 작은 칸에도 글씨를 넣으려다 겹쳐 보이는 문제가 있었다).
     var boxW = box.clientWidth || 320, boxH = box.clientHeight || boxW * 0.75;
-    sectors.forEach(function (s, idx) {
+    display.forEach(function (s, idx) {
       var r = rects[idx];
       var chg = s.change_pct;
       var dirClass = chg == null ? "st-flat" : chg > 0 ? "st-up" : chg < 0 ? "st-down" : "st-flat";
@@ -95,7 +118,9 @@
       div.style.width = (r.w / TW) * 100 + "%";
       div.style.height = (r.h / TH) * 100 + "%";
       var pxW = (r.w / TW) * boxW, pxH = (r.h / TH) * boxH;
-      if (pxW > 60 && pxH > 34) {
+      // 실제 텍스트가 CSS에서 nowrap+ellipsis 처리되므로, 조금 좁아도(2~3글자만 보여도)
+      // 아예 안 보이는 것보단 낫다고 보고 기준을 낮춰뒀다.
+      if (pxW > 44 && pxH > 30) {
         div.innerHTML =
           '<div class="st-name">' + esc(s.sector) + "</div>" +
           '<div class="st-sub">' + jo(s.market_cap) + "조</div>" +
