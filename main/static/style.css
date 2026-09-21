@@ -557,6 +557,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 /* 여신·심사 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
 .credit #leads-subtabs { margin-bottom: 20px; }
 .credit .kpi-grid { gap: 14px; margin-bottom: 24px; }
+/* 카드 수가 많아(4개) 기본 크기로는 과하게 커 보여서 여신·심사 탭에서만 살짝 축소 */
+.credit .kpi { padding: 10px 12px; }
+.credit .kpi .k-label { font-size: .7rem; margin-bottom: 4px; }
+.credit .kpi .k-value { font-size: 1.15rem; }
+.credit .kpi .k-sub, .credit .kpi .k-delta { font-size: .7rem; margin-top: 3px; }
 .credit .leads-asof { margin-bottom: 14px; }
 .credit .block { margin-bottom: 30px; }
 .credit .block-head { margin-bottom: 14px; }
