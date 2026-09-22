@@ -1,13 +1,29 @@
 <div class="home-root">
-  <section class="block">
-    <div class="block-head"><h3>🔔 오늘의 알림</h3></div>
-    <div id="home-alerts"><div class="page-note">불러오는 중…</div></div>
-  </section>
+  <div class="brief-greet">
+    <div class="brief-eyebrow">TODAY'S BRIEFING</div>
+    <h2 id="brief-greet-title">좋은 아침입니다.</h2>
+    <p class="page-note">AI가 오늘의 변화를 분석해, 업무에 중요한 내용을 먼저 정리했습니다.</p>
+    <span class="brief-greet-time" id="brief-greet-time"></span>
+  </div>
 
-  <section class="block">
-    <div class="block-head"><h3>🏠 오늘의 AI 통합 브리핑</h3></div>
-    <div class="home-briefs" id="home-briefs">
-      <div class="chart-loading">불러오는 중…</div>
+  <div class="brief-main-grid">
+    <section class="block brief-key-block" id="brief-key-block">
+      <div class="block-head"><h3>오늘의 핵심</h3></div>
+      <p class="page-note brief-block-sub">지금 가장 먼저 확인해야 할 변화입니다.</p>
+      <div id="brief-highlights"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+
+    <section class="block brief-market-block" id="brief-market-block">
+      <div class="block-head"><h3>시장 한눈에</h3></div>
+      <div id="brief-market"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+  </div>
+
+  <section class="block" id="brief-news-block">
+    <div class="block-head">
+      <h3>오늘의 주요뉴스</h3>
+      <button type="button" class="dart-btn" data-work="research">더보기 →</button>
     </div>
+    <div id="brief-news"><div class="chart-loading">불러오는 중…</div></div>
   </section>
 </div>

@@ -11,6 +11,7 @@ import logging
 from typing import Callable, TypeVar
 
 from capital.liquidity import get_liquidity_summary
+from capital.market_snapshot import get_global_market_snapshot, get_market_snapshot
 from credit.today_summary import get_today_leads_summary
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
@@ -22,11 +23,10 @@ T = TypeVar("T")
 # 신용공여/예탁금 비율이 전기 대비 이 값(%p) 이상 변하면 홈에 알림 카드 표시.
 _RATIO_ALERT_PP = 1.0
 
-# 홈 화면 알림은 최대 이만큼만(과다 노출 방지). 우선순위: ①이상징후(유동성)
-# ②여신·심사 신규 리드(상속·증여/우리사주) ③금융당국 동향(최대 1건 — 금융위원회
-# 우선순위, AUTHORITY_ORGS 순서를 그대로 따름).
-_MAX_ALERTS = 3
-_MAX_POLICY_ALERTS = 1
+# "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
+# 나열하지 않는다). 우선순위: ①이상징후(유동성) ②여신·심사 신규 리드(상속·증여/
+# 우리사주) ③금융당국 보도자료 1건 ④AI 선별 리서치 기사(나머지 자리를 채움).
+_MAX_TODAY_KEY = 3
 
 
 def _safe(label: str, fn: Callable[[], T]) -> T | None:
@@ -55,31 +55,29 @@ def _liquidity_alert() -> dict | None:
     }
 
 
-def _policy_org_alerts(policy: dict | None) -> list[dict]:
-    """조회 기준일(비영업일이면 직전 영업일)에 금융당국(금융위·금감원·한국은행·재정경제부)
-    보도자료가 새로 등록된 기관이 있으면 알림 카드를 만든다. 최대 _MAX_POLICY_ALERTS건만
-    (AUTHORITY_ORGS 순서 = 금융위원회 우선순위)."""
+def _policy_highlight(policy: dict | None) -> dict | None:
+    """오늘의 브리핑 "꼭 확인하세요" 카드 1건 — 기준일에 실제로 올라온 보도자료 중 첫 건.
+    _policy_org_alerts()와 같은 as_of 필터를 쓰되, "꼭 확인하세요" 카드용으로 제목·기관·
+    날짜·원문 링크를 그대로 돌려준다(지어낸 요약 없음 — 스크랩 대상 자체가 이미 KSFC
+    관련 기관으로 걸러져 있어 "확인이 필요하다"는 문구는 일반적이어도 사실에 부합)."""
     if not policy:
-        return []
+        return None
     as_of = policy.get("as_of")
     if not as_of:
-        return []
-    alerts: list[dict] = []
+        return None
     for g in policy.get("groups") or []:
-        if len(alerts) >= _MAX_POLICY_ALERTS:
-            break
         items = [it for it in (g.get("items") or []) if it.get("date") == as_of]
-        if not items:
-            continue
-        title = items[0].get("title") or ""
-        more = f" 외 {len(items) - 1}건" if len(items) > 1 else ""
-        alerts.append({
-            "level": "info",
-            "title": f"{g.get('org_name') or g.get('badge') or ''} 새 보도자료",
-            "detail": f"{as_of} 기준 · {title}{more}",
-            "tab": "policy",
-        })
-    return alerts
+        if items:
+            it = items[0]
+            return {
+                "kind": "policy",
+                "title": it.get("title") or "",
+                "org": g.get("org_name") or g.get("badge") or "",
+                "date": as_of,
+                "url": it.get("url"),
+                "hot": True,
+            }
+    return None
 
 
 def _credit_leads_alert() -> dict | None:
@@ -104,12 +102,32 @@ def _credit_leads_alert() -> dict | None:
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
-    alerts = (
-        [a for a in (_liquidity_alert(),) if a]
-        + [a for a in (_credit_leads_alert(),) if a]
-        + _policy_org_alerts(policy)
-    )
-    alerts = alerts[:_MAX_ALERTS]
+    market = _safe("오늘의 시장 한눈에(국내)", get_market_snapshot)
+    global_market = _safe("오늘의 시장 한눈에(해외·환율)", get_global_market_snapshot)
+
+    # "오늘의 핵심" — AI가 먼저 걸러준 최대 3건. 뉴스 feed가 아니라 우선순위 목록이라는
+    # 인상을 주기 위해, 이미 계산해둔 실데이터 신호를 정해진 순서로 최대 3개까지만 채운다.
+    # 리서치 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
+    # 판단해둔 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
+    articles = research.get("articles") if research else None
+    today_key: list[dict] = []
+    liquidity_alert = _liquidity_alert()
+    if liquidity_alert:
+        today_key.append({"kind": "alert", **liquidity_alert})
+    credit_alert = _credit_leads_alert()
+    if credit_alert:
+        today_key.append({"kind": "alert", **credit_alert})
+    policy_highlight = _policy_highlight(policy)
+    if policy_highlight:
+        today_key.append(policy_highlight)
+    for a in (articles or []):
+        if len(today_key) >= _MAX_TODAY_KEY:
+            break
+        today_key.append({
+            "kind": "research", "title": a.get("title"), "tag": a.get("tag"),
+            "date": a.get("published"), "url": a.get("url"), "reason": a.get("reason"),
+        })
+    today_key = today_key[:_MAX_TODAY_KEY]
 
     return {
         "policy": {
@@ -124,6 +142,10 @@ def get_home_summary() -> dict:
             "briefing": research.get("briefing"),
             "briefing_note": research.get("briefing_note"),
             "count": len(research.get("articles") or []),
+            "candidate_count": research.get("candidate_count"),
+            "articles": articles or [],
         } if research else None,
-        "alerts": alerts,
+        "market": market,
+        "global_market": global_market,
+        "today_key": today_key,
     }

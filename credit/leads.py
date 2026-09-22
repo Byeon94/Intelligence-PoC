@@ -1,8 +1,16 @@
 """여신·심사 탭 메인 화면 — 증권담보대출 수요 레이더 / 우리사주 금융 수요 (실데이터).
 
-대상: 코스피+코스닥 전체 상장종목(equity._listed_snapshot 기준). 시가총액 상위
-30종목만, 코스피만으로 차례로 좁혀봤더니 상속·증여 이벤트 자체가 원래 드물어 리드가
-거의 안 잡혀, 코스피·코스닥 전체로 확대했다.
+대상(증권담보대출 리드, _scan_universe): 시가총액 기준 코스피 상위 200종목 + 코스닥
+상위 100종목(equity.listed_snapshot 기준). 처음엔 상위 30종목만, 그다음 코스피만으로
+좁혀봤더니 상속·증여 이벤트 자체가 원래 드물어 리드가 거의 안 잡혀 코스피·코스닥
+전체(~2,500종목)로 확대했었는데, 종목 수만큼 DART를 호출하다 보니 수집이 수 분씩
+걸리고 opendart 쪽 남용 방지 차단까지 유발한 적이 있어(2026-09-20) 중대형주 위주로
+다시 좁혔다. 우리사주(유상증자·IPO) 리드는 corp_code 없이 시장 전체를 페이지 단위로
+훑는 방식(_esop_sweep)이라 이 종목 수 제한과 무관하다 — 특히 신규 IPO(공모) 후보는
+아직 코스피·코스닥 어느 시장에도 속하지 않아(listed_snapshot에 없음) 애초에
+_scan_universe 로는 잡을 수도 없는 대상이라, IPO 리드만큼은 처음부터 전 시장(상장
+전 회사 포함) 대상으로 스캔해야 한다. _listed_corp_codes()(우리사주 리드의 IPO/유상증자
+중복 판별용)도 _scan_universe가 아니라 listed_snapshot() 전체를 그대로 쓴다.
 
 데이터 소스 (전부 DART OpenAPI 실데이터, 추정치 없음):
   - 증권담보대출 수요 리드 : majorstock.json(대량보유 상황보고)의 실제 `report_resn`(보고사유)
@@ -131,8 +139,24 @@ def _fmt_date(yyyymmdd: str | None) -> str:
     return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) == 8 else s
 
 
+_KOSPI_TOP_N = 200
+_KOSDAQ_TOP_N = 100
+
+
 def _scan_universe() -> list[dict]:
-    return [s for s in listed_snapshot() if s.get("market") in ("KOSPI", "KOSDAQ")]
+    """증권담보대출(상속·증여) 리드 스캔 대상 — 시가총액 상위 코스피 200·코스닥
+    100종목만(모듈 docstring 참고). 시가총액이 없는(데이터 누락) 종목은 정렬·상위
+    N 선정에서 제외한다."""
+    snap = listed_snapshot()
+    kospi = sorted(
+        (s for s in snap if s.get("market") == "KOSPI" and s.get("market_cap")),
+        key=lambda s: s["market_cap"], reverse=True,
+    )[:_KOSPI_TOP_N]
+    kosdaq = sorted(
+        (s for s in snap if s.get("market") == "KOSDAQ" and s.get("market_cap")),
+        key=lambda s: s["market_cap"], reverse=True,
+    )[:_KOSDAQ_TOP_N]
+    return kospi + kosdaq
 
 
 def _listed_corp_codes() -> set[str]:

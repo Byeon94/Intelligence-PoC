@@ -31,7 +31,8 @@
       desc: "국내 업종별 시가총액 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
-      desc: "종목명을 입력하면 기업 분석정보 및 공시정보 한눈에 확인", status: "live" },
+      desc: "예시로 삼성전자 정보를 바로 보여드려요 — 종목을 검색하면 다른 기업 정보도 바로 확인할 수 있습니다.",
+      status: "live" },
     { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
       title: "오늘의 증권사 리포트", emoji: "📑", creditBadge: "기획부 유OO 과장 제작",
       desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
@@ -64,13 +65,6 @@
     { id: "lending-stock", tab: "lending", title: "증권대차", emoji: "🔄",
       desc: "대차잔고·공매도·이용률", status: "soon" }
   ];
-  // 홈 "오늘의 알림"에 항상 함께 보여주는 위젯 추천 카드(실데이터 알림이 아닌 고정 안내).
-  var WIDGET_RECOMMENDATION = {
-    level: "info", icon: "💡",
-    title: "[오늘의 위젯 추천] 국내 업종별 시가총액 및 밸류체인 (투자금융부 이OO 과장 제작)",
-    tab: "gallery"
-  };
-
   var STATUS_LABEL = { live: "전사 등재", dept: "부서 검증중", soon: "준비중" };
   var STATUS_CLASS = { live: "st-live", dept: "st-dept", soon: "st-soon" };
 
@@ -99,12 +93,12 @@
   }
 
   function goWork(tab, sub) {
-    if (window.AppNav) window.AppNav.go("work", tab);
+    if (window.AppNav) window.AppNav.go(tab);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
-    // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #work-subtabs 클릭을 감지해 처음 한 번
-    // 데이터를 지연 로딩한다. 홈/전사 위젯에서 곧장 이동할 때도 그 로딩이 걸리도록
+    // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #main-tabs 클릭을 감지해 처음 한 번
+    // 데이터를 지연 로딩한다. 홈/나의 대시보드에서 곧장 이동할 때도 그 로딩이 걸리도록
     // 같은 이벤트를 한 번 흉내 낸다.
-    var bar = document.getElementById("work-subtabs");
+    var bar = document.getElementById("main-tabs");
     if (bar) bar.dispatchEvent(new Event("click", { bubbles: true }));
   }
 
@@ -250,7 +244,11 @@
     "credit-report": function (el) { return renderReportsMini(el); },
     "market-reports": function (el) {
       return get("/api/credit/market-reports").then(function (d) {
-        var totalTxt = (d.total || 0) + (d.total_capped ? "+" : "") + "건";
+        var cc = d.category_counts || {};
+        var catTxt = Object.keys(cc).sort(function (a, b) { return cc[b] - cc[a]; })
+          .map(function (k) { return k + " " + cc[k]; }).join(" · ");
+        var totalTxt = (d.total || 0) + (d.total_capped ? "+" : "") + "건" +
+          (catTxt ? " (" + catTxt + ")" : "");
         var html = asOfLine(d.as_of) + miniRow([["리포트 총 건수", totalTxt]]) +
           miniBullets(d.briefing, d.briefing_note);
         var top = (d.items || []).slice(0, 5);
@@ -538,7 +536,7 @@
     var toggleHTML = opts.mini
       ? '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>'
       : '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
-        (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
+        (mine ? "✓ 나의 대시보드에 추가됨" : "+ 나의 대시보드에 추가") +
       "</button>";
     // 아래 위젯들은 "자세히 보기"가 가리키는 곳이 위젯 내용과 안 맞거나(외부 검색
     // 결과로 이동 등) 카드 안에 이미 내용이 다 보여 detail 이동 자체가 불필요해
@@ -611,12 +609,12 @@
         '<div class="gm-ca-topsearch">' +
           '<div class="gm-ca-topsearch-label">🔍 종목 입력</div>' +
           '<div class="eq-search gm-ca-search">' +
-            '<input type="text" class="gm-ca-input" placeholder="종목명 또는 코드 검색">' +
+            '<input type="text" class="gm-ca-input" placeholder="종목명 또는 코드 검색" value="삼성전자 (005930)">' +
             '<div class="eq-suggest gm-ca-suggest" hidden></div>' +
           "</div>" +
         "</div>" +
         '<div class="gal-mini" id="mini-' + w.id + '"><div class="gm-ca-result" id="mini-' + w.id + '-result">' +
-          '<div class="gal-mini-note">종목을 검색해보세요.</div></div></div>' +
+          '<span class="page-note">불러오는 중…</span></div></div>' +
         '<div class="gal-actions">' +
           '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '">자세히 보기 →</button>' +
           '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
@@ -767,6 +765,10 @@
       sugBox.hidden = true;
       renderGlancePreview(resultEl, code, name);
     });
+
+    // 처음 담았을 때 빈 화면 대신 예시(삼성전자)를 바로 보여준다 — 입력창의 기본값과
+    // 짝을 맞춘 코드/이름. 사용자가 검색하면 renderGlancePreview가 그대로 덮어쓴다.
+    renderGlancePreview(resultEl, "005930", "삼성전자");
   }
 
   // "국내 업종별 시가총액 및 밸류체인"(내 위젯 전용) — 별도 페이지로 이동하지 않고
@@ -841,7 +843,7 @@
         var ids = toggleMyWidget(btn.dataset.id);
         var mine = ids.indexOf(btn.dataset.id) >= 0;
         btn.classList.toggle("active", mine);
-        btn.textContent = mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가";
+        btn.textContent = mine ? "✓ 나의 대시보드에 추가됨" : "+ 나의 대시보드에 추가";
       });
     });
     // "그만보기"(내 위젯 전용) — 제거 후 목록을 다시 그려 카드가 즉시 사라지게 한다.
@@ -865,14 +867,48 @@
     "credit-analysis", "credit-filing", "credit-report"
   ];
 
+  function galItemsForCatalog() {
+    return WIDGET_CATALOG.filter(function (w) {
+      return w.status !== "soon" && HIDDEN_FROM_GALLERY.indexOf(w.id) < 0;
+    });
+  }
+
   function renderGallery() {
     var box = document.getElementById("gallery-grid");
     if (!box) return;
-    var items = WIDGET_CATALOG.filter(function (w) {
-      return w.status !== "soon" && HIDDEN_FROM_GALLERY.indexOf(w.id) < 0;
-    });
-    box.innerHTML = items.map(function (w) { return galCardHTML(w); }).join("");
+    box.innerHTML = galItemsForCatalog().map(function (w) { return galCardHTML(w); }).join("");
     bindGalleryCardEvents(box);
+  }
+
+  function personalAnchorId(w) { return "personal-w-" + w.id; }
+
+  // 위젯을 여러 개 담으면 한 화면에 다 쌓여 복잡해지니, 제목 칩을 탭처럼 써서
+  // 한 번에 하나씩만 보여준다(선택 상태는 탭이 열려 있는 동안만 메모리로 유지).
+  var personalActiveId = null;
+
+  function renderPersonalJumpNav(items) {
+    var nav = document.getElementById("personal-jump-nav");
+    if (!nav) return;
+    if (items.length < 2) { nav.innerHTML = ""; return; }
+    nav.innerHTML = items.map(function (w) {
+      return '<button type="button" class="pd-jump-chip' + (w.id === personalActiveId ? " active" : "") +
+        '" data-id="' + esc(w.id) + '">' + w.emoji + " " + esc(w.title) + "</button>";
+    }).join("");
+    nav.querySelectorAll(".pd-jump-chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        personalActiveId = chip.dataset.id;
+        showPersonalWidget(personalActiveId);
+        nav.querySelectorAll(".pd-jump-chip").forEach(function (c) {
+          c.classList.toggle("active", c === chip);
+        });
+      });
+    });
+  }
+
+  function showPersonalWidget(id) {
+    document.querySelectorAll(".pd-widget-anchor").forEach(function (el) {
+      el.hidden = el.id !== personalAnchorId({ id: id });
+    });
   }
 
   function renderPersonal() {
@@ -881,19 +917,169 @@
     var ids = getMyWidgetIds();
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
     if (!items.length) {
-      box.innerHTML =
-        '<div class="page-note home-empty-widgets">전사 위젯에서 추가하면 여기에 표시됩니다.<br>' +
-        '<button type="button" class="dart-btn" id="personal-go-gallery">전사 위젯 가기 →</button></div>';
-      var gbtn = document.getElementById("personal-go-gallery");
-      if (gbtn) gbtn.addEventListener("click", function () { if (window.AppNav) window.AppNav.go("gallery"); });
+      personalActiveId = null;
+      document.getElementById("personal-jump-nav").innerHTML = "";
+      // 상단 헤더에 이미 "+ 위젯 추가" 버튼이 있어, 여기서는 문구만 안내하고
+      // 별도 버튼(예전엔 "위젯 추가하러 가기 →")은 중복이라 없앴다.
+      box.innerHTML = '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 위젯을 담아보세요.</div>';
       return;
     }
-    box.innerHTML = items.map(function (w) { return galCardHTML(w, { mini: true }); }).join("");
+    // 이전에 선택했던 위젯이 아직 있으면 유지, 없으면(처음이거나 방금 제거됐으면) 첫 위젯으로.
+    if (!items.some(function (w) { return w.id === personalActiveId; })) {
+      personalActiveId = items[0].id;
+    }
+    renderPersonalJumpNav(items);
+    box.innerHTML = items.map(function (w) {
+      return '<div class="pd-widget-anchor" id="' + personalAnchorId(w) + '"' +
+        (w.id === personalActiveId ? "" : " hidden") + ">" + galCardHTML(w, { mini: true }) + "</div>";
+    }).join("");
     bindGalleryCardEvents(box);
     loadMiniPreviews(items);
     if (items.some(function (w) { return w.id === "credit-analysis"; })) initCreditAnalysisSearch();
     if (items.some(function (w) { return w.id === "credit-equity-glance"; })) initCreditGlanceSearch();
     if (items.some(function (w) { return w.id === "sector-map"; })) initSectorMapWidget();
+  }
+
+  // ── 위젯 추가 모달 ── "전사 위젯/부서 위젯" 같은 내부 용어 대신, 실제 있는 구분(담당자가
+  // 직접 만든 위젯 vs 자본시장 정보)만 자연어로 묶어 보여준다(없는 "인기순위"는 지어내지 않음).
+  function waGroupHTML(title, items) {
+    if (!items.length) return "";
+    return (
+      '<div class="wa-group"><div class="wa-group-title">' + esc(title) + "</div>" +
+      items.map(function (w) { return galCardHTML(w); }).join("") +
+      "</div>"
+    );
+  }
+  function renderWidgetAddModal(query) {
+    var body = document.getElementById("wa-body");
+    if (!body) return;
+    var all = galItemsForCatalog();
+    var q = (query || "").trim().toLowerCase();
+    var filtered = q ? all.filter(function (w) {
+      return (w.title + " " + w.desc).toLowerCase().indexOf(q) >= 0;
+    }) : all;
+    var madeByStaff = filtered.filter(function (w) { return !!w.creditBadge; });
+    var capitalInfo = filtered.filter(function (w) { return w.tab === "capital"; });
+    var rest = filtered.filter(function (w) {
+      return madeByStaff.indexOf(w) < 0 && capitalInfo.indexOf(w) < 0;
+    });
+    var html =
+      waGroupHTML("✍️ 담당자가 직접 만든 위젯", madeByStaff) +
+      waGroupHTML("📈 자본시장 정보", capitalInfo) +
+      waGroupHTML("그 밖의 위젯", rest);
+    body.innerHTML = html || '<div class="page-note">검색 결과가 없습니다.</div>';
+    bindGalleryCardEvents(body);
+  }
+  function openWidgetAddModal() {
+    var modal = document.getElementById("widget-add-modal");
+    if (!modal) return;
+    var search = document.getElementById("wa-search");
+    if (search) search.value = "";
+    renderWidgetAddModal("");
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeWidgetAddModal() {
+    var modal = document.getElementById("widget-add-modal");
+    if (modal) modal.hidden = true;
+    document.body.style.overflow = "";
+    renderPersonal(); // 모달에서 추가/제거한 결과를 나의 대시보드에 바로 반영
+  }
+
+  // ── AI가 추천하기(mock) ── 실제 개인화 백엔드가 없어, 선택한 업무·키워드를 위젯
+  // 카탈로그의 제목·설명과 단순 매칭해 추천한다(프런트 mock 플로우 — 실제 AI 판단 아님).
+  var AI_ROLE_OPTIONS = ["투자금융", "리스크", "여신", "자금", "영업", "기타"];
+  var AI_ROLE_MATCH = {
+    "투자금융": ["sector-map", "capital-issuance", "market-reports"],
+    "리스크": ["capital-liquidity", "credit-equity-glance"],
+    "여신": ["credit-equity-glance", "capital-liquidity"],
+    "자금": ["capital-liquidity", "capital-cma"],
+    "영업": ["market-reports", "sector-map"],
+    "기타": ["it-news", "sector-map"]
+  };
+  function aiRecommendFormHTML() {
+    return (
+      '<p class="page-note">주로 어떤 업무를 하시나요?</p>' +
+      '<div class="ai-role-options">' +
+        AI_ROLE_OPTIONS.map(function (r) {
+          return '<label class="ai-role-opt"><input type="radio" name="ai-role" value="' + esc(r) + '">' + esc(r) + "</label>";
+        }).join("") +
+      "</div>" +
+      '<p class="page-note" style="margin-top:14px">최근 관심 있는 주제나 기업이 있나요?</p>' +
+      '<input type="text" class="wa-search" id="ai-keyword" placeholder="예: 2차전지, CFD, 삼성전자">' +
+      '<button type="button" class="dart-btn" id="ai-run-btn" style="margin-top:14px">AI가 추천하기</button>'
+    );
+  }
+  // 위젯별로 하나씩 "+ 추가"/"✓ 추가됨"을 토글한다(예전엔 "모두 추가" 하나뿐이라
+  // 원치 않는 항목까지 한 번에 담기게 됐음). 목록 자체는 role·keyword가 바뀔 때만
+  // 다시 그리고, 토글은 버튼 하나만 갱신해 리스트가 다시 그려지며 깜빡이지 않게 한다.
+  function aiResultItemHTML(w) {
+    var mine = getMyWidgetIds().indexOf(w.id) >= 0;
+    return (
+      '<li class="ai-result-item" data-id="' + esc(w.id) + '">' +
+        '<span class="ai-result-name">' + esc(w.emoji) + " " + esc(w.title) + "</span>" +
+        '<button type="button" class="gal-toggle ai-result-add' + (mine ? " active" : "") + '" data-id="' + esc(w.id) + '">' +
+          (mine ? "✓ 추가됨" : "+ 추가") +
+        "</button>" +
+      "</li>"
+    );
+  }
+  function aiRecommendResultHTML(role, keyword) {
+    var all = galItemsForCatalog();
+    var picked = {};
+    (AI_ROLE_MATCH[role] || []).forEach(function (id) { picked[id] = true; });
+    var kw = (keyword || "").trim().toLowerCase();
+    if (kw) {
+      all.forEach(function (w) {
+        if ((w.title + " " + w.desc).toLowerCase().indexOf(kw) >= 0) picked[w.id] = true;
+      });
+    }
+    var items = all.filter(function (w) { return picked[w.id]; });
+    if (!items.length) items = all.slice(0, 3);
+    return (
+      '<p class="page-note">' + esc(role) + ' 업무에 맞는 위젯을 추천해드릴게요 — 원하는 위젯만 골라 추가하세요</p>' +
+      '<ul class="ai-result-list">' +
+        items.map(aiResultItemHTML).join("") +
+      "</ul>"
+    );
+  }
+  function bindAiRecommendForm() {
+    var runBtn = document.getElementById("ai-run-btn");
+    if (!runBtn) return;
+    runBtn.addEventListener("click", function () {
+      var checked = document.querySelector('input[name="ai-role"]:checked');
+      var role = checked ? checked.value : "기타";
+      var keywordEl = document.getElementById("ai-keyword");
+      var body = document.getElementById("ai-body");
+      body.innerHTML = aiRecommendResultHTML(role, keywordEl ? keywordEl.value : "");
+    });
+    var body = document.getElementById("ai-body");
+    if (body && !body.dataset.bound) {
+      body.dataset.bound = "1";
+      body.addEventListener("click", function (e) {
+        var btn = e.target.closest(".ai-result-add");
+        if (!btn) return;
+        var ids = toggleMyWidget(btn.dataset.id);
+        var mine = ids.indexOf(btn.dataset.id) >= 0;
+        btn.classList.toggle("active", mine);
+        btn.textContent = mine ? "✓ 추가됨" : "+ 추가";
+      });
+    }
+  }
+  function openAiRecommendModal() {
+    var modal = document.getElementById("ai-recommend-modal");
+    if (!modal) return;
+    var body = document.getElementById("ai-body");
+    if (body) body.innerHTML = aiRecommendFormHTML();
+    bindAiRecommendForm();
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeAiRecommendModal() {
+    var modal = document.getElementById("ai-recommend-modal");
+    if (modal) modal.hidden = true;
+    document.body.style.overflow = "";
+    renderPersonal();
   }
 
   // ── 홈 대시보드: 통합 브리핑 + 알림 ──
@@ -904,93 +1090,206 @@
       .filter(Boolean).slice(0, 3);
   }
 
-  function briefCardHTML(opts) {
-    var head =
-      '<div class="brief-head"><span class="brief-label">' + opts.label + "</span>" +
-      '<span class="brief-when">' + esc(opts.when || "") + "</span></div>";
-    var body;
-    if (opts.bullets && opts.bullets.length) {
-      body = '<ol class="brief-list">' +
-        opts.bullets.map(function (b, i) {
-          return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + '</span><span class="bl-tx">' +
-            esc(b) + "</span></li>";
-        }).join("") + "</ol>";
-    } else {
-      body = '<div class="brief-note">' + esc(opts.note || "표시할 브리핑이 없습니다.") + "</div>";
-    }
-    return (
-      '<div class="brief-card home-brief">' + head + body +
-        '<button type="button" class="dart-btn home-brief-more" data-work="' + opts.tab + '">자세히 보기 →</button>' +
-      "</div>"
-    );
+  // 날짜 "20260921" → "2026-09-21" (data.go.kr 등 원천이 하이픈 없는 basDt 형식을 줄 때).
+  function fmtDate(s) {
+    s = String(s || "");
+    return /^\d{8}$/.test(s) ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8) : s;
   }
 
-  // 알림 상세문구(detail)에서 날짜만 뽑아 "제목 (YYYY-MM-DD 기준)" 한 줄로 압축한다
-  // (부연설명 줄은 없앰 — 요청에 따라). 끝에 붙는 "(...)" 부분은 본문보다 작고
-  // 덜 굵게 보이도록 별도 span으로 감싼다.
+  // ── 오늘의 브리핑: 오늘의 핵심 ── AI가 먼저 골라낸 최대 3건만 보여준다(이상징후
+  // 알림 → 정책 발표 → AI 선별 리서치 기사 순으로 채워짐, main/home.py get_home_summary
+  // 참고). 뉴스 feed처럼 보이지 않도록 01번은 크게(+"왜 중요한가?"), 02/03은 컴팩트하게
+  // 렌더한다. research.curate 가 이미 만들어둔 태그·이유(reason)를 그대로 재사용,
+  // 새 Gemini 호출 없음.
   function alertLineTitle(a) {
     var m = a.detail ? /(\d{4}-\d{2}-\d{2})/.exec(a.detail) : null;
-    var full = esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
-    var pm = /^(.*?)(\s*\([^()]*\))$/.exec(full);
-    return pm ? pm[1] + '<span class="al-title-sub">' + pm[2] + "</span>" : full;
+    return esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
+  }
+  function todayKeyCardHTML(h, rank) {
+    var cat, badge, reason, dateText;
+    if (h.kind === "alert") {
+      cat = "알림";
+      badge = h.level === "warn" ? '<span class="hl-badge">HOT</span>' : "";
+      reason = h.detail || "";
+      dateText = "";
+    } else if (h.kind === "policy") {
+      cat = h.org || "정책·규제";
+      badge = '<span class="hl-badge">HOT</span>';
+      reason = "금융당국 발표 — 관련 업무 영향 확인이 필요합니다.";
+      dateText = fmtDate(h.date);
+    } else {
+      cat = h.tag || "일반";
+      badge = "";
+      reason = h.reason || "";
+      dateText = fmtDate(h.date);
+    }
+    var primary = rank === 1;
+    var reasonHTML = "";
+    if (reason && primary) {
+      reasonHTML = '<div class="hl-reason"><span class="hl-reason-label">왜 중요한가?</span>' + esc(reason) + "</div>";
+    } else if (reason) {
+      reasonHTML = '<div class="hl-reason-sm">' + esc(reason) + "</div>";
+    }
+    var inner =
+      '<div class="hl-no">' + String(rank).padStart(2, "0") + "</div>" +
+      '<div class="hl-body">' +
+        '<div class="hl-top"><span class="hl-cat">' + esc(cat) + "</span>" + badge +
+          (dateText ? '<span class="hl-date">' + esc(dateText) + "</span>" : "") + "</div>" +
+        '<div class="hl-title">' +
+          (h.kind === "alert" ? alertLineTitle(h) : esc(h.title || "")) +
+        "</div>" + reasonHTML +
+      "</div>";
+    var cls = "hl-card" + (primary ? " hl-card-primary" : " hl-card-compact");
+    if (h.kind === "alert") {
+      return '<div class="' + cls + ' hl-card-btn" data-work="' + esc(h.tab || "") + '"' +
+        (h.sub ? ' data-sub="' + esc(h.sub) + '"' : "") + ">" + inner + "</div>";
+    }
+    return '<a class="' + cls + '" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' + inner + "</a>";
   }
 
-  function renderAlerts(alerts) {
-    var box = document.getElementById("home-alerts");
+  function renderHighlights(d) {
+    var box = document.getElementById("brief-highlights");
     if (!box) return;
-    if (!alerts || !alerts.length) {
-      box.innerHTML = '<div class="page-note">현재 등록된 이상징후 알림이 없습니다.</div>';
-      return;
-    }
-    box.innerHTML = alerts.map(function (a) {
-      return (
-        '<div class="home-alert ' + (a.level === "warn" ? "al-warn" : "al-info") + '">' +
-          '<div class="al-body">' +
-            '<div class="al-title">' + (a.icon || "⚠️") + " " + alertLineTitle(a) + "</div>" +
-          "</div>" +
-          '<button type="button" class="al-go" data-work="' + a.tab + '"' +
-            (a.sub ? ' data-sub="' + a.sub + '"' : "") + '>확인 →</button>' +
-        "</div>"
-      );
-    }).join("");
+    var items = d.today_key || [];
+    box.innerHTML = items.length
+      ? items.map(function (h, i) { return todayKeyCardHTML(h, i + 1); }).join("")
+      : '<div class="page-note">오늘은 꼭 확인할 만큼 중요한 항목이 없습니다.</div>';
     bindGoWorkButtons(box);
+  }
+
+  // ── 오늘의 브리핑: 시장 한눈에 ── 국내(코스피·코스닥, data.go.kr)와 해외(다우·나스닥·
+  // S&P500, Yahoo Finance 비공식 API)를 탭 전환 없이 한 화면에 같이 보여주고, 환율은
+  // 그 아래 별도 줄로 붙인다(지수와 단위가 달라 같은 그리드에 섞지는 않음).
+  function mktIdxHTML(label, close, chg) {
+    var cls = chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : "";
+    var arrow = chg > 0 ? "▲" : chg < 0 ? "▼" : "";
+    var chgText = chg == null ? "-" : arrow + Math.abs(chg).toFixed(2) + "%";
+    return (
+      '<div class="mkt-idx"><div class="mkt-idx-name">' + esc(label) + "</div>" +
+        '<div class="mkt-idx-value">' + Number(close).toLocaleString("ko-KR") + "</div>" +
+        '<div class="mkt-idx-chg ' + cls + '">' + chgText + "</div></div>"
+    );
+  }
+  function renderMarket(d) {
+    var box = document.getElementById("brief-market");
+    if (!box) return;
+    var m = d.market, gm = d.global_market;
+    var html = "";
+
+    var idxCards = "";
+    if (m && m.source === "live") {
+      idxCards += mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change_pct) +
+        mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change_pct);
+    }
+    if (gm && gm.source === "live") {
+      idxCards += gm.us_indices.map(function (idx) { return mktIdxHTML(idx.name, idx.close, idx.change_pct); }).join("");
+    }
+    if (idxCards) {
+      html += '<div class="mkt-grid mkt-grid-3">' + idxCards + "</div>";
+    } else {
+      html += '<div class="page-note">시장 지수를 일시적으로 불러오지 못했습니다.</div>';
+    }
+
+    if (gm && gm.source === "live") {
+      html += '<div class="mkt-sub-label">환율</div>' +
+        '<div class="mkt-grid mkt-grid-3">' +
+          gm.fx.map(function (f) { return mktIdxHTML(f.name, f.value, f.change_pct); }).join("") +
+        "</div>";
+    }
+
+    var asofBits = [];
+    if (m && m.source === "live") asofBits.push(esc(fmtDate(m.as_of)) + " 기준 코스피·코스닥(공공데이터포털)");
+    if (gm && gm.source === "live") asofBits.push("실시간 해외·환율(Yahoo Finance, 참고용)");
+    if (asofBits.length) html += '<div class="page-note mkt-asof">' + asofBits.join(" · ") + "</div>";
+
+    box.innerHTML = html;
+  }
+
+  // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 리서치·뉴스 탭에서) ──
+  function briefNewsRowHTML(a) {
+    return (
+      '<a class="brief-news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
+        '<span class="bni-tag">' + esc(a.tag || "일반") + "</span>" +
+        '<span class="bni-title">' + esc(a.title) + "</span>" +
+        '<span class="bni-date">' + esc(a.published || "") + "</span>" +
+      "</a>"
+    );
+  }
+  function renderBriefNews(d) {
+    var box = document.getElementById("brief-news");
+    if (!box) return;
+    var arts = (d.research && d.research.articles) || [];
+    box.innerHTML = arts.length
+      ? arts.slice(0, 5).map(briefNewsRowHTML).join("")
+      : '<div class="page-note">' + esc((d.research && d.research.briefing_note) || "오늘 선별된 뉴스가 없습니다.") + "</div>";
   }
 
   function bindGoWorkButtons(scope) {
     scope.querySelectorAll("[data-work]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        // "gallery"는 업무 화면이 아니라 전사 위젯 탭이라 goWork 대신 곧장 이동시킨다.
-        if (btn.dataset.work === "gallery") { if (window.AppNav) window.AppNav.go("gallery"); }
+        // "gallery"는 업무 화면이 아니라 위젯 추가 모달을 여는 자리다.
+        if (btn.dataset.work === "gallery") { openWidgetAddModal(); }
         else goWork(btn.dataset.work, btn.dataset.sub);
       });
     });
+  }
+
+  // 정적 버튼(모달 열기/닫기/검색)은 페이지 로드 시 한 번만 바인딩한다.
+  var waAddBtn = document.getElementById("personal-add-widget-btn");
+  if (waAddBtn) waAddBtn.addEventListener("click", openWidgetAddModal);
+  var waCloseBtn = document.getElementById("wa-close-btn");
+  if (waCloseBtn) waCloseBtn.addEventListener("click", closeWidgetAddModal);
+  var waBackdrop = document.getElementById("wa-backdrop");
+  if (waBackdrop) waBackdrop.addEventListener("click", closeWidgetAddModal);
+  var waSearchInput = document.getElementById("wa-search");
+  if (waSearchInput) waSearchInput.addEventListener("input", function () { renderWidgetAddModal(waSearchInput.value); });
+  var aiRecommendBtn = document.getElementById("personal-ai-recommend-btn");
+  if (aiRecommendBtn) aiRecommendBtn.addEventListener("click", openAiRecommendModal);
+  var aiCloseBtn = document.getElementById("ai-close-btn");
+  if (aiCloseBtn) aiCloseBtn.addEventListener("click", closeAiRecommendModal);
+  var aiBackdrop = document.getElementById("ai-backdrop");
+  if (aiBackdrop) aiBackdrop.addEventListener("click", closeAiRecommendModal);
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    var wa = document.getElementById("widget-add-modal");
+    var ai = document.getElementById("ai-recommend-modal");
+    if (wa && !wa.hidden) closeWidgetAddModal();
+    if (ai && !ai.hidden) closeAiRecommendModal();
+  });
+
+  // home.html의 정적 버튼(오늘의 주요뉴스 "더보기 →")은 매번 다시 그려지지 않으니
+  // 페이지 로드 시 한 번만 바인딩한다(ensureBriefing은 재시도 시 다시 불릴 수 있어
+  // 거기서 바인딩하면 리스너가 중복 등록된다).
+  var briefNewsMoreBtn = document.querySelector('#brief-news-block [data-work]');
+  if (briefNewsMoreBtn) bindGoWorkButtons(briefNewsMoreBtn.parentElement);
+
+  function renderGreetTime() {
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, "0");
+    var mm = String(now.getMinutes()).padStart(2, "0");
+    var timeEl = document.getElementById("brief-greet-time");
+    if (timeEl) timeEl.textContent = "마지막 업데이트 " + hh + ":" + mm;
+    var titleEl = document.getElementById("brief-greet-title");
+    if (titleEl) {
+      var h = now.getHours();
+      titleEl.textContent = h < 12 ? "좋은 아침입니다." : (h < 18 ? "좋은 오후입니다." : "좋은 저녁입니다.");
+    }
   }
 
   var briefingLoaded = false;
   function ensureBriefing() {
     if (briefingLoaded) return;
     briefingLoaded = true;
-    var briefBox = document.getElementById("home-briefs");
+    renderGreetTime();
     get("/api/home/summary").then(function (d) {
-      var cards = "";
-      if (d.policy) {
-        cards += briefCardHTML({
-          label: "📜 정책·규제", when: (d.policy.as_of || "") + " 기준",
-          bullets: bulletsFromBriefing(d.policy.briefing), note: d.policy.briefing_note, tab: "policy"
-        });
-      }
-      if (d.research) {
-        cards += briefCardHTML({
-          label: "📰 리서치·뉴스", when: (d.research.date || "") + " · " + (d.research.count || 0) + "건 선별",
-          bullets: bulletsFromBriefing(d.research.briefing), note: d.research.briefing_note, tab: "research"
-        });
-      }
-      briefBox.innerHTML = cards || '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
-      bindGoWorkButtons(briefBox);
-      renderAlerts([WIDGET_RECOMMENDATION].concat(d.alerts || []));
+      renderHighlights(d);
+      renderMarket(d);
+      renderBriefNews(d);
     }).catch(function (e) {
-      briefBox.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
-      renderAlerts([WIDGET_RECOMMENDATION]);
+      ["brief-highlights", "brief-market", "brief-news"].forEach(function (id) {
+        var box = document.getElementById(id);
+        if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      });
       briefingLoaded = false; // 재방문 시 재시도
     });
   }
@@ -1000,4 +1299,175 @@
     enterGallery: function () { renderGallery(); },
     enterPersonal: function () { renderPersonal(); }
   };
+
+  // ── 온보딩 투어 — 오늘의 브리핑의 "오늘의 핵심/시장 한눈에/오늘의 주요뉴스" 3개
+  // 영역 + 사이드바의 "나의 대시보드"만 소개한다(환영 화면 + 완료 화면 포함 총
+  // 6스텝). 세션 여부와 무관하게 웹페이지를 열 때마다 매번 보여준다(로그인이 없는
+  // PoC라 "이 사람이 처음 왔는지"를 판단할 방법이 없어, 저장해뒀다 건너뛰는 대신
+  // 매번 짧게 보여주는 쪽을 택함). 사이드바는 데스크톱에선 세로, 모바일에선 상단
+  // 가로 바로 바뀌므로, 스포트라이트·말풍선 위치는 매번 실제 렌더된 좌표
+  // (getBoundingClientRect)를 기준으로 계산하고, 화면 밖에 있을 수 있는 대상은
+  // 먼저 scrollIntoView로 보이게 한다. ──
+  var OB_STEPS = [
+    { type: "welcome" },
+    { type: "spot", sel: "#brief-key-block",
+      title: "오늘의 핵심",
+      body: "오늘 가장 먼저 확인할 곳입니다. AI가 여러 정보 중 업무에 중요한 변화를 먼저 선별해 보여드립니다." },
+    { type: "spot", sel: "#brief-market-block",
+      title: "시장 한눈에",
+      body: "국내외 주요 지수와 환율을 한눈에 확인하세요." },
+    { type: "spot", sel: "#brief-news-block",
+      title: "오늘의 주요뉴스",
+      body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 리서치·뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
+    { type: "spot", sel: '.side-btn[data-cat="personal"]',
+      title: "나의 대시보드",
+      body: '"+ 위젯 추가"를 눌러 내가 관심 있는 정보만 모아 나만의 화면을 만들 수 있습니다.' },
+    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
+      title: "업무별 메뉴(부서 위젯)",
+      body: "자본시장·여신·심사·정책·규제·리서치·뉴스처럼 부서별 상세 화면은 여기서 확인하세요." },
+    { type: "done" }
+  ];
+  var obIndex = 0;
+
+  function obUnionRect(el1, el2) {
+    var a = el1.getBoundingClientRect(), b = el2.getBoundingClientRect();
+    var top = Math.min(a.top, b.top), left = Math.min(a.left, b.left);
+    var right = Math.max(a.right, b.right), bottom = Math.max(a.bottom, b.bottom);
+    return { top: top, left: left, right: right, bottom: bottom, width: right - left, height: bottom - top };
+  }
+
+  function obWelcomeHTML() {
+    return (
+      "<h3>안녕하세요! 👋</h3>" +
+      "<p>증금 인텔리전스에 오신 것을 환영합니다.<br>AI가 시장·정책·뉴스를 분석해 매일 아침 업무에 필요한 핵심만 먼저 알려드립니다.</p>" +
+      '<div class="ob-tooltip-actions">' +
+        '<button type="button" class="dart-btn" id="ob-next">1분 투어 시작하기 →</button>' +
+        '<button type="button" class="ob-skip" id="ob-skip">건너뛰기</button>' +
+      "</div>"
+    );
+  }
+  function obDoneHTML() {
+    return (
+      "<h3>준비가 완료되었습니다 🎉</h3>" +
+      "<p>이제 오늘의 브리핑, 나의 대시보드, 업무별 메뉴를 자유롭게 둘러보세요.</p>" +
+      '<div class="ob-tooltip-actions">' +
+        '<button type="button" class="dart-btn" id="ob-done-btn">오늘의 브리핑 보기 →</button>' +
+      "</div>"
+    );
+  }
+  function obSpotHTML(step) {
+    var spotSteps = OB_STEPS.filter(function (s) { return s.type === "spot"; });
+    var n = spotSteps.indexOf(step) + 1;
+    return (
+      '<div class="ob-tooltip-step">' + n + "/" + spotSteps.length + "</div>" +
+      "<h3>" + esc(step.title) + "</h3>" +
+      "<p>" + esc(step.body) + "</p>" +
+      '<div class="ob-tooltip-actions">' +
+        '<button type="button" class="ob-skip" id="ob-skip">건너뛰기</button>' +
+        '<button type="button" class="dart-btn" id="ob-next">다음 →</button>' +
+      "</div>"
+    );
+  }
+  // 말풍선이 항상 뷰포트 안에 완전히 보이도록 가로·세로 모두 clamp한다. 데스크톱
+  // 폭에서도 스포트라이트 대상이 화면 오른쪽 끝 가까이 있으면(예: 폭 넓은 "오늘의
+  // 주요뉴스" 블록) 오른쪽에 붙일 공간이 없어 잘려 보이던 문제를 막기 위해, 오른쪽에
+  // 공간이 없으면 왼쪽에, 그것도 부족하면 화면 안쪽으로 강제로 당긴다.
+  function obPosition(rect) {
+    var spot = document.getElementById("ob-spot");
+    var tip = document.getElementById("ob-tooltip");
+    var pad = 6;
+    spot.style.top = (rect.top - pad) + "px";
+    spot.style.left = (rect.left - pad) + "px";
+    spot.style.width = (rect.width + pad * 2) + "px";
+    spot.style.height = (rect.height + pad * 2) + "px";
+
+    var margin = 12;
+    var tipW = Math.min(300, window.innerWidth - margin * 2);
+    var mobile = window.innerWidth <= 880;
+    var top, left;
+    if (mobile) {
+      top = rect.bottom + 14;
+      left = Math.min(Math.max(margin, rect.left), window.innerWidth - tipW - margin);
+    } else {
+      var spaceRight = window.innerWidth - rect.right - 18;
+      var spaceLeft = rect.left - 18;
+      if (spaceRight >= tipW) {
+        left = rect.right + 18;
+      } else if (spaceLeft >= tipW + margin) {
+        left = rect.left - 18 - tipW;
+      } else {
+        left = Math.max(margin, Math.min(rect.left, window.innerWidth - tipW - margin));
+      }
+      top = Math.max(margin, rect.top);
+    }
+    tip.style.width = tipW + "px";
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    // 내용을 이미 채운 뒤에 호출되므로 실제 렌더된 높이로 세로 clamp가 가능하다
+    // (화면 아래로 넘쳐 하단 버튼이 안 보이는 것을 막음).
+    var tipH = tip.offsetHeight || 0;
+    if (tipH) {
+      tip.style.top = Math.max(margin, Math.min(top, window.innerHeight - tipH - margin)) + "px";
+    }
+  }
+  function obBindStepButtons() {
+    var next = document.getElementById("ob-next");
+    if (next) next.addEventListener("click", obNext);
+    var skip = document.getElementById("ob-skip");
+    if (skip) skip.addEventListener("click", obEnd);
+    var doneBtn = document.getElementById("ob-done-btn");
+    if (doneBtn) doneBtn.addEventListener("click", obEnd);
+  }
+  function obRenderStep() {
+    var step = OB_STEPS[obIndex];
+    if (!step) { obEnd(); return; }
+    var backdrop = document.getElementById("ob-backdrop");
+    var spot = document.getElementById("ob-spot");
+    var tip = document.getElementById("ob-tooltip");
+    if (!backdrop || !spot || !tip) return;
+
+    if (step.type === "spot") {
+      var rect;
+      if (step.selRange) {
+        var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
+        if (!a || !b) { obNext(); return; }
+        a.scrollIntoView({ block: "center", behavior: "auto" });
+        rect = obUnionRect(a, b);
+      } else {
+        var el = document.querySelector(step.sel);
+        if (!el) { obNext(); return; }
+        el.scrollIntoView({ block: "center", behavior: "auto" });
+        rect = el.getBoundingClientRect();
+      }
+      backdrop.hidden = true;
+      spot.hidden = false;
+      tip.hidden = false;
+      tip.className = "ob-tooltip";
+      tip.innerHTML = obSpotHTML(step);
+      obPosition(rect);
+    } else {
+      spot.hidden = true;
+      backdrop.hidden = false;
+      tip.hidden = false;
+      tip.className = "ob-tooltip ob-centered";
+      tip.innerHTML = step.type === "welcome" ? obWelcomeHTML() : obDoneHTML();
+    }
+    obBindStepButtons();
+  }
+  function obNext() { obIndex++; obRenderStep(); }
+  function obEnd() {
+    ["ob-backdrop", "ob-spot", "ob-tooltip"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    if (window.AppNav) window.AppNav.go("home");
+  }
+  function obResize() {
+    var step = OB_STEPS[obIndex];
+    if (step && step.type === "spot" && !document.getElementById("ob-spot").hidden) obRenderStep();
+  }
+  window.addEventListener("resize", obResize);
+
+  // 사이드바 레이아웃이 자리잡은 뒤 좌표를 재야 스포트라이트 위치가 어긋나지 않는다.
+  setTimeout(function () { obIndex = 0; obRenderStep(); }, 400);
 })();
