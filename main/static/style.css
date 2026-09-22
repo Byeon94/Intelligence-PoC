@@ -762,6 +762,21 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 /* "나의 대시보드" 제목 + "+ 위젯 추가"/"AI가 추천하기" 버튼이 좁은 화면에서 줄바꿈되게 */
 .gallery-root .block-head { flex-wrap: wrap; gap: 6px 10px; }
 .pd-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* 나의 대시보드에 위젯을 여러 개 담았을 때, 제목 칩을 눌러 해당 카드로 바로 스크롤 */
+.pd-jump-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.pd-jump-chip {
+  display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+  font-size: .8rem; font-weight: 700; color: var(--fg);
+  background: var(--card2); border: 1px solid var(--border); border-radius: 999px;
+  padding: 7px 14px; cursor: pointer;
+}
+.pd-jump-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.pd-widget-anchor { scroll-margin-top: 16px; }
+@media (max-width: 880px) {
+  /* 모바일에선 사이드바가 상단에 sticky 가로 탭으로 바뀌어(main/static/style.css의
+     .sidebar 반응형 규칙) 스크롤 후 카드 맨 위가 그 밑에 가려질 수 있어 여유를 둔다. */
+  .pd-widget-anchor { scroll-margin-top: 110px; }
+}
 
 /* ── 위젯 추가 / AI가 추천하기 모달(오른쪽에서 열리는 시트) ── */
 .wa-modal { position: fixed; inset: 0; z-index: 100; }

@@ -878,11 +878,33 @@
     bindGalleryCardEvents(box);
   }
 
+  function personalAnchorId(w) { return "personal-w-" + w.id; }
+
+  // 위젯을 여러 개 담으면 아래로 쭉 스크롤해야 원하는 걸 찾을 수 있어, 제목만 모은
+  // 칩 내비게이션을 위에 두고 누르면 해당 카드로 바로 스크롤되게 한다.
+  function renderPersonalJumpNav(items) {
+    var nav = document.getElementById("personal-jump-nav");
+    if (!nav) return;
+    if (items.length < 2) { nav.innerHTML = ""; return; }
+    nav.innerHTML = items.map(function (w) {
+      return '<a class="pd-jump-chip" href="#' + personalAnchorId(w) + '">' + w.emoji + " " + esc(w.title) + "</a>";
+    }).join("");
+    nav.querySelectorAll(".pd-jump-chip").forEach(function (chip) {
+      chip.addEventListener("click", function (e) {
+        var el = document.getElementById(chip.getAttribute("href").slice(1));
+        if (!el) return;
+        e.preventDefault();
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }
+
   function renderPersonal() {
     var box = document.getElementById("personal-grid");
     if (!box) return;
     var ids = getMyWidgetIds();
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
+    renderPersonalJumpNav(items);
     if (!items.length) {
       box.innerHTML =
         '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 위젯을 담아보세요.<br>' +
@@ -891,7 +913,9 @@
       if (gbtn) gbtn.addEventListener("click", openWidgetAddModal);
       return;
     }
-    box.innerHTML = items.map(function (w) { return galCardHTML(w, { mini: true }); }).join("");
+    box.innerHTML = items.map(function (w) {
+      return '<div class="pd-widget-anchor" id="' + personalAnchorId(w) + '">' + galCardHTML(w, { mini: true }) + "</div>";
+    }).join("");
     bindGalleryCardEvents(box);
     loadMiniPreviews(items);
     if (items.some(function (w) { return w.id === "credit-analysis"; })) initCreditAnalysisSearch();
