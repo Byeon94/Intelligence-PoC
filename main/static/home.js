@@ -27,8 +27,8 @@
   // sub: 자본시장처럼 내부에 세부탭이 있는 화면일 때, 그 세부탭까지 바로 이동시키기 위한 힌트.
   var WIDGET_CATALOG = [
     { id: "sector-map", externalUrl: "/sector",
-      title: "국내 업종별 시가총액 및 밸류체인", emoji: "🗺️", creditBadge: "투자금융부 이OO 과장 제작",
-      desc: "국내 업종별 시가총액 및 대표산업(4가지) 밸류체인", status: "live" },
+      title: "국내 업종별 시가총액 순위 및 밸류체인", emoji: "📊", creditBadge: "투자금융부 이OO 과장 제작",
+      desc: "국내 업종별 시가총액 순위 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "예시로 삼성전자 정보를 바로 보여드려요 — 종목을 검색하면 다른 기업 정보도 바로 확인할 수 있습니다.",
@@ -771,10 +771,11 @@
     renderGlancePreview(resultEl, "005930", "삼성전자");
   }
 
-  // "국내 업종별 시가총액 및 밸류체인"(내 위젯 전용) — 별도 페이지로 이동하지 않고
-  // 카드 안에서 트리맵 + 업종 순위(기본 5개, 더보기로 전체) + 밸류체인(버튼 선택)을 모두 보여준다.
+  // "국내 업종별 시가총액 순위 및 밸류체인"(내 위젯 전용) — 별도 페이지로 이동하지 않고
+  // 카드 안에서 업종 순위(기본 5개, 더보기로 전체) + 밸류체인(버튼 선택)을 모두 보여준다.
   // 렌더 함수 자체는 sector/static/sector.js 가 window.SectorWidget 으로 공개한 것을 그대로 쓴다
-  // (독립 페이지 /sector 와 중복 구현하지 않기 위함).
+  // (독립 페이지 /sector 와 중복 구현하지 않기 위함). 시가총액 트리맵 맵은 모바일에서
+  // 레이아웃이 깨져 기능을 제거했다.
   function sectorMapCardHTML(w) {
     var id = "mini-" + w.id;
     return (
@@ -786,12 +787,10 @@
         '<div class="gal-title">' + esc(w.title) + "</div>" +
         '<div class="gal-desc">' + esc(w.desc) + "</div>" +
         '<div class="gal-mini" id="' + id + '">' +
-          '<div class="gal-mini-subtitle">1. 업종별 시가총액 맵</div>' +
-          '<div class="sector-treemap" id="' + id + '-treemap"><span class="page-note">불러오는 중…</span></div>' +
+          '<div class="gal-mini-subtitle">1. 업종 순위</div>' +
           '<p class="page-note sector-note" id="' + id + '-map-note"></p>' +
-          '<div class="gal-mini-subtitle">2. 업종 순위</div>' +
           '<div class="table-wrap" id="' + id + '-rank"><span class="page-note">불러오는 중…</span></div>' +
-          '<div class="gal-mini-subtitle">3. 업종별 밸류체인</div>' +
+          '<div class="gal-mini-subtitle">2. 업종별 밸류체인</div>' +
           '<div class="sector-vc-buttons" id="' + id + '-vc-buttons"></div>' +
           '<div id="' + id + '-vc-detail"><span class="page-note">불러오는 중…</span></div>' +
         "</div>" +
@@ -805,19 +804,17 @@
   function initSectorMapWidget() {
     if (!window.SectorWidget) return;
     var id = "mini-sector-map";
-    var treemapEl = document.getElementById(id + "-treemap");
     var rankEl = document.getElementById(id + "-rank");
     var mapNoteEl = document.getElementById(id + "-map-note");
     var btnBox = document.getElementById(id + "-vc-buttons");
     var detailEl = document.getElementById(id + "-vc-detail");
-    if (!treemapEl) return;
+    if (!rankEl) return;
 
     window.SectorWidget.fetchMap().then(function (d) {
-      window.SectorWidget.renderTreemap(treemapEl, d.sectors || []);
       window.SectorWidget.renderRankTable(rankEl, d.sectors || [], d.total_market_cap);
       if (mapNoteEl) mapNoteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
     }).catch(function (e) {
-      treemapEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      rankEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
     });
 
     window.SectorWidget.fetchChains().then(function (d) {
@@ -1208,11 +1205,15 @@
 
   // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 리서치·뉴스 탭에서) ──
   function briefNewsRowHTML(a) {
+    // 태그·제목·날짜를 한 줄에 나란히 두면 제목 칸이 좁아져 줄바꿈이 잦았다.
+    // 태그+날짜는 위 메타줄로 따로 빼고, 제목은 카드 전체 너비를 쓰게 해 줄바꿈을 최소화한다.
     return (
       '<a class="brief-news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
-        '<span class="bni-tag">' + esc(a.tag || "일반") + "</span>" +
+        '<span class="bni-top">' +
+          '<span class="bni-tag">' + esc(a.tag || "일반") + "</span>" +
+          '<span class="bni-date">' + esc(a.published || "") + "</span>" +
+        "</span>" +
         '<span class="bni-title">' + esc(a.title) + "</span>" +
-        '<span class="bni-date">' + esc(a.published || "") + "</span>" +
       "</a>"
     );
   }
@@ -1268,8 +1269,14 @@
     var now = new Date();
     var hh = String(now.getHours()).padStart(2, "0");
     var mm = String(now.getMinutes()).padStart(2, "0");
+    var yyyy = now.getFullYear();
+    var mo = String(now.getMonth() + 1).padStart(2, "0");
+    var dd = String(now.getDate()).padStart(2, "0");
+    var wd = ["일", "월", "화", "수", "목", "금", "토"][now.getDay()];
     var timeEl = document.getElementById("brief-greet-time");
-    if (timeEl) timeEl.textContent = "마지막 업데이트 " + hh + ":" + mm;
+    if (timeEl) {
+      timeEl.textContent = yyyy + "." + mo + "." + dd + "(" + wd + ") 마지막 업데이트 " + hh + ":" + mm;
+    }
     var titleEl = document.getElementById("brief-greet-title");
     if (titleEl) {
       var h = now.getHours();

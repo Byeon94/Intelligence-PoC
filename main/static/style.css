@@ -108,13 +108,16 @@ body {
 .side-btn.active { background: var(--side-active-bg); color: var(--side-fg-active); }
 .side-sep { height: 1px; background: var(--side-sep); margin: 8px 6px; }
 .side-btn-intro { margin-top: auto; padding-top: 21px; border-top: 1px solid var(--side-sep); }
+/* 데스크톱에선 메뉴가 전부 세로로 한눈에 보여 스크롤 힌트가 필요 없다 */
+.side-nav-fade { display: none; }
 
 @media (max-width: 880px) {
   .app-shell { flex-direction: column; }
   /* 짧은 가로 탭바가 스크롤 내내 topbar 자리에 들러붙어 화면이 덜컥거리던 문제를
-     막기 위해 모바일에서는 sticky를 끄고 페이지와 함께 자연스럽게 스크롤되게 한다. */
+     막기 위해 모바일에서는 sticky를 끄고 페이지와 함께 자연스럽게 스크롤되게 한다.
+     position:relative는 .side-nav-fade(오른쪽 끝 그라데이션 힌트)의 기준점 역할. */
   .sidebar {
-    position: static; width: 100%; margin: 0; border-radius: 0;
+    position: relative; width: 100%; margin: 0; border-radius: 0;
     flex-direction: row; align-items: center; flex-wrap: nowrap;
   }
   .side-brand { padding: 10px 6px 10px 12px; flex: 0 0 auto; }
@@ -130,6 +133,19 @@ body {
      고정으로 보일 필요 없이, 옆으로 밀어야 보이게 한다(데스크톱 전용 하단 고정
      스타일은 해제). */
   .side-btn-intro { margin-top: 0; padding-top: 9px; border-top: none; }
+
+  /* 스크롤할 메뉴가 더 남아있을 때만(JS가 .show 토글) 오른쪽 끝에 옅은 그라데이션 +
+     화살표를 보여줘, "옆으로 밀면 더 있다"는 걸 눈에 띄게 알려준다. 끝까지 밀면
+     사라져서 더 이상 스크롤할 게 없다는 것도 함께 알 수 있다. */
+  .side-nav-fade {
+    display: flex; align-items: center; justify-content: flex-end;
+    position: absolute; top: 0; right: 0; bottom: 0; width: 34px;
+    padding-right: 4px; pointer-events: none;
+    background: linear-gradient(to right, rgba(16,22,43,0), #10162b 65%);
+    color: #fff; font-size: 1.05rem; font-weight: 800; line-height: 1;
+    opacity: 0; transition: opacity .15s ease;
+  }
+  .side-nav-fade.show { opacity: 1; }
 }
 
 /* ── 레이아웃 ── */
@@ -788,18 +804,21 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .mkt-sub-label { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 4px 0 8px; }
 .mkt-asof { margin: 0; }
 
-/* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ── */
+/* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ──
+   태그·날짜를 제목과 한 줄에 나란히 두면 제목 칸이 좁아져 줄바꿈이 잦았다.
+   태그+날짜를 위 메타줄로 분리해 제목이 카드 전체 너비를 쓰게 한다. */
 .brief-news-item {
-  display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: inherit;
+  display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit;
   padding: 10px 4px; border-bottom: 1px solid var(--border2);
 }
 .brief-news-item:last-child { border-bottom: none; }
 .brief-news-item:hover .bni-title { color: var(--accent); }
+.bni-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .bni-tag {
   flex: 0 0 auto; font-size: .68rem; font-weight: 700; color: var(--accent);
   background: var(--accent-bg); border-radius: 5px; padding: 2px 7px;
 }
-.bni-title { flex: 1; min-width: 0; font-size: .86rem; font-weight: 600; }
+.bni-title { font-size: .86rem; font-weight: 600; line-height: 1.4; }
 .bni-date { flex: 0 0 auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
 
 /* ── 전사 갤러리 / 홈의 "내가 고른 위젯" 공용 카드 그리드 ── */

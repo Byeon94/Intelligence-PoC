@@ -30,41 +30,26 @@
 
 <main>
   <div class="card intro-card sector-intro">
-    <h2>🗺️ 국내 업종별 시가총액 및 밸류체인</h2>
+    <h2>📊 국내 업종별 시가총액 순위 및 밸류체인</h2>
     <p class="page-note">
       <span class="gal-status st-credit">투자금융부 이OO 과장 제작</span>
-      국내 업종별 시가총액 및 대표산업(4가지) 밸류체인
+      국내 업종별 시가총액 순위 및 대표산업(4가지) 밸류체인
     </p>
   </div>
 
-  <div class="subtabs" id="sector-subtabs" role="tablist">
-    <button class="subtab-btn active" data-sub="map">시가총액 맵</button>
-    <button class="subtab-btn" data-sub="chain">업종별 밸류체인</button>
-  </div>
+  <section class="block">
+    <div class="block-head">
+      <h3>업종 순위</h3>
+      <span class="unit-tag" id="map-note"></span>
+    </div>
+    <div class="table-wrap" id="sector-rank-table"><div class="chart-loading">불러오는 중…</div></div>
+  </section>
 
-  <div class="sub-panel" data-sub="map">
-    <section class="block">
-      <div class="block-head">
-        <h3>업종별 시가총액 맵</h3>
-        <span class="unit-tag">색상 = 등락률(빨강 상승·파랑 하락) · 크기 = 시가총액</span>
-      </div>
-      <div id="sector-treemap" class="sector-treemap"><div class="chart-loading">불러오는 중…</div></div>
-      <p class="page-note sector-note" id="map-note"></p>
-    </section>
-
-    <section class="block">
-      <div class="block-head"><h3>업종 순위</h3></div>
-      <div class="table-wrap" id="sector-rank-table"><div class="chart-loading">불러오는 중…</div></div>
-    </section>
-  </div>
-
-  <div class="sub-panel" data-sub="chain" hidden>
-    <section class="block">
-      <div class="block-head"><h3>대표산업 밸류체인</h3></div>
-      <div class="sector-vc-buttons" id="chain-buttons"></div>
-      <div id="chain-detail"><div class="chart-loading">불러오는 중…</div></div>
-    </section>
-  </div>
+  <section class="block">
+    <div class="block-head"><h3>대표산업 밸류체인</h3></div>
+    <div class="sector-vc-buttons" id="chain-buttons"></div>
+    <div id="chain-detail"><div class="chart-loading">불러오는 중…</div></div>
+  </section>
 </main>
 
 <script>
