@@ -921,7 +921,8 @@
       document.getElementById("personal-jump-nav").innerHTML = "";
       // 상단 헤더에 이미 "+ 위젯 추가" 버튼이 있어, 여기서는 문구만 안내하고
       // 별도 버튼(예전엔 "위젯 추가하러 가기 →")은 중복이라 없앴다.
-      box.innerHTML = '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 위젯을 담아보세요.</div>';
+      // 위 block-head 소개 문구("+ 위젯 추가"를 눌러...)와 중복이라 별도 안내 없이 빈 채로 둔다.
+      box.innerHTML = "";
       return;
     }
     // 이전에 선택했던 위젯이 아직 있으면 유지, 없으면(처음이거나 방금 제거됐으면) 첫 위젯으로.
@@ -1285,12 +1286,15 @@
       renderHighlights(d);
       renderMarket(d);
       renderBriefNews(d);
+      obResize(); // 데이터가 늦게 들어오면 "불러오는 중" 자리(짧음) 기준으로 잡혔던
+                  // 스포트라이트 박스가 실제 콘텐츠(김) 크기에 안 맞을 수 있어 다시 잰다.
     }).catch(function (e) {
       ["brief-highlights", "brief-market", "brief-news"].forEach(function (id) {
         var box = document.getElementById(id);
         if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
       });
       briefingLoaded = false; // 재방문 시 재시도
+      obResize();
     });
   }
 

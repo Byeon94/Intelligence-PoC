@@ -366,6 +366,10 @@ def _collect() -> dict:
 
     esop_health = _CallHealth()
     listed_ccs = _listed_corp_codes()
+    # 유상증자(이미 상장된 회사 대상)는 증권담보대출 리드와 같은 시가총액 상위
+    # 코스피 200·코스닥 100(=stocks, _scan_universe 결과)으로 좁힌다. IPO(상장 전
+    # 공모)는 애초에 이 목록에 없는 회사들이라 전 시장 그대로 둔다.
+    top_ccs = {cc for s in stocks if (cc := corp_code(s.get("code") or ""))}
     esop: list[dict] = []
     seen_rcept: set[str] = set()
     for it in _esop_sweep(key, cutoff, esop_health):
@@ -377,6 +381,8 @@ def _collect() -> dict:
         cc = (it.get("corp_code") or "").strip()
         if is_ipo_candidate and cc in listed_ccs:
             continue  # 이미 상장된 회사의 증권신고서(지분증권) — 유상증자 계열, 중복 제외
+        if is_rights and cc not in top_ccs:
+            continue  # 유상증자는 시가총액 상위 코스피 200·코스닥 100 대상만
         rcept_no = (it.get("rcept_no") or "").strip()
         if not rcept_no or rcept_no in seen_rcept:
             continue
