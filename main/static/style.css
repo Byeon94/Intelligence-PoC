@@ -64,15 +64,20 @@ body {
 /* ── 좌측 사이드바 내비게이션(오늘의 브리핑/나의 대시보드/부서 4개) ──
    데스크톱(881px~)에서는 세로 사이드바, 모바일에서는 기존처럼 상단 가로 스크롤
    탭으로 보여준다(수많은 화면에서 이미 검증된 모바일 UX를 그대로 재사용). */
-.app-shell { max-width: 1180px; margin: 0 auto; display: flex; align-items: flex-start; }
+/* align-items 기본값(stretch)을 그대로 둬서 .sidebar가 .main과 같은 높이로 늘어나게
+   한다 — flex-start로 두면 사이드바가 버튼 6개 높이(약 290px)에서 뚝 끊겨 버린다. */
+.app-shell { max-width: 1180px; margin: 0 auto; display: flex; }
 /* .topbar 실제 높이(브랜드 행 50px + 테두리 1px + 노치 안전영역)만큼 아래에 붙여야
    .topbar(z-index 50)에 사이드바 상단이 가려지지 않는다 — 둘 다 sticky top:0이면
    스크롤 시 사이드바가 topbar 뒤로 숨어버린다. */
 /* 다크/라이트 테마와 무관하게 항상 짙은 남색으로 고정 — 내비게이션 영역을 콘텐츠와
-   시각적으로 분리하는 용도라, 사이트 전체 테마 토글의 영향을 받지 않는다. */
+   시각적으로 분리하는 용도라, 사이트 전체 테마 토글의 영향을 받지 않는다.
+   position:sticky는 박스 전체(.sidebar)에 걸려 있고 .side-nav는 그 안의 맨 위
+   자식이라, 늘어난 박스가 스크롤 내내 상단에 붙어 있는 동안 네비 버튼도 항상
+   같은 자리에 보인다 — 남색 배경만 페이지 길이만큼 아래로 이어진다. */
 .sidebar {
   flex: 0 0 auto; position: sticky; top: calc(51px + env(safe-area-inset-top));
-  z-index: 49; align-self: flex-start; margin: 14px 0;
+  z-index: 49; margin: 14px 0;
   background: #10162b; border-radius: 16px;
   --side-fg: #99a3bd; --side-fg-active: #fff;
   --side-hover-bg: rgba(255,255,255,.07); --side-active-bg: rgba(91,141,239,.32);
