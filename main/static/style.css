@@ -879,6 +879,12 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .ai-result-name { font-size: .86rem; font-weight: 600; }
 .ai-result-add { flex: 0 0 auto; }
 .gal-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+/* "나의 대시보드"는 위젯을 한 번에 하나씩만 보여주며 .gal-card를 이 anchor로 한 번 더
+   감싸는데, 이 anchor가 .gal-grid의 실제 그리드 아이템이다 — .gal-card에는 min-width:0이
+   있어도 이 anchor 자체엔 없어서(그리드 아이템 기본값 min-width:auto) 표·밸류체인처럼
+   내용이 넓은 위젯(업종별 시가총액 순위 등)이 anchor를 콘텐츠 너비만큼 넓혀 페이지 전체가
+   가로로 밀려 보이는 문제가 있었다. */
+.pd-widget-anchor { min-width: 0; }
 .gal-card {
   background: var(--card); border: 1px solid var(--border); border-radius: 14px;
   padding: 15px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px;
@@ -907,6 +913,8 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-mini-item { display: flex; flex-direction: column; gap: 2px; }
 .gal-mini-item .gmi-label { font-size: .68rem; color: var(--muted); }
 .gal-mini-item .gmi-value { font-size: .95rem; font-weight: 800; }
+/* 총 건수 옆 세부 분류 괄호 — 총 건수만큼 강조할 필요가 없어 작고 가는 글씨로 낮춘다 */
+.gmi-value-sub { font-size: .72rem; font-weight: 500; color: var(--muted); }
 .gal-mini-bullets { list-style: none; padding: 0; margin: 0; font-size: .78rem; }
 .gal-mini-bullets li { padding: 2px 0; line-height: 1.42; }
 .gal-mini-bullets li::before { content: "· "; color: var(--accent); font-weight: 800; }

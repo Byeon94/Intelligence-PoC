@@ -245,11 +245,17 @@
     "market-reports": function (el) {
       return get("/api/credit/market-reports").then(function (d) {
         var cc = d.category_counts || {};
+        // 세부 분류(괄호 안)는 총 건수만큼 강조할 필요가 없어 더 작고 가는 글씨로 따로 감싼다
+        // (miniRow는 값 전체를 esc()로 감싸 HTML을 못 끼워 넣으므로 이 줄만 직접 그린다).
         var catTxt = Object.keys(cc).sort(function (a, b) { return cc[b] - cc[a]; })
-          .map(function (k) { return k + " " + cc[k]; }).join(" · ");
-        var totalTxt = (d.total || 0) + (d.total_capped ? "+" : "") + "건" +
-          (catTxt ? " (" + catTxt + ")" : "");
-        var html = asOfLine(d.as_of) + miniRow([["리포트 총 건수", totalTxt]]) +
+          .map(function (k) { return esc(k) + " " + cc[k]; }).join(" · ");
+        var totalTxt = (d.total || 0) + (d.total_capped ? "+" : "") + "건";
+        var totalRow = '<div class="gal-mini-row"><div class="gal-mini-item">' +
+          '<span class="gmi-label">리포트 총 건수</span>' +
+          '<span class="gmi-value">' + esc(totalTxt) +
+          (catTxt ? ' <span class="gmi-value-sub">(' + catTxt + ")</span>" : "") +
+          "</span></div></div>";
+        var html = asOfLine(d.as_of) + totalRow +
           miniBullets(d.briefing, d.briefing_note);
         var top = (d.items || []).slice(0, 5);
         if (top.length) {
@@ -1278,10 +1284,7 @@
       timeEl.textContent = yyyy + "." + mo + "." + dd + "(" + wd + ") 마지막 업데이트 " + hh + ":" + mm;
     }
     var titleEl = document.getElementById("brief-greet-title");
-    if (titleEl) {
-      var h = now.getHours();
-      titleEl.textContent = h < 12 ? "좋은 아침입니다." : (h < 18 ? "좋은 오후입니다." : "좋은 저녁입니다.");
-    }
+    if (titleEl) titleEl.textContent = "좋은 하루입니다.";
   }
 
   var briefingLoaded = false;

@@ -24,8 +24,8 @@ T = TypeVar("T")
 _RATIO_ALERT_PP = 1.0
 
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
-# 나열하지 않는다). 우선순위: ①이상징후(유동성) ②여신·심사 신규 리드(상속·증여/
-# 우리사주) ③금융당국 보도자료 1건 ④AI 선별 리서치 기사(나머지 자리를 채움).
+# 나열하지 않는다). 우선순위: ①이상징후(유동성) ②금융당국(금융위원회 등) 보도자료 1건
+# ③여신·심사 신규 리드(상속·증여/우리사주) ④AI 선별 리서치 기사(나머지 자리를 채움).
 _MAX_TODAY_KEY = 3
 
 
@@ -114,12 +114,12 @@ def get_home_summary() -> dict:
     liquidity_alert = _liquidity_alert()
     if liquidity_alert:
         today_key.append({"kind": "alert", **liquidity_alert})
-    credit_alert = _credit_leads_alert()
-    if credit_alert:
-        today_key.append({"kind": "alert", **credit_alert})
     policy_highlight = _policy_highlight(policy)
     if policy_highlight:
         today_key.append(policy_highlight)
+    credit_alert = _credit_leads_alert()
+    if credit_alert:
+        today_key.append({"kind": "alert", **credit_alert})
     for a in (articles or []):
         if len(today_key) >= _MAX_TODAY_KEY:
             break
