@@ -68,23 +68,29 @@ body {
 /* .topbar 실제 높이(브랜드 행 50px + 테두리 1px + 노치 안전영역)만큼 아래에 붙여야
    .topbar(z-index 50)에 사이드바 상단이 가려지지 않는다 — 둘 다 sticky top:0이면
    스크롤 시 사이드바가 topbar 뒤로 숨어버린다. */
+/* 다크/라이트 테마와 무관하게 항상 짙은 남색으로 고정 — 내비게이션 영역을 콘텐츠와
+   시각적으로 분리하는 용도라, 사이트 전체 테마 토글의 영향을 받지 않는다. */
 .sidebar {
   flex: 0 0 auto; position: sticky; top: calc(51px + env(safe-area-inset-top));
-  z-index: 49; align-self: flex-start;
+  z-index: 49; align-self: flex-start; margin: 14px 0;
+  background: #10162b; border-radius: 16px;
+  --side-fg: #99a3bd; --side-fg-active: #fff;
+  --side-hover-bg: rgba(255,255,255,.07); --side-active-bg: rgba(91,141,239,.32);
+  --side-sep: rgba(255,255,255,.12);
 }
 .side-nav { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; width: 196px; }
 .side-btn {
   display: flex; align-items: center; gap: 9px; text-align: left; white-space: nowrap;
-  background: none; border: none; border-radius: 10px; color: var(--muted);
+  background: none; border: none; border-radius: 10px; color: var(--side-fg);
   font-size: .88rem; font-weight: 700; padding: 10px 12px; cursor: pointer;
 }
-.side-btn:hover { background: var(--card2); color: var(--fg); }
-.side-btn.active { background: var(--accent-bg); color: var(--accent); }
-.side-sep { height: 1px; background: var(--border2); margin: 8px 6px; }
+.side-btn:hover { background: var(--side-hover-bg); color: var(--side-fg-active); }
+.side-btn.active { background: var(--side-active-bg); color: var(--side-fg-active); }
+.side-sep { height: 1px; background: var(--side-sep); margin: 8px 6px; }
 
 @media (max-width: 880px) {
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; background: var(--bg2); border-bottom: 1px solid var(--border); }
+  .sidebar { width: 100%; margin: 10px 0; border-radius: 12px; }
   .side-nav {
     flex-direction: row; width: auto; padding: 6px 8px; gap: 2px;
     overflow-x: auto; scrollbar-width: none;
@@ -668,22 +674,25 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .home-empty-widgets { text-align: center; padding: 20px 10px; }
 .home-empty-widgets .dart-btn { margin-top: 10px; }
 
-/* ── 오늘의 브리핑: 인사말 + KPI 요약 카드 ── */
+/* ── 오늘의 브리핑: 인사말 ── */
 .brief-greet { margin-bottom: 16px; }
 .brief-greet h2 { font-size: 1.2rem; margin-bottom: 4px; }
 .brief-greet-time { display: block; color: var(--muted); font-size: .74rem; margin-top: 6px; }
-.brief-kpis { margin-bottom: 20px; }
-.brief-kpi { cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
-.brief-kpi:hover { border-color: var(--accent); transform: translateY(-1px); }
 
-/* ── 꼭 확인하세요: WHAT(제목) + WHY(우리에게 중요한 이유) 카드 ── */
+/* ── 꼭 확인하세요: 이상징후 알림 + 정책·리서치 하이라이트(WHAT+WHY) + AI 인사이트를
+   한 목록으로 합쳐 보여준다. .hl-card 는 kind에 따라 <a>(정책·리서치, 외부 링크),
+   .hl-card-btn(<div data-work>, 알림 — 클릭 시 해당 화면으로 이동), .hl-card-static
+   (AI 인사이트, 클릭 동작 없음) 세 가지로 렌더된다. ── */
 .hl-card {
-  display: block; text-decoration: none; color: inherit;
+  display: block; width: 100%; text-align: left; text-decoration: none; color: inherit;
   background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
   border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; box-shadow: var(--shadow);
+  font: inherit; cursor: pointer;
 }
 .hl-card:last-child { margin-bottom: 0; }
 .hl-card:hover { border-color: var(--accent); }
+.hl-card-static { cursor: default; }
+.hl-card-static:hover { border-color: var(--border); }
 .hl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .hl-cat {
   font-size: .7rem; font-weight: 700; color: var(--accent);
@@ -732,30 +741,6 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .bni-title { flex: 1; min-width: 0; font-size: .86rem; font-weight: 600; }
 .bni-date { flex: 0 0 auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
 
-/* ── AI가 발견한 특이사항 ── */
-.signal-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.signal-list li {
-  font-size: .86rem; line-height: 1.6; background: var(--card2); border-radius: 10px; padding: 10px 12px;
-}
-
-.home-alert {
-  display: flex; align-items: center; gap: 10px;
-  border-radius: 12px; border: 1px solid var(--border); padding: 8px 10px 8px 14px; margin-bottom: 6px;
-  background: var(--card2);
-}
-.home-alert:last-child { margin-bottom: 0; }
-.home-alert.al-warn { background: rgba(220,38,38,.08); border-color: rgba(220,38,38,.35); }
-.home-alert .al-body { flex: 1; min-width: 0; }
-.home-alert .al-title { font-weight: 800; font-size: .82rem; }
-.home-alert .al-title-sub { font-weight: 500; font-size: .84em; color: var(--muted); }
-.home-alert .al-detail { font-size: .74rem; color: var(--muted); }
-.home-alert .al-go {
-  flex: 0 0 auto; background: none; border: 1px solid var(--border); color: var(--fg);
-  border-radius: 999px; padding: 5px 11px; font-size: .7rem; font-weight: 700; cursor: pointer;
-  white-space: nowrap;
-}
-.home-alert .al-go:hover { border-color: var(--accent); color: var(--accent); }
-
 /* ── 전사 갤러리 / 홈의 "내가 고른 위젯" 공용 카드 그리드 ── */
 .gallery-back-btn { margin-bottom: 12px; }
 .gallery-intro { margin: -6px 0 14px; }
@@ -766,17 +751,12 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .pd-jump-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .pd-jump-chip {
   display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
-  font-size: .8rem; font-weight: 700; color: var(--fg);
+  font-size: .8rem; font-weight: 700; color: var(--fg); font-family: inherit;
   background: var(--card2); border: 1px solid var(--border); border-radius: 999px;
   padding: 7px 14px; cursor: pointer;
 }
 .pd-jump-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-.pd-widget-anchor { scroll-margin-top: 16px; }
-@media (max-width: 880px) {
-  /* 모바일에선 사이드바가 상단에 sticky 가로 탭으로 바뀌어(main/static/style.css의
-     .sidebar 반응형 규칙) 스크롤 후 카드 맨 위가 그 밑에 가려질 수 있어 여유를 둔다. */
-  .pd-widget-anchor { scroll-margin-top: 110px; }
-}
+.pd-jump-chip.active { color: #fff; background: var(--accent); border-color: var(--accent); }
 
 /* ── 위젯 추가 / AI가 추천하기 모달(오른쪽에서 열리는 시트) ── */
 .wa-modal { position: fixed; inset: 0; z-index: 100; }

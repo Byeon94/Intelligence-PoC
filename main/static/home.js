@@ -880,22 +880,32 @@
 
   function personalAnchorId(w) { return "personal-w-" + w.id; }
 
-  // 위젯을 여러 개 담으면 아래로 쭉 스크롤해야 원하는 걸 찾을 수 있어, 제목만 모은
-  // 칩 내비게이션을 위에 두고 누르면 해당 카드로 바로 스크롤되게 한다.
+  // 위젯을 여러 개 담으면 한 화면에 다 쌓여 복잡해지니, 제목 칩을 탭처럼 써서
+  // 한 번에 하나씩만 보여준다(선택 상태는 탭이 열려 있는 동안만 메모리로 유지).
+  var personalActiveId = null;
+
   function renderPersonalJumpNav(items) {
     var nav = document.getElementById("personal-jump-nav");
     if (!nav) return;
     if (items.length < 2) { nav.innerHTML = ""; return; }
     nav.innerHTML = items.map(function (w) {
-      return '<a class="pd-jump-chip" href="#' + personalAnchorId(w) + '">' + w.emoji + " " + esc(w.title) + "</a>";
+      return '<button type="button" class="pd-jump-chip' + (w.id === personalActiveId ? " active" : "") +
+        '" data-id="' + esc(w.id) + '">' + w.emoji + " " + esc(w.title) + "</button>";
     }).join("");
     nav.querySelectorAll(".pd-jump-chip").forEach(function (chip) {
-      chip.addEventListener("click", function (e) {
-        var el = document.getElementById(chip.getAttribute("href").slice(1));
-        if (!el) return;
-        e.preventDefault();
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      chip.addEventListener("click", function () {
+        personalActiveId = chip.dataset.id;
+        showPersonalWidget(personalActiveId);
+        nav.querySelectorAll(".pd-jump-chip").forEach(function (c) {
+          c.classList.toggle("active", c === chip);
+        });
       });
+    });
+  }
+
+  function showPersonalWidget(id) {
+    document.querySelectorAll(".pd-widget-anchor").forEach(function (el) {
+      el.hidden = el.id !== personalAnchorId({ id: id });
     });
   }
 
@@ -904,8 +914,9 @@
     if (!box) return;
     var ids = getMyWidgetIds();
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
-    renderPersonalJumpNav(items);
     if (!items.length) {
+      personalActiveId = null;
+      document.getElementById("personal-jump-nav").innerHTML = "";
       box.innerHTML =
         '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 위젯을 담아보세요.<br>' +
         '<button type="button" class="dart-btn" id="personal-go-gallery">위젯 추가하러 가기 →</button></div>';
@@ -913,8 +924,14 @@
       if (gbtn) gbtn.addEventListener("click", openWidgetAddModal);
       return;
     }
+    // 이전에 선택했던 위젯이 아직 있으면 유지, 없으면(처음이거나 방금 제거됐으면) 첫 위젯으로.
+    if (!items.some(function (w) { return w.id === personalActiveId; })) {
+      personalActiveId = items[0].id;
+    }
+    renderPersonalJumpNav(items);
     box.innerHTML = items.map(function (w) {
-      return '<div class="pd-widget-anchor" id="' + personalAnchorId(w) + '">' + galCardHTML(w, { mini: true }) + "</div>";
+      return '<div class="pd-widget-anchor" id="' + personalAnchorId(w) + '"' +
+        (w.id === personalActiveId ? "" : " hidden") + ">" + galCardHTML(w, { mini: true }) + "</div>";
     }).join("");
     bindGalleryCardEvents(box);
     loadMiniPreviews(items);
@@ -1064,66 +1081,81 @@
     return /^\d{8}$/.test(s) ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8) : s;
   }
 
-  // ── 오늘의 브리핑: KPI 요약 카드 ──
-  function briefKpiCardHTML(value, label, sub, jumpId) {
-    return (
-      '<div class="kpi brief-kpi"' + (jumpId ? ' data-jump="' + jumpId + '"' : ' data-jump="personal"') + '>' +
-        '<div class="k-label">' + esc(label) + "</div>" +
-        '<div class="k-value">' + value + "</div>" +
-        (sub ? '<div class="k-sub">' + esc(sub) + "</div>" : "") +
-      "</div>"
-    );
+  // ── 오늘의 브리핑: 꼭 확인하세요 ── 이상징후 알림 + 정책 발표 1건 + AI 선별 리서치
+  // 상위건 + 오늘의 태그 분포 인사이트를 한 목록으로 합쳐서 보여준다(예전엔 "꼭
+  // 확인하세요"/"오늘의 알림"/"AI가 발견한 특이사항" 3곳에 겹치게 나눠져 있었음).
+  // research.curate 가 이미 만들어둔 태그·이유(reason)를 그대로 재사용, 새 Gemini
+  // 호출 없음.
+  function alertLineTitle(a) {
+    var m = a.detail ? /(\d{4}-\d{2}-\d{2})/.exec(a.detail) : null;
+    return esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
   }
-  function renderBriefKpis(d) {
-    var box = document.getElementById("brief-kpis");
-    if (!box) return;
-    var highlightCount = (d.highlights || []).length;
-    var articles = (d.research && d.research.articles) || [];
-    var usedResearch = (d.highlights || []).filter(function (h) { return h.kind === "research"; }).length;
-    var moreCount = Math.max(0, articles.length - usedResearch);
-    var candidateCount = (d.research && d.research.candidate_count) || 0;
-    box.innerHTML =
-      briefKpiCardHTML(highlightCount, "꼭 확인하세요", "업무 영향이 큰 변화", "brief-highlights-block") +
-      briefKpiCardHTML(moreCount, "오늘 알아두면 좋은 것", "AI 선별 뉴스·리서치", "brief-news-block") +
-      briefKpiCardHTML(candidateCount, "새로운 소식", "오늘 수집된 후보 기사", "brief-news-block") +
-      briefKpiCardHTML(getMyWidgetIds().length, "나의 관심 위젯", "나의 대시보드에서 확인", null);
-    box.querySelectorAll(".brief-kpi").forEach(function (card) {
-      card.addEventListener("click", function () {
-        var jump = card.dataset.jump;
-        if (jump === "personal") { if (window.AppNav) window.AppNav.go("personal"); return; }
-        var el = document.getElementById(jump);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    });
+  function highlightCardHTML(h) {
+    var cat, badge, reason, dateText;
+    if (h.kind === "alert") {
+      cat = "알림";
+      badge = h.level === "warn" ? '<span class="hl-badge">HOT</span>' : "";
+      reason = "";
+      dateText = "";
+    } else if (h.kind === "insight") {
+      cat = "AI 인사이트";
+      badge = "";
+      reason = "";
+      dateText = "";
+    } else if (h.kind === "policy") {
+      cat = h.org || "정책·규제";
+      badge = '<span class="hl-badge">HOT</span>';
+      reason = "금융당국 발표 — 관련 업무 영향 확인이 필요합니다.";
+      dateText = fmtDate(h.date);
+    } else {
+      cat = h.tag || "일반";
+      badge = "";
+      reason = h.reason || "";
+      dateText = fmtDate(h.date);
+    }
+    var inner =
+      '<div class="hl-top"><span class="hl-cat">' + esc(cat) + "</span>" + badge +
+        (dateText ? '<span class="hl-date">' + esc(dateText) + "</span>" : "") + "</div>" +
+      '<div class="hl-title">' +
+        (h.kind === "alert" ? alertLineTitle(h) : esc(h.title || "")) +
+      "</div>" +
+      (reason ? '<div class="hl-reason"><span class="hl-reason-label">우리에게 중요한 이유</span>' + esc(reason) + "</div>" : "");
+    if (h.kind === "alert") {
+      return '<div class="hl-card hl-card-btn" data-work="' + esc(h.tab || "") + '"' +
+        (h.sub ? ' data-sub="' + esc(h.sub) + '"' : "") + ">" + inner + "</div>";
+    }
+    if (h.kind === "insight") {
+      return '<div class="hl-card hl-card-static">' + inner + "</div>";
+    }
+    return '<a class="hl-card" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' + inner + "</a>";
   }
 
-  // ── 오늘의 브리핑: 꼭 확인하세요(정책 발표 1건 + AI 선별 리서치 상위건, "우리에게
-  // 중요한 이유" 포함) — research.curate 가 이미 만들어둔 태그·이유를 그대로 쓴다. ──
-  function highlightCardHTML(h) {
-    var isPolicy = h.kind === "policy";
-    var cat = isPolicy ? (h.org || "정책·규제") : (h.tag || "일반");
-    var reason = isPolicy
-      ? "금융당국 발표 — 관련 업무 영향 확인이 필요합니다."
-      : (h.reason || "");
-    return (
-      '<a class="hl-card" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' +
-        '<div class="hl-top">' +
-          '<span class="hl-cat">' + esc(cat) + "</span>" +
-          (isPolicy ? '<span class="hl-badge">HOT</span>' : "") +
-          '<span class="hl-date">' + esc(fmtDate(h.date)) + "</span>" +
-        "</div>" +
-        '<div class="hl-title">' + esc(h.title || "") + "</div>" +
-        (reason ? '<div class="hl-reason"><span class="hl-reason-label">우리에게 중요한 이유</span>' + esc(reason) + "</div>" : "") +
-      "</a>"
-    );
+  // 오늘 AI가 선별한 뉴스의 실제 태그 분포에서 가장 많은 카테고리 1건만 인사이트로
+  // 뽑는다(과거 데이터가 없어 "N일 연속" 같은 추세는 지어내지 않음).
+  function computeSignalHighlight(d) {
+    var arts = (d.research && d.research.articles) || [];
+    if (!arts.length) return null;
+    var counts = {};
+    arts.forEach(function (a) { var t = a.tag || "일반"; counts[t] = (counts[t] || 0) + 1; });
+    var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
+    return {
+      kind: "insight",
+      title: "오늘 AI가 선별한 뉴스 " + arts.length + "건 중 " + top + " 관련이 " + counts[top] + "건으로 가장 많습니다."
+    };
   }
+
   function renderHighlights(d) {
     var box = document.getElementById("brief-highlights");
     if (!box) return;
-    var items = d.highlights || [];
+    var alerts = [WIDGET_RECOMMENDATION].concat(d.alerts || []).map(function (a) {
+      return { kind: "alert", title: a.title, detail: a.detail, tab: a.tab, sub: a.sub, level: a.level };
+    });
+    var signal = computeSignalHighlight(d);
+    var items = alerts.concat(d.highlights || []).concat(signal ? [signal] : []);
     box.innerHTML = items.length
       ? items.map(highlightCardHTML).join("")
       : '<div class="page-note">오늘은 꼭 확인할 만큼 중요한 항목이 없습니다.</div>';
+    bindGoWorkButtons(box);
   }
 
   // ── 오늘의 브리핑: 시장 한눈에(코스피·코스닥 실시간 지수, capital.market_snapshot) ──
@@ -1168,63 +1200,8 @@
     if (!box) return;
     var arts = (d.research && d.research.articles) || [];
     box.innerHTML = arts.length
-      ? arts.slice(0, 6).map(briefNewsRowHTML).join("")
+      ? arts.slice(0, 5).map(briefNewsRowHTML).join("")
       : '<div class="page-note">' + esc((d.research && d.research.briefing_note) || "오늘 선별된 뉴스가 없습니다.") + "</div>";
-  }
-
-  // ── 오늘의 브리핑: AI가 발견한 특이사항 — 실제 오늘 태그 분포에서 뽑은 사실 1~2줄
-  // (역사 데이터가 없어 "N일 연속" 같은 추세는 지어내지 않고, 오늘 하루 분포만 근거로 삼는다). ──
-  function renderSignal(d) {
-    var box = document.getElementById("brief-signal");
-    if (!box) return;
-    var arts = (d.research && d.research.articles) || [];
-    if (!arts.length) {
-      box.innerHTML = '<div class="page-note">아직 특이사항을 판단할 데이터가 부족합니다.</div>';
-      return;
-    }
-    var counts = {};
-    arts.forEach(function (a) { var t = a.tag || "일반"; counts[t] = (counts[t] || 0) + 1; });
-    var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
-    var bullets = [
-      "오늘 AI가 선별한 뉴스 " + arts.length + "건 중 <b>" + esc(top) + "</b> 관련이 " + counts[top] + "건으로 가장 많습니다."
-    ];
-    if (d.research && d.research.candidate_count) {
-      bullets.push(
-        "당일 수집된 후보 기사 " + d.research.candidate_count + "건 중 " + arts.length + "건이 KSFC 업무 관련도가 높다고 판단됐습니다."
-      );
-    }
-    box.innerHTML = '<ul class="signal-list">' + bullets.map(function (b) { return "<li>💡 " + b + "</li>"; }).join("") + "</ul>";
-  }
-
-  // 알림 상세문구(detail)에서 날짜만 뽑아 "제목 (YYYY-MM-DD 기준)" 한 줄로 압축한다
-  // (부연설명 줄은 없앰 — 요청에 따라). 끝에 붙는 "(...)" 부분은 본문보다 작고
-  // 덜 굵게 보이도록 별도 span으로 감싼다.
-  function alertLineTitle(a) {
-    var m = a.detail ? /(\d{4}-\d{2}-\d{2})/.exec(a.detail) : null;
-    var full = esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
-    var pm = /^(.*?)(\s*\([^()]*\))$/.exec(full);
-    return pm ? pm[1] + '<span class="al-title-sub">' + pm[2] + "</span>" : full;
-  }
-
-  function renderAlerts(alerts) {
-    var box = document.getElementById("home-alerts");
-    if (!box) return;
-    if (!alerts || !alerts.length) {
-      box.innerHTML = '<div class="page-note">현재 등록된 이상징후 알림이 없습니다.</div>';
-      return;
-    }
-    box.innerHTML = alerts.map(function (a) {
-      return (
-        '<div class="home-alert ' + (a.level === "warn" ? "al-warn" : "al-info") + '">' +
-          '<div class="al-body">' +
-            '<div class="al-title">' + (a.icon || "⚠️") + " " + alertLineTitle(a) + "</div>" +
-          "</div>" +
-          '<button type="button" class="al-go" data-work="' + a.tab + '"' +
-            (a.sub ? ' data-sub="' + a.sub + '"' : "") + '>확인 →</button>' +
-        "</div>"
-      );
-    }).join("");
-    bindGoWorkButtons(box);
   }
 
   function bindGoWorkButtons(scope) {
@@ -1281,18 +1258,14 @@
     briefingLoaded = true;
     renderGreetTime();
     get("/api/home/summary").then(function (d) {
-      renderBriefKpis(d);
       renderHighlights(d);
       renderMarket(d);
       renderBriefNews(d);
-      renderSignal(d);
-      renderAlerts([WIDGET_RECOMMENDATION].concat(d.alerts || []));
     }).catch(function (e) {
-      ["brief-highlights", "brief-market", "brief-news", "brief-signal"].forEach(function (id) {
+      ["brief-highlights", "brief-market", "brief-news"].forEach(function (id) {
         var box = document.getElementById(id);
         if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
       });
-      renderAlerts([WIDGET_RECOMMENDATION]);
       briefingLoaded = false; // 재방문 시 재시도
     });
   }
