@@ -24,10 +24,8 @@
     <button class="side-btn" data-cat="credit">🏦 여신·심사</button>
     <button class="side-btn" data-cat="policy">📜 정책·규제</button>
     <button class="side-btn" data-cat="research">📰 리서치·뉴스</button>
+    <button class="side-btn side-btn-intro" data-cat="intro" id="intro-btn" type="button">ℹ️ 소개</button>
   </nav>
-  <div class="side-foot">
-    <button class="side-btn" id="intro-btn" type="button">ℹ️ 소개</button>
-  </div>
 </aside>
 
 <main>
@@ -272,7 +270,6 @@ function applyView(cat) {
   document.querySelectorAll('.side-btn').forEach(function (btn) {
     btn.classList.toggle('active', btn.dataset.cat === cat);
   });
-  document.getElementById('intro-btn').classList.toggle('active', cat === 'intro');
   document.querySelectorAll('.tab-panel').forEach(function (panel) {
     panel.hidden = panel.dataset.panel !== cat;
   });
@@ -293,7 +290,6 @@ document.getElementById('main-tabs').addEventListener('click', function (e) {
   var btn = e.target.closest('.side-btn');
   if (btn) applyView(btn.dataset.cat);
 });
-document.getElementById('intro-btn').addEventListener('click', function () { applyView('intro'); });
 document.getElementById('home-link').addEventListener('click', function (e) {
   e.preventDefault(); applyView('home');
 });

@@ -1454,6 +1454,11 @@
       backdrop.hidden = false;
       tip.hidden = false;
       tip.className = "ob-tooltip ob-centered";
+      // 이전 스텝이 spot이었다면 obPosition()이 top/left/width를 인라인 스타일로
+      // 박아뒀다 — 인라인 스타일은 .ob-centered의 top:50%/left:50%보다 우선순위가
+      // 높아서 안 지우면 welcome·done 모달이 마지막 스포트라이트 위치에 걸려
+      // 화면 밖으로 잘려 보인다(실제로 모바일에서 이렇게 잘려 보인다는 제보 확인).
+      tip.style.top = ""; tip.style.left = ""; tip.style.width = "";
       tip.innerHTML = step.type === "welcome" ? obWelcomeHTML() : obDoneHTML();
     }
     obBindStepButtons();
