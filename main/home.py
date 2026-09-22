@@ -23,11 +23,10 @@ T = TypeVar("T")
 # 신용공여/예탁금 비율이 전기 대비 이 값(%p) 이상 변하면 홈에 알림 카드 표시.
 _RATIO_ALERT_PP = 1.0
 
-# 홈 화면 알림은 최대 이만큼만(과다 노출 방지). 우선순위: ①이상징후(유동성)
-# ②여신·심사 신규 리드(상속·증여/우리사주) ③금융당국 동향(최대 1건 — 금융위원회
-# 우선순위, AUTHORITY_ORGS 순서를 그대로 따름).
-_MAX_ALERTS = 3
-_MAX_POLICY_ALERTS = 1
+# "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
+# 나열하지 않는다). 우선순위: ①이상징후(유동성) ②여신·심사 신규 리드(상속·증여/
+# 우리사주) ③금융당국 보도자료 1건 ④AI 선별 리서치 기사(나머지 자리를 채움).
+_MAX_TODAY_KEY = 3
 
 
 def _safe(label: str, fn: Callable[[], T]) -> T | None:
@@ -54,33 +53,6 @@ def _liquidity_alert() -> dict | None:
         "tab": "capital",
         "sub": "liquidity",
     }
-
-
-def _policy_org_alerts(policy: dict | None) -> list[dict]:
-    """조회 기준일(비영업일이면 직전 영업일)에 금융당국(금융위·금감원·한국은행·재정경제부)
-    보도자료가 새로 등록된 기관이 있으면 알림 카드를 만든다. 최대 _MAX_POLICY_ALERTS건만
-    (AUTHORITY_ORGS 순서 = 금융위원회 우선순위)."""
-    if not policy:
-        return []
-    as_of = policy.get("as_of")
-    if not as_of:
-        return []
-    alerts: list[dict] = []
-    for g in policy.get("groups") or []:
-        if len(alerts) >= _MAX_POLICY_ALERTS:
-            break
-        items = [it for it in (g.get("items") or []) if it.get("date") == as_of]
-        if not items:
-            continue
-        title = items[0].get("title") or ""
-        more = f" 외 {len(items) - 1}건" if len(items) > 1 else ""
-        alerts.append({
-            "level": "info",
-            "title": f"{g.get('org_name') or g.get('badge') or ''} 새 보도자료",
-            "detail": f"{as_of} 기준 · {title}{more}",
-            "tab": "policy",
-        })
-    return alerts
 
 
 def _policy_highlight(policy: dict | None) -> dict | None:
@@ -127,31 +99,55 @@ def _credit_leads_alert() -> dict | None:
     }
 
 
+def _market_interpretation(market: dict | None) -> str | None:
+    """"시장 한눈에" 아래 붙는 한 줄 해석. 코스피·코스닥 등락 부호만으로 판단할 수 있는
+    사실만 말한다 — 수급(외국인·기관 순매수) 데이터가 없어 "며칠째 순매수" 같은 추세는
+    지어내지 않는다."""
+    if not market or market.get("source") != "live":
+        return None
+    kospi, kosdaq = market.get("kospi") or {}, market.get("kosdaq") or {}
+    kc, dc = kospi.get("change_pct"), kosdaq.get("change_pct")
+    if kc is None or dc is None:
+        return None
+
+    def word(v: float) -> str:
+        return "상승" if v > 0 else ("하락" if v < 0 else "보합")
+
+    kw, dw = word(kc), word(dc)
+    if kw == dw:
+        return f"코스피·코스닥 모두 {kw} 마감했습니다."
+    return f"코스피는 {kw}, 코스닥은 {dw}하며 엇갈린 흐름을 보였습니다."
+
+
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
     market = _safe("오늘의 시장 한눈에(국내)", get_market_snapshot)
     global_market = _safe("오늘의 시장 한눈에(해외·환율)", get_global_market_snapshot)
-    alerts = (
-        [a for a in (_liquidity_alert(),) if a]
-        + [a for a in (_credit_leads_alert(),) if a]
-        + _policy_org_alerts(policy)
-    )
-    alerts = alerts[:_MAX_ALERTS]
 
-    # "꼭 확인하세요"(오늘의 브리핑) — 정책 발표 1건(있으면) + AI 선별 리서치·뉴스 상위 건.
-    # 리서치 기사는 이미 AI가 업무 관련도순으로 정렬·태깅·이유(reason)까지 판단해둔
-    # research.curate 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
+    # "오늘의 핵심" — AI가 먼저 걸러준 최대 3건. 뉴스 feed가 아니라 우선순위 목록이라는
+    # 인상을 주기 위해, 이미 계산해둔 실데이터 신호를 정해진 순서로 최대 3개까지만 채운다.
+    # 리서치 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
+    # 판단해둔 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
     articles = research.get("articles") if research else None
-    highlights: list[dict] = []
-    ph = _policy_highlight(policy)
-    if ph:
-        highlights.append(ph)
-    for a in (articles or [])[: (4 if not ph else 3)]:
-        highlights.append({
+    today_key: list[dict] = []
+    liquidity_alert = _liquidity_alert()
+    if liquidity_alert:
+        today_key.append({"kind": "alert", **liquidity_alert})
+    credit_alert = _credit_leads_alert()
+    if credit_alert:
+        today_key.append({"kind": "alert", **credit_alert})
+    policy_highlight = _policy_highlight(policy)
+    if policy_highlight:
+        today_key.append(policy_highlight)
+    for a in (articles or []):
+        if len(today_key) >= _MAX_TODAY_KEY:
+            break
+        today_key.append({
             "kind": "research", "title": a.get("title"), "tag": a.get("tag"),
             "date": a.get("published"), "url": a.get("url"), "reason": a.get("reason"),
         })
+    today_key = today_key[:_MAX_TODAY_KEY]
 
     return {
         "policy": {
@@ -171,6 +167,6 @@ def get_home_summary() -> dict:
         } if research else None,
         "market": market,
         "global_market": global_market,
-        "highlights": highlights,
-        "alerts": alerts,
+        "market_note": _market_interpretation(market),
+        "today_key": today_key,
     }

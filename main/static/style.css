@@ -78,11 +78,11 @@ body {
   --side-hover-bg: rgba(255,255,255,.07); --side-active-bg: rgba(91,141,239,.32);
   --side-sep: rgba(255,255,255,.12);
 }
-.side-nav { display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; width: 196px; }
+.side-nav { display: flex; flex-direction: column; gap: 3px; padding: 16px 10px; width: 196px; }
 .side-btn {
   display: flex; align-items: center; gap: 9px; text-align: left; white-space: nowrap;
   background: none; border: none; border-radius: 10px; color: var(--side-fg);
-  font-size: .88rem; font-weight: 700; padding: 10px 12px; cursor: pointer;
+  font-size: .88rem; font-weight: 700; padding: 11px 12px; cursor: pointer;
 }
 .side-btn:hover { background: var(--side-hover-bg); color: var(--side-fg-active); }
 .side-btn.active { background: var(--side-active-bg); color: var(--side-fg-active); }
@@ -675,24 +675,40 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .home-empty-widgets .dart-btn { margin-top: 10px; }
 
 /* ── 오늘의 브리핑: 인사말 ── */
-.brief-greet { margin-bottom: 16px; }
-.brief-greet h2 { font-size: 1.2rem; margin-bottom: 4px; }
-.brief-greet-time { display: block; color: var(--muted); font-size: .74rem; margin-top: 6px; }
+.brief-greet { margin-bottom: 18px; }
+.brief-eyebrow {
+  font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--accent); margin-bottom: 6px;
+}
+.brief-greet h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; letter-spacing: -.01em; }
+.brief-greet-time { display: block; color: var(--muted); font-size: .74rem; margin-top: 8px; }
 
-/* ── 꼭 확인하세요: 이상징후 알림 + 정책·리서치 하이라이트(WHAT+WHY) + AI 인사이트를
-   한 목록으로 합쳐 보여준다. .hl-card 는 kind에 따라 <a>(정책·리서치, 외부 링크),
-   .hl-card-btn(<div data-work>, 알림 — 클릭 시 해당 화면으로 이동), .hl-card-static
-   (AI 인사이트, 클릭 동작 없음) 세 가지로 렌더된다. ── */
+/* ── 오늘의 브리핑 / 시장 한눈에: 데스크톱에서는 나란히, 좁은 화면에서는 세로로 쌓인다.
+   "오늘의 핵심"이 더 넓게(1.6fr), "시장 한눈에"는 옆에서 보조하는 폭(1fr)으로. ── */
+.brief-main-grid { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; margin-bottom: 22px; }
+@media (min-width: 900px) {
+  .brief-main-grid { grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); }
+}
+.brief-main-grid .block { margin-bottom: 0; }
+.brief-block-sub { margin: -4px 0 12px; }
+
+/* ── 오늘의 핵심: AI가 먼저 걸러준 최대 3건만(뉴스 feed처럼 보이지 않도록). .hl-card
+   는 kind에 따라 <a>(정책·리서치, 외부 링크) 또는 .hl-card-btn(<div data-work>, 알림 —
+   클릭 시 해당 화면으로 이동)로 렌더된다. rank 1(.hl-card-primary)은 크게 + "왜
+   중요한가?" 박스를, 2·3(.hl-card-compact)은 작게 + 한 줄 이유만 보여줘 hierarchy를
+   만든다. ── */
 .hl-card {
-  display: block; width: 100%; text-align: left; text-decoration: none; color: inherit;
+  display: flex; gap: 12px; width: 100%; text-align: left; text-decoration: none; color: inherit;
   background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-  border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; box-shadow: var(--shadow);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
   font: inherit; cursor: pointer;
 }
 .hl-card:last-child { margin-bottom: 0; }
 .hl-card:hover { border-color: var(--accent); }
-.hl-card-static { cursor: default; }
-.hl-card-static:hover { border-color: var(--border); }
+.hl-no { flex: 0 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--border); letter-spacing: -.02em; }
+.hl-card-primary .hl-no { font-size: 1.7rem; color: var(--accent); }
+.hl-card-compact { padding: 11px 16px; }
+.hl-card-compact .hl-title { margin-bottom: 0; font-size: .86rem; }
+.hl-body { flex: 1; min-width: 0; }
 .hl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .hl-cat {
   font-size: .7rem; font-weight: 700; color: var(--accent);
@@ -703,7 +719,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   border-radius: 5px; padding: 2px 7px; letter-spacing: .02em;
 }
 .hl-date { margin-left: auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
-.hl-title { font-size: .92rem; font-weight: 700; line-height: 1.45; margin-bottom: 8px; }
+.hl-title { font-size: 1rem; font-weight: 700; line-height: 1.45; margin-bottom: 8px; }
 .hl-reason {
   font-size: .8rem; color: var(--fg); line-height: 1.55; background: var(--accent-bg);
   border-radius: 8px; padding: 8px 10px;
@@ -711,6 +727,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .hl-reason-label {
   display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
 }
+.hl-reason-sm { font-size: .76rem; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
 /* ── 오늘의 시장 한눈에 ── */
 .mkt-subtabs { margin-bottom: 12px; }
@@ -732,6 +749,13 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   padding: 9px 12px; background: var(--card2); border-radius: 10px; margin-bottom: 8px;
 }
 .mkt-sub-row span { color: var(--muted); }
+.mkt-note {
+  font-size: .8rem; color: var(--fg); line-height: 1.55; background: var(--accent-bg);
+  border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
+}
+.mkt-note-label {
+  display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
+}
 .mkt-asof { margin: 0; }
 
 /* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ── */

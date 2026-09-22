@@ -64,13 +64,6 @@
     { id: "lending-stock", tab: "lending", title: "증권대차", emoji: "🔄",
       desc: "대차잔고·공매도·이용률", status: "soon" }
   ];
-  // 홈 "오늘의 알림"에 항상 함께 보여주는 위젯 추천 카드(실데이터 알림이 아닌 고정 안내).
-  var WIDGET_RECOMMENDATION = {
-    level: "info", icon: "💡",
-    title: "[오늘의 위젯 추천] 국내 업종별 시가총액 및 밸류체인 (투자금융부 이OO 과장 제작)",
-    tab: "gallery"
-  };
-
   var STATUS_LABEL = { live: "전사 등재", dept: "부서 검증중", soon: "준비중" };
   var STATUS_CLASS = { live: "st-live", dept: "st-dept", soon: "st-soon" };
 
@@ -1081,26 +1074,21 @@
     return /^\d{8}$/.test(s) ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8) : s;
   }
 
-  // ── 오늘의 브리핑: 꼭 확인하세요 ── 이상징후 알림 + 정책 발표 1건 + AI 선별 리서치
-  // 상위건 + 오늘의 태그 분포 인사이트를 한 목록으로 합쳐서 보여준다(예전엔 "꼭
-  // 확인하세요"/"오늘의 알림"/"AI가 발견한 특이사항" 3곳에 겹치게 나눠져 있었음).
-  // research.curate 가 이미 만들어둔 태그·이유(reason)를 그대로 재사용, 새 Gemini
-  // 호출 없음.
+  // ── 오늘의 브리핑: 오늘의 핵심 ── AI가 먼저 골라낸 최대 3건만 보여준다(이상징후
+  // 알림 → 정책 발표 → AI 선별 리서치 기사 순으로 채워짐, main/home.py get_home_summary
+  // 참고). 뉴스 feed처럼 보이지 않도록 01번은 크게(+"왜 중요한가?"), 02/03은 컴팩트하게
+  // 렌더한다. research.curate 가 이미 만들어둔 태그·이유(reason)를 그대로 재사용,
+  // 새 Gemini 호출 없음.
   function alertLineTitle(a) {
     var m = a.detail ? /(\d{4}-\d{2}-\d{2})/.exec(a.detail) : null;
     return esc(a.title) + (m ? " (" + m[1] + " 기준)" : "");
   }
-  function highlightCardHTML(h) {
+  function todayKeyCardHTML(h, rank) {
     var cat, badge, reason, dateText;
     if (h.kind === "alert") {
       cat = "알림";
       badge = h.level === "warn" ? '<span class="hl-badge">HOT</span>' : "";
-      reason = "";
-      dateText = "";
-    } else if (h.kind === "insight") {
-      cat = "AI 인사이트";
-      badge = "";
-      reason = "";
+      reason = h.detail || "";
       dateText = "";
     } else if (h.kind === "policy") {
       cat = h.org || "정책·규제";
@@ -1113,47 +1101,36 @@
       reason = h.reason || "";
       dateText = fmtDate(h.date);
     }
+    var primary = rank === 1;
+    var reasonHTML = "";
+    if (reason && primary) {
+      reasonHTML = '<div class="hl-reason"><span class="hl-reason-label">왜 중요한가?</span>' + esc(reason) + "</div>";
+    } else if (reason) {
+      reasonHTML = '<div class="hl-reason-sm">' + esc(reason) + "</div>";
+    }
     var inner =
-      '<div class="hl-top"><span class="hl-cat">' + esc(cat) + "</span>" + badge +
-        (dateText ? '<span class="hl-date">' + esc(dateText) + "</span>" : "") + "</div>" +
-      '<div class="hl-title">' +
-        (h.kind === "alert" ? alertLineTitle(h) : esc(h.title || "")) +
-      "</div>" +
-      (reason ? '<div class="hl-reason"><span class="hl-reason-label">우리에게 중요한 이유</span>' + esc(reason) + "</div>" : "");
+      '<div class="hl-no">' + String(rank).padStart(2, "0") + "</div>" +
+      '<div class="hl-body">' +
+        '<div class="hl-top"><span class="hl-cat">' + esc(cat) + "</span>" + badge +
+          (dateText ? '<span class="hl-date">' + esc(dateText) + "</span>" : "") + "</div>" +
+        '<div class="hl-title">' +
+          (h.kind === "alert" ? alertLineTitle(h) : esc(h.title || "")) +
+        "</div>" + reasonHTML +
+      "</div>";
+    var cls = "hl-card" + (primary ? " hl-card-primary" : " hl-card-compact");
     if (h.kind === "alert") {
-      return '<div class="hl-card hl-card-btn" data-work="' + esc(h.tab || "") + '"' +
+      return '<div class="' + cls + ' hl-card-btn" data-work="' + esc(h.tab || "") + '"' +
         (h.sub ? ' data-sub="' + esc(h.sub) + '"' : "") + ">" + inner + "</div>";
     }
-    if (h.kind === "insight") {
-      return '<div class="hl-card hl-card-static">' + inner + "</div>";
-    }
-    return '<a class="hl-card" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' + inner + "</a>";
-  }
-
-  // 오늘 AI가 선별한 뉴스의 실제 태그 분포에서 가장 많은 카테고리 1건만 인사이트로
-  // 뽑는다(과거 데이터가 없어 "N일 연속" 같은 추세는 지어내지 않음).
-  function computeSignalHighlight(d) {
-    var arts = (d.research && d.research.articles) || [];
-    if (!arts.length) return null;
-    var counts = {};
-    arts.forEach(function (a) { var t = a.tag || "일반"; counts[t] = (counts[t] || 0) + 1; });
-    var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
-    return {
-      kind: "insight",
-      title: "오늘 AI가 선별한 뉴스 " + arts.length + "건 중 " + top + " 관련이 " + counts[top] + "건으로 가장 많습니다."
-    };
+    return '<a class="' + cls + '" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' + inner + "</a>";
   }
 
   function renderHighlights(d) {
     var box = document.getElementById("brief-highlights");
     if (!box) return;
-    var alerts = [WIDGET_RECOMMENDATION].concat(d.alerts || []).map(function (a) {
-      return { kind: "alert", title: a.title, detail: a.detail, tab: a.tab, sub: a.sub, level: a.level };
-    });
-    var signal = computeSignalHighlight(d);
-    var items = alerts.concat(d.highlights || []).concat(signal ? [signal] : []);
+    var items = d.today_key || [];
     box.innerHTML = items.length
-      ? items.map(highlightCardHTML).join("")
+      ? items.map(function (h, i) { return todayKeyCardHTML(h, i + 1); }).join("")
       : '<div class="page-note">오늘은 꼭 확인할 만큼 중요한 항목이 없습니다.</div>';
     bindGoWorkButtons(box);
   }
@@ -1183,6 +1160,7 @@
       "</div>" +
       '<div class="mkt-sub-row"><span>거래대금(당일)</span><b>' +
         (m.total_turnover != null ? m.total_turnover.toLocaleString("ko-KR") : "-") + "조원</b></div>" +
+      (d.market_note ? '<div class="mkt-note"><span class="mkt-note-label">한줄 해석</span>' + esc(d.market_note) + "</div>" : "") +
       '<div class="page-note mkt-asof">' + esc(fmtDate(m.as_of)) + " 기준 · 코스피·코스닥 지수시세(공공데이터포털)</div>"
     );
   }
@@ -1288,12 +1266,16 @@
   }
 
   function renderGreetTime() {
-    var el = document.getElementById("brief-greet-time");
-    if (!el) return;
     var now = new Date();
     var hh = String(now.getHours()).padStart(2, "0");
     var mm = String(now.getMinutes()).padStart(2, "0");
-    el.textContent = "마지막 업데이트 " + hh + ":" + mm;
+    var timeEl = document.getElementById("brief-greet-time");
+    if (timeEl) timeEl.textContent = "마지막 업데이트 " + hh + ":" + mm;
+    var titleEl = document.getElementById("brief-greet-title");
+    if (titleEl) {
+      var h = now.getHours();
+      titleEl.textContent = h < 12 ? "좋은 아침입니다." : (h < 18 ? "좋은 오후입니다." : "좋은 저녁입니다.");
+    }
   }
 
   var briefingLoaded = false;
@@ -1320,10 +1302,11 @@
     enterPersonal: function () { renderPersonal(); }
   };
 
-  // ── 온보딩 투어(첫 방문 시 1회) — "오늘의 브리핑/나의 대시보드/업무별 메뉴" 3가지만
-  // 소개한다(환영 화면 + 완료 화면 포함 총 5스텝). 사이드바는 데스크톱에선 세로,
-  // 모바일에선 상단 가로 바로 바뀌므로, 스포트라이트·말풍선 위치는 매번 실제 렌더된
-  // 좌표(getBoundingClientRect)를 기준으로 계산한다. ──
+  // ── 온보딩 투어(첫 방문 시 1회) — 오늘의 브리핑의 "오늘의 핵심/시장 한눈에/오늘의
+  // 주요뉴스" 3개 영역 + 사이드바의 "나의 대시보드"만 소개한다(환영 화면 + 완료 화면
+  // 포함 총 6스텝). 사이드바는 데스크톱에선 세로, 모바일에선 상단 가로 바로 바뀌므로,
+  // 스포트라이트·말풍선 위치는 매번 실제 렌더된 좌표(getBoundingClientRect)를 기준으로
+  // 계산하고, 화면 밖에 있을 수 있는 대상은 먼저 scrollIntoView로 보이게 한다. ──
   var OB_STORAGE_KEY = "ob_tour_done_v1";
   function obDone() {
     try { return localStorage.getItem(OB_STORAGE_KEY) === "1"; } catch (e) { return false; }
@@ -1334,31 +1317,28 @@
 
   var OB_STEPS = [
     { type: "welcome" },
-    { type: "spot", sel: '.side-btn[data-cat="home"]',
-      title: "오늘의 브리핑",
-      body: "매일 아침 가장 먼저 확인하는 곳입니다. AI가 오늘의 핵심 변화와 시장 현황을 미리 정리해 보여드립니다." },
+    { type: "spot", sel: "#brief-key-block",
+      title: "오늘의 핵심",
+      body: "오늘 가장 먼저 확인할 곳입니다. AI가 여러 정보 중 업무에 중요한 변화를 먼저 선별해 보여드립니다." },
+    { type: "spot", sel: "#brief-market-block",
+      title: "시장 한눈에",
+      body: "국내외 주요 지수와 환율을 한눈에 확인하세요." },
+    { type: "spot", sel: "#brief-news-block",
+      title: "오늘의 주요뉴스",
+      body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 리서치·뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
     { type: "spot", sel: '.side-btn[data-cat="personal"]',
       title: "나의 대시보드",
-      body: '"+ 위젯 추가"로 내가 관심 있는 정보만 모아 나만의 화면을 만들 수 있습니다.' },
-    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
-      title: "업무별 메뉴",
-      body: "자본시장·여신·심사·정책·규제·리서치·뉴스처럼 부서별 상세 화면은 여기서 확인하세요." },
+      body: '"+ 위젯 추가"를 눌러 내가 관심 있는 정보만 모아 나만의 화면을 만들 수 있습니다.' },
     { type: "done" }
   ];
   var obIndex = 0;
 
-  function obUnionRect(el1, el2) {
-    var a = el1.getBoundingClientRect(), b = el2.getBoundingClientRect();
-    var top = Math.min(a.top, b.top), left = Math.min(a.left, b.left);
-    var right = Math.max(a.right, b.right), bottom = Math.max(a.bottom, b.bottom);
-    return { top: top, left: left, right: right, bottom: bottom, width: right - left, height: bottom - top };
-  }
   function obWelcomeHTML() {
     return (
       "<h3>안녕하세요! 👋</h3>" +
-      "<p>증금 인텔리전스에 오신 것을 환영합니다.<br>AI가 시장·정책·뉴스 정보를 정리해 매일 아침 업무에 필요한 핵심만 알려드립니다.</p>" +
+      "<p>증금 인텔리전스에 오신 것을 환영합니다.<br>AI가 시장·정책·뉴스를 분석해 매일 아침 업무에 필요한 핵심만 먼저 알려드립니다.</p>" +
       '<div class="ob-tooltip-actions">' +
-        '<button type="button" class="dart-btn" id="ob-next">투어 시작하기 →</button>' +
+        '<button type="button" class="dart-btn" id="ob-next">1분 투어 시작하기 →</button>' +
         '<button type="button" class="ob-skip" id="ob-skip">건너뛰기</button>' +
       "</div>"
     );
@@ -1421,16 +1401,10 @@
     if (!backdrop || !spot || !tip) return;
 
     if (step.type === "spot") {
-      var rect;
-      if (step.selRange) {
-        var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
-        if (!a || !b) { obNext(); return; }
-        rect = obUnionRect(a, b);
-      } else {
-        var el = document.querySelector(step.sel);
-        if (!el) { obNext(); return; }
-        rect = el.getBoundingClientRect();
-      }
+      var el = document.querySelector(step.sel);
+      if (!el) { obNext(); return; }
+      el.scrollIntoView({ block: "center", behavior: "auto" });
+      var rect = el.getBoundingClientRect();
       backdrop.hidden = true;
       spot.hidden = false;
       tip.hidden = false;
