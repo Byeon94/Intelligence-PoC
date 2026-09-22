@@ -880,11 +880,15 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .ai-result-add { flex: 0 0 auto; }
 .gal-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 /* "나의 대시보드"는 위젯을 한 번에 하나씩만 보여주며 .gal-card를 이 anchor로 한 번 더
-   감싸는데, 이 anchor가 .gal-grid의 실제 그리드 아이템이다 — .gal-card에는 min-width:0이
-   있어도 이 anchor 자체엔 없어서(그리드 아이템 기본값 min-width:auto) 표·밸류체인처럼
-   내용이 넓은 위젯(업종별 시가총액 순위 등)이 anchor를 콘텐츠 너비만큼 넓혀 페이지 전체가
-   가로로 밀려 보이는 문제가 있었다. */
-.pd-widget-anchor { min-width: 0; }
+   감싸는데, .gal-grid의 실제 그리드 아이템은 .gal-card가 아니라 이 anchor다.
+   - min-width:0이 없으면(그리드 아이템 기본값 min-width:auto) 표·밸류체인처럼 내용이
+     넓은 위젯(업종별 시가총액 순위 등)이 anchor를 콘텐츠 너비만큼 넓혀 페이지 전체가
+     가로로 밀려 보이는 문제가 있었다.
+   - grid-column:1/-1이 없으면(데스크톱처럼 그리드가 2~3열일 때) anchor가 한 칸에만
+     자동 배치돼, 안의 .gal-card-sector 등에 걸린 grid-column:1/-1은 그리드 아이템이
+     아닌 자손이라 적용되지 않고 위젯이 한 칸 너비로 좁게 보이는 문제가 있었다 —
+     "나의 대시보드"는 항상 anchor 하나만 보이므로 always 전체 폭을 쓰게 한다. */
+.pd-widget-anchor { min-width: 0; grid-column: 1 / -1; }
 .gal-card {
   background: var(--card); border: 1px solid var(--border); border-radius: 14px;
   padding: 15px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px;
