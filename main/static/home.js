@@ -812,7 +812,7 @@
 
     window.SectorWidget.fetchMap().then(function (d) {
       window.SectorWidget.renderTreemap(treemapEl, d.sectors || []);
-      window.SectorWidget.renderRankTable(rankEl, d.sectors || []);
+      window.SectorWidget.renderRankTable(rankEl, d.sectors || [], d.total_market_cap);
       if (mapNoteEl) mapNoteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
     }).catch(function (e) {
       treemapEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";

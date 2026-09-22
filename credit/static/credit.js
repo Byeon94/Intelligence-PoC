@@ -213,7 +213,6 @@
           '<span class="lead-title">' + esc(it.title) + "</span>" +
           '<span class="lead-date">' + esc(it.published || "") + "</span>" +
         "</div>" +
-        '<div class="lead-note">🤖 AI 판단: ' + esc(it.ai_note) + "</div>" +
       "</a>"
     );
   }

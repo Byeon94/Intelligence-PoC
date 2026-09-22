@@ -26,6 +26,8 @@ from main.config import get_settings
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, save_snapshot
 
+from .news_title import enrich_title
+
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
 
@@ -132,7 +134,7 @@ def _filter_with_ai(candidates: list[dict]) -> list[dict]:
         note = verdicts.get(i)
         if not note or "관련 없음" in note:
             continue
-        out.append({**c, "ai_note": note})
+        out.append(enrich_title({**c, "ai_note": note}))
     return out[:15]
 
 

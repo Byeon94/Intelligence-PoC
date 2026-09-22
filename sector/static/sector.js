@@ -133,11 +133,18 @@
 
   var RANK_LIMIT = 5;
 
-  function renderRankTable(box, sectors) {
+  // total 을 안 넘기면(과거 호출부 호환) 보여지는 업종들의 합으로 대체한다 — 이 경우 "기타"처럼
+  // 화면엔 안 보이지만 실제 전체 시가총액에는 포함되는 항목의 비중까지는 못 담는다.
+  function renderRankTable(box, sectors, total) {
     if (!box) return;
+    var grandTotal = total || sectors.reduce(function (a, s) { return a + (s.market_cap || 0); }, 0);
     var expanded = false;
     function rowHTML(s, i) {
+      var pct = grandTotal ? (s.market_cap || 0) / grandTotal * 100 : 0;
       return "<tr><td>" + (i + 1) + ". " + esc(s.sector) + "</td>" +
+        "<td><div class=\"rank-share\"><span class=\"rank-share-bar\"><span style=\"width:" +
+        Math.min(100, pct).toFixed(2) + "%\"></span></span><span class=\"rank-share-pct\">" +
+        pct.toFixed(2) + "%</span></div></td>" +
         "<td>" + jo(s.market_cap) + "조원</td>" +
         '<td class="' + chgClass(s.change_pct) + '">' + chgText(s.change_pct) + "</td>" +
         "<td>" + esc(s.top_name || "-") + "</td></tr>";
@@ -145,7 +152,8 @@
     function draw() {
       var shown = expanded ? sectors : sectors.slice(0, RANK_LIMIT);
       var html =
-        "<table class=\"rate-table sector-rank\"><thead><tr><th>업종</th><th>시가총액</th><th>등락률</th><th>대표 종목</th></tr></thead><tbody>" +
+        (grandTotal ? '<div class="sector-rank-total">전체 업종 시가총액 <b>' + jo(grandTotal) + "조원</b></div>" : "") +
+        "<table class=\"rate-table sector-rank\"><thead><tr><th>업종</th><th>비중</th><th>시가총액</th><th>등락률</th><th>대표 종목</th></tr></thead><tbody>" +
         shown.map(rowHTML).join("") + "</tbody></table>";
       if (sectors.length > RANK_LIMIT) {
         html += '<button type="button" class="lead-more-btn">' +
@@ -227,7 +235,7 @@
       var rankBox = document.getElementById("sector-rank-table");
       fetchMap().then(function (d) {
         renderTreemap(box, d.sectors || []);
-        renderRankTable(rankBox, d.sectors || []);
+        renderRankTable(rankBox, d.sectors || [], d.total_market_cap);
         var noteEl = document.getElementById("map-note");
         if (noteEl) noteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
       }).catch(function (e) {

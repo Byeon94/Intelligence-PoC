@@ -37,8 +37,19 @@
 .st-box.st-flat { background: var(--card); }
 
 /* ── 업종 순위 표 ── */
+.sector-rank-total {
+  font-size: .82rem; color: var(--muted); margin-bottom: 8px;
+}
+.sector-rank-total b { color: var(--fg); font-weight: 800; }
 .sector-rank th, .sector-rank td { text-align: right; }
 .sector-rank th:first-child, .sector-rank td:first-child { text-align: left; }
+.rank-share { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.rank-share-bar {
+  width: 40px; height: 6px; border-radius: 3px; background: var(--border2);
+  overflow: hidden; flex: 0 0 auto;
+}
+.rank-share-bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.rank-share-pct { font-variant-numeric: tabular-nums; min-width: 44px; }
 /* .rate-table 기본 스타일은 컬럼이 많은 금리비교표용으로 첫 컬럼을 sticky(고정)해 두는데,
    이 표는 4컬럼짜리라 그럴 필요가 없고 모바일에서 좌우로 드래그하면 sticky 컬럼만 따로
    떠서 헤더·본문이 어긋나 보이는 렌더링 문제가 있었다. 이 표에서는 sticky를 꺼서 표 전체가

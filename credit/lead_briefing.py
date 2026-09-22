@@ -135,7 +135,10 @@ def _maybe_generate(payload: dict, leads: dict, news: list[dict], force: bool = 
         try:
             text = generate_text(
                 _collateral_prompt(leads.get("collateral", []), news),
-                system_instruction=_COLLATERAL_SYSTEM_PROMPT, max_output_tokens=1024,
+                system_instruction=_COLLATERAL_SYSTEM_PROMPT, max_output_tokens=2048,
+                # Gemini 3.x/4.x는 thinking 토큰도 max_output_tokens 예산을 같이 쓰므로,
+                # 1024로는 불릿 마지막 문장이 중간에 잘리는 경우가 있어 다른 "브리핑 3줄"
+                # 태스크(policy/briefing.py 등)와 같은 수준으로 넉넉히 잡는다.
             )
             payload["collateral_briefing"] = _bullets_from(text)
         except Exception as exc:  # noqa: BLE001
@@ -146,7 +149,7 @@ def _maybe_generate(payload: dict, leads: dict, news: list[dict], force: bool = 
         try:
             text = generate_text(
                 _esop_prompt(leads.get("esop", []), leads.get("esop_monthly", [])),
-                system_instruction=_ESOP_SYSTEM_PROMPT, max_output_tokens=1024,
+                system_instruction=_ESOP_SYSTEM_PROMPT, max_output_tokens=2048,
             )
             payload["esop_briefing"] = _bullets_from(text)
         except Exception as exc:  # noqa: BLE001
