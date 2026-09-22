@@ -54,6 +54,10 @@ def get_sector_map() -> dict:
 
     sectors.sort(key=lambda s: s["market_cap"], reverse=True)
     total = sum(s["market_cap"] for s in sectors)
+    # "기타"는 특정 업종을 나타내지 않는 캐치올(분류 실패·미분류 종목 묶음)이라, 맵·순위에는
+    # 의미 있는 정보를 주지 못해 화면에서 제외한다(전체 시가총액 total_market_cap 집계에는
+    # 그대로 포함해 합계 자체는 왜곡하지 않는다).
+    sectors = [s for s in sectors if s["sector"] != _UNCLASSIFIED]
     return {
         "sectors": sectors,
         "total_market_cap": total,

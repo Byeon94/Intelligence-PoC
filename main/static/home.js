@@ -770,7 +770,7 @@
   }
 
   // "국내 업종별 시가총액 및 밸류체인"(내 위젯 전용) — 별도 페이지로 이동하지 않고
-  // 카드 안에서 트리맵 + 업종 순위(상위 10) + 밸류체인(버튼 선택)을 모두 보여준다.
+  // 카드 안에서 트리맵 + 업종 순위(기본 5개, 더보기로 전체) + 밸류체인(버튼 선택)을 모두 보여준다.
   // 렌더 함수 자체는 sector/static/sector.js 가 window.SectorWidget 으로 공개한 것을 그대로 쓴다
   // (독립 페이지 /sector 와 중복 구현하지 않기 위함).
   function sectorMapCardHTML(w) {
@@ -787,7 +787,7 @@
           '<div class="gal-mini-subtitle">1. 업종별 시가총액 맵</div>' +
           '<div class="sector-treemap" id="' + id + '-treemap"><span class="page-note">불러오는 중…</span></div>' +
           '<p class="page-note sector-note" id="' + id + '-map-note"></p>' +
-          '<div class="gal-mini-subtitle">2. 업종 순위 (상위 10)</div>' +
+          '<div class="gal-mini-subtitle">2. 업종 순위</div>' +
           '<div class="table-wrap" id="' + id + '-rank"><span class="page-note">불러오는 중…</span></div>' +
           '<div class="gal-mini-subtitle">3. 업종별 밸류체인</div>' +
           '<div class="sector-vc-buttons" id="' + id + '-vc-buttons"></div>' +
@@ -812,7 +812,7 @@
 
     window.SectorWidget.fetchMap().then(function (d) {
       window.SectorWidget.renderTreemap(treemapEl, d.sectors || []);
-      window.SectorWidget.renderRankTable(rankEl, (d.sectors || []).slice(0, 10));
+      window.SectorWidget.renderRankTable(rankEl, d.sectors || []);
       if (mapNoteEl) mapNoteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
     }).catch(function (e) {
       treemapEl.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";

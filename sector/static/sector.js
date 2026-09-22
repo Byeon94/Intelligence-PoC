@@ -131,17 +131,31 @@
     });
   }
 
+  var RANK_LIMIT = 5;
+
   function renderRankTable(box, sectors) {
     if (!box) return;
-    var rows = sectors.map(function (s, i) {
+    var expanded = false;
+    function rowHTML(s, i) {
       return "<tr><td>" + (i + 1) + ". " + esc(s.sector) + "</td>" +
         "<td>" + jo(s.market_cap) + "조원</td>" +
         '<td class="' + chgClass(s.change_pct) + '">' + chgText(s.change_pct) + "</td>" +
         "<td>" + esc(s.top_name || "-") + "</td></tr>";
-    }).join("");
-    box.innerHTML =
-      "<table class=\"rate-table sector-rank\"><thead><tr><th>업종</th><th>시가총액</th><th>등락률</th><th>대표 종목</th></tr></thead><tbody>" +
-      rows + "</tbody></table>";
+    }
+    function draw() {
+      var shown = expanded ? sectors : sectors.slice(0, RANK_LIMIT);
+      var html =
+        "<table class=\"rate-table sector-rank\"><thead><tr><th>업종</th><th>시가총액</th><th>등락률</th><th>대표 종목</th></tr></thead><tbody>" +
+        shown.map(rowHTML).join("") + "</tbody></table>";
+      if (sectors.length > RANK_LIMIT) {
+        html += '<button type="button" class="lead-more-btn">' +
+          (expanded ? "접기 ▲" : "더보기 (전체 " + sectors.length + "개) ▼") + "</button>";
+      }
+      box.innerHTML = html;
+      var btn = box.querySelector(".lead-more-btn");
+      if (btn) btn.addEventListener("click", function () { expanded = !expanded; draw(); });
+    }
+    draw();
   }
 
   /* ── 업종별 밸류체인 ── */
@@ -213,7 +227,7 @@
       var rankBox = document.getElementById("sector-rank-table");
       fetchMap().then(function (d) {
         renderTreemap(box, d.sectors || []);
-        renderRankTable(rankBox, (d.sectors || []).slice(0, 10));
+        renderRankTable(rankBox, d.sectors || []);
         var noteEl = document.getElementById("map-note");
         if (noteEl) noteEl.textContent = d.as_of ? d.as_of + " 기준" : "";
       }).catch(function (e) {
