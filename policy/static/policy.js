@@ -10,8 +10,8 @@
     });
   }
 
-  // AI 브리핑은 홈 대시보드에도 이미 표시되므로, 이 화면에서는 기본 접어두고
-  // "더보기"를 눌렀을 때만 펼친다(중복 노출 최소화).
+  // AI 브리핑을 더보기 없이 바로 펼쳐서 보여준다(예전엔 홈 대시보드와 중복 노출을
+  // 줄이려고 기본 접어뒀는데, 이 화면에 들어온 사용자는 바로 보고 싶어함).
   function renderBriefing(d) {
     var box = document.getElementById("pol-brief");
     if (!box) return;
@@ -21,7 +21,6 @@
       '<div class="brief-head">' +
         '<span class="brief-label">💬 AI 정책 브리핑</span>' +
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
-        '<button type="button" class="brief-toggle" id="pol-brief-toggle">더보기 ↓</button>' +
       "</div>";
 
     var body;
@@ -45,19 +44,7 @@
         '<div class="brief-meta">📌 위 요약은 당일 수집된 공식 보도자료를 기반으로 AI가 자동 생성합니다.' +
           (d.stale ? " · 이전 자료" : "") + "</div>";
     }
-    box.innerHTML = head + '<div class="brief-body" id="pol-brief-body" hidden>' + body + "</div>";
-    bindBriefToggle();
-  }
-
-  function bindBriefToggle() {
-    var btn = document.getElementById("pol-brief-toggle");
-    var body = document.getElementById("pol-brief-body");
-    if (!btn || !body) return;
-    btn.addEventListener("click", function () {
-      var show = body.hidden;
-      body.hidden = !show;
-      btn.textContent = show ? "접기 ↑" : "더보기 ↓";
-    });
+    box.innerHTML = head + '<div class="brief-body" id="pol-brief-body">' + body + "</div>";
   }
 
   var ORG_NAMES = {

@@ -256,13 +256,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 }
 .brief-regen:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .brief-regen:disabled { opacity: .55; cursor: default; }
-.brief-toggle {
-  background: var(--card); border: 1px solid var(--border); color: var(--fg);
-  border-radius: 8px; padding: 4px 10px; font-size: .74rem; font-weight: 700; cursor: pointer;
-  white-space: nowrap;
-}
-.brief-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.brief-body[hidden] { display: none; }
 
 .brief-list { list-style: none; margin: 0; padding: 0; }
 .brief-list li { display: flex; gap: 9px; padding: 8px 0; font-size: .88rem; line-height: 1.62; }
@@ -346,6 +339,15 @@ main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 64px; }
 }
 
 /* ── 리서치·뉴스 피드 ── */
+.ni-keyword-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.ni-kw-chip {
+  display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+  font-size: .78rem; font-weight: 700; color: var(--accent);
+  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 999px;
+  padding: 5px 12px; cursor: pointer;
+}
+.ni-kw-chip:hover { border-color: var(--accent); }
+.ni-kw-chip-n { font-size: .7rem; color: var(--muted); }
 #rs-feed { display: flex; flex-direction: column; gap: 20px; }
 .ni-group-head {
   display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;

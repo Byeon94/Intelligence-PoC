@@ -9,8 +9,8 @@
     });
   }
 
-  // AI 브리핑은 홈 대시보드에도 이미 표시되므로, 이 화면에서는 기본 접어두고
-  // "더보기"를 눌렀을 때만 펼친다(중복 노출 최소화).
+  // AI 브리핑을 더보기 없이 바로 펼쳐서 보여준다(예전엔 홈 대시보드와 중복 노출을
+  // 줄이려고 기본 접어뒀는데, 이 화면에 들어온 사용자는 바로 보고 싶어함).
   function renderBrief(d) {
     var box = document.getElementById("rs-brief");
     if (!box) return;
@@ -19,7 +19,6 @@
       '<div class="brief-head">' +
         '<span class="brief-label">💬 AI 뉴스 브리핑</span>' +
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
-        '<button type="button" class="brief-toggle" id="rs-brief-toggle">더보기 ↓</button>' +
       "</div>";
     var bullets = (d.briefing || []).filter(Boolean).slice(0, 3);
     var body;
@@ -35,19 +34,11 @@
         (d.briefing_note ? '<div class="brief-note">' + esc(d.briefing_note) + "</div>" : "") +
         '<div class="brief-meta">📌 네이버 뉴스에서 당일 수집한 기사 중 한국증권금융 업무 관련 항목을 AI가 선별·요약합니다.</div>';
     }
-    box.innerHTML = head + '<div class="brief-body" id="rs-brief-body" hidden>' + body + "</div>";
-    bindBriefToggle();
+    box.innerHTML = head + '<div class="brief-body" id="rs-brief-body">' + body + "</div>";
   }
 
-  function bindBriefToggle() {
-    var btn = document.getElementById("rs-brief-toggle");
-    var body = document.getElementById("rs-brief-body");
-    if (!btn || !body) return;
-    btn.addEventListener("click", function () {
-      var show = body.hidden;
-      body.hidden = !show;
-      btn.textContent = show ? "접기 ↑" : "더보기 ↓";
-    });
+  function groupId(tag) {
+    return "rs-g-" + tag.replace(/[^\p{L}\p{N}]+/gu, "-");
   }
 
   function newsItemHTML(a, rank) {
@@ -68,11 +59,15 @@
   // 기준으로 정해, 전체 관련도 우선순위는 그대로 유지한다.
   function renderFeed(d) {
     var wrap = document.getElementById("rs-feed");
+    var nav = document.getElementById("rs-keyword-nav");
+    var countEl = document.getElementById("rs-feed-count");
     if (!wrap) return;
     var arts = d.articles || [];
+    if (countEl) countEl.textContent = "한국증권금융 업무 관련 " + arts.length + "건";
     if (!arts.length) {
       wrap.innerHTML = '<div class="chart-error">' +
         esc(d.briefing_note || "선별된 기사가 없습니다.") + "</div>";
+      if (nav) nav.innerHTML = "";
       return;
     }
     var groups = {};
@@ -82,10 +77,25 @@
       if (!groups[tag]) { groups[tag] = []; order.push(tag); }
       groups[tag].push({ a: a, rank: i + 1 });
     });
+    if (nav) {
+      // #키워드 칩을 누르면 해당 그룹 위치로 바로 이동한다.
+      nav.innerHTML = order.map(function (tag) {
+        return '<a class="ni-kw-chip" href="#' + groupId(tag) + '">#' + esc(tag) +
+          ' <span class="ni-kw-chip-n">' + groups[tag].length + "</span></a>";
+      }).join("");
+      nav.querySelectorAll(".ni-kw-chip").forEach(function (chip) {
+        chip.addEventListener("click", function (e) {
+          var el = document.getElementById(chip.getAttribute("href").slice(1));
+          if (!el) return;
+          e.preventDefault();
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    }
     wrap.innerHTML = order.map(function (tag) {
       var items = groups[tag];
       return (
-        '<div class="ni-group">' +
+        '<div class="ni-group" id="' + groupId(tag) + '">' +
           '<div class="ni-group-head"><span class="ni-group-tag">' + esc(tag) + "</span>" +
             '<span class="ni-group-count">' + items.length + "건</span></div>" +
           '<div class="ni-group-items">' +

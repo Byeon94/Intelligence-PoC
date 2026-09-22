@@ -19,7 +19,7 @@ from .sources import collect_candidates
 logger = logging.getLogger(__name__)
 KST = ZoneInfo("Asia/Seoul")
 _TABLE = "research_snapshots"
-_N = 10
+_N = 20
 
 TAGS = [
     "증권담보/신용공여", "증권대차", "수탁", "유통금융/자금조달", "우리사주",
@@ -30,7 +30,7 @@ _SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 임직원을 위한 뉴스 큐레이터야. "
     "한국증권금융은 증권담보대출·신용공여, 증권대차, 우리사주 취득자금 대출, 투자자예탁금 운용, "
     "수탁, 유통금융(증권시장 자금공급), 단기금융을 담당하는 기관이다.\n"
-    "아래 후보 기사 중 KSFC 업무와 관련성이 높은 순으로 정확히 10건을 골라라.\n"
+    "아래 후보 기사 중 KSFC 업무와 관련성이 높은 순으로 정확히 20건을 골라라.\n"
     f"각 기사에 다음 태그 중 하나를 붙여라: {', '.join(TAGS)}.\n"
     "그리고 오늘 가장 주목할 흐름을 불릿 3개로 요약한 briefing 을 작성해라 "
     "(각 불릿 '- ' 시작, 한 문장, KSFC 업무 시사점 포함).\n"
@@ -47,11 +47,13 @@ def _today() -> str:
 def _gemini_curate(candidates: list[dict]) -> dict:
     listing = "\n".join(
         f"{i}. [{c['published']}] {c['title']} — {c['summary'][:120]}"
-        for i, c in enumerate(candidates[:60])
+        for i, c in enumerate(candidates[:100])
     )
-    contents = f"후보 기사 목록:\n\n{listing}\n\n위에서 10건을 선별해 JSON으로 답해줘."
+    contents = f"후보 기사 목록:\n\n{listing}\n\n위에서 20건을 선별해 JSON으로 답해줘."
     text = generate_text(
-        contents, system_instruction=_SYSTEM_PROMPT, max_output_tokens=2048,
+        # 20건 픽(사유 포함) 응답은 10건보다 훨씬 길어지고, Gemini 3.x/4.x는 thinking
+        # 토큰도 max_output_tokens 예산을 같이 쓰므로 넉넉히 잡는다(잘림 방지).
+        contents, system_instruction=_SYSTEM_PROMPT, max_output_tokens=4096,
     )
     return _parse(text)
 
