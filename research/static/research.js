@@ -50,6 +50,22 @@
     });
   }
 
+  function newsItemHTML(a, rank) {
+    return (
+      '<a class="news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
+        '<div class="ni-rank">' + rank + "</div>" +
+        '<div class="ni-body">' +
+          '<div class="ni-top"><span class="ni-date">' + esc(a.published || "") + "</span></div>" +
+          '<div class="ni-title">' + esc(a.title) + "</div>" +
+          (a.reason ? '<div class="ni-reason">' + esc(a.reason) + "</div>" : "") +
+        "</div>" +
+      "</a>"
+    );
+  }
+
+  // 오늘 선별된 기사를 쭉 나열하지 않고, AI가 붙인 태그(키워드)별로 묶어서 보여준다.
+  // 그룹 순서는 그룹 안에서 가장 순위가 높은(=AI가 가장 관련도 높다고 본) 기사를
+  // 기준으로 정해, 전체 관련도 우선순위는 그대로 유지한다.
   function renderFeed(d) {
     var wrap = document.getElementById("rs-feed");
     if (!wrap) return;
@@ -59,17 +75,23 @@
         esc(d.briefing_note || "선별된 기사가 없습니다.") + "</div>";
       return;
     }
-    wrap.innerHTML = arts.map(function (a, i) {
+    var groups = {};
+    var order = [];
+    arts.forEach(function (a, i) {
+      var tag = a.tag || "일반";
+      if (!groups[tag]) { groups[tag] = []; order.push(tag); }
+      groups[tag].push({ a: a, rank: i + 1 });
+    });
+    wrap.innerHTML = order.map(function (tag) {
+      var items = groups[tag];
       return (
-        '<a class="news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
-          '<div class="ni-rank">' + (i + 1) + "</div>" +
-          '<div class="ni-body">' +
-            '<div class="ni-top"><span class="ni-tag">' + esc(a.tag || "일반") + "</span>" +
-              '<span class="ni-date">' + esc(a.published || "") + "</span></div>" +
-            '<div class="ni-title">' + esc(a.title) + "</div>" +
-            (a.reason ? '<div class="ni-reason">' + esc(a.reason) + "</div>" : "") +
+        '<div class="ni-group">' +
+          '<div class="ni-group-head"><span class="ni-group-tag">' + esc(tag) + "</span>" +
+            '<span class="ni-group-count">' + items.length + "건</span></div>" +
+          '<div class="ni-group-items">' +
+            items.map(function (it) { return newsItemHTML(it.a, it.rank); }).join("") +
           "</div>" +
-        "</a>"
+        "</div>"
       );
     }).join("");
   }
