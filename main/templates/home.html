@@ -1,13 +1,37 @@
 <div class="home-root">
-  <section class="block">
-    <div class="block-head"><h3>🔔 오늘의 알림</h3></div>
-    <div id="home-alerts"><div class="page-note">불러오는 중…</div></div>
+  <div class="brief-greet">
+    <h2 id="brief-greet-title">👋 오늘의 브리핑</h2>
+    <p class="page-note">AI가 어제와 오늘의 변화를 분석해, 당신의 업무에 중요한 내용을 선별했습니다.</p>
+    <span class="brief-greet-time" id="brief-greet-time"></span>
+  </div>
+
+  <div class="kpi-grid brief-kpis" id="brief-kpis"></div>
+
+  <section class="block" id="brief-highlights-block">
+    <div class="block-head"><h3>🔴 꼭 확인하세요</h3></div>
+    <div id="brief-highlights"><div class="chart-loading">불러오는 중…</div></div>
+  </section>
+
+  <section class="block" id="brief-market-block">
+    <div class="block-head"><h3>📊 오늘의 시장 한눈에</h3></div>
+    <div id="brief-market"><div class="chart-loading">불러오는 중…</div></div>
+  </section>
+
+  <section class="block" id="brief-news-block">
+    <div class="block-head">
+      <h3>📰 오늘의 주요뉴스</h3>
+      <button type="button" class="dart-btn" data-work="research">더보기 →</button>
+    </div>
+    <div id="brief-news"><div class="chart-loading">불러오는 중…</div></div>
+  </section>
+
+  <section class="block" id="brief-signal-block">
+    <div class="block-head"><h3>✨ AI가 발견한 특이사항</h3></div>
+    <div id="brief-signal"><div class="chart-loading">불러오는 중…</div></div>
   </section>
 
   <section class="block">
-    <div class="block-head"><h3>🏠 오늘의 AI 통합 브리핑</h3></div>
-    <div class="home-briefs" id="home-briefs">
-      <div class="chart-loading">불러오는 중…</div>
-    </div>
+    <div class="block-head"><h3>🔔 오늘의 알림</h3></div>
+    <div id="home-alerts"><div class="page-note">불러오는 중…</div></div>
   </section>
 </div>

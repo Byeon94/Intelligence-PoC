@@ -318,9 +318,9 @@ document.getElementById('intro-btn').addEventListener('click', function () { app
 document.getElementById('home-link').addEventListener('click', function (e) {
   e.preventDefault(); applyView('home');
 });
-document.getElementById('personal-add-widget-btn').addEventListener('click', function () {
-  applyView('gallery');
-});
+// "+ 위젯 추가"는 이제 별도 화면(전사 위젯 탭) 대신 나의 대시보드 안의 모달로 연다
+// (main/static/home.js 의 openWidgetAddModal). gallery.html 화면 자체는 옛 링크·해시
+// 호환을 위해 남겨두고, 그 안의 "돌아가기" 버튼만 여기서 계속 처리한다.
 document.getElementById('gallery-back-btn').addEventListener('click', function () {
   applyView('personal');
 });

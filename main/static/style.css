@@ -664,10 +664,79 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 
 /* ── 홈 대시보드 ── */
 .home-root .block { margin-bottom: 14px; }
-.home-briefs { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .home-brief-more { margin-top: 10px; padding: 6px 13px; font-size: .74rem; }
 .home-empty-widgets { text-align: center; padding: 20px 10px; }
 .home-empty-widgets .dart-btn { margin-top: 10px; }
+
+/* ── 오늘의 브리핑: 인사말 + KPI 요약 카드 ── */
+.brief-greet { margin-bottom: 16px; }
+.brief-greet h2 { font-size: 1.2rem; margin-bottom: 4px; }
+.brief-greet-time { display: block; color: var(--muted); font-size: .74rem; margin-top: 6px; }
+.brief-kpis { margin-bottom: 20px; }
+.brief-kpi { cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
+.brief-kpi:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+/* ── 꼭 확인하세요: WHAT(제목) + WHY(우리에게 중요한 이유) 카드 ── */
+.hl-card {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.hl-card:last-child { margin-bottom: 0; }
+.hl-card:hover { border-color: var(--accent); }
+.hl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.hl-cat {
+  font-size: .7rem; font-weight: 700; color: var(--accent);
+  background: var(--accent-bg); border-radius: 5px; padding: 2px 8px;
+}
+.hl-badge {
+  font-size: .64rem; font-weight: 800; color: #fff; background: var(--down);
+  border-radius: 5px; padding: 2px 7px; letter-spacing: .02em;
+}
+.hl-date { margin-left: auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
+.hl-title { font-size: .92rem; font-weight: 700; line-height: 1.45; margin-bottom: 8px; }
+.hl-reason {
+  font-size: .8rem; color: var(--fg); line-height: 1.55; background: var(--accent-bg);
+  border-radius: 8px; padding: 8px 10px;
+}
+.hl-reason-label {
+  display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
+}
+
+/* ── 오늘의 시장 한눈에 ── */
+.mkt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.mkt-idx {
+  background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+}
+.mkt-idx-name { font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.mkt-idx-value { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
+.mkt-idx-chg { font-size: .8rem; font-weight: 700; margin-top: 3px; }
+.mkt-sub-row {
+  display: flex; justify-content: space-between; align-items: center; font-size: .82rem;
+  padding: 9px 12px; background: var(--card2); border-radius: 10px; margin-bottom: 8px;
+}
+.mkt-sub-row span { color: var(--muted); }
+.mkt-asof { margin: 0; }
+
+/* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ── */
+.brief-news-item {
+  display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: inherit;
+  padding: 10px 4px; border-bottom: 1px solid var(--border2);
+}
+.brief-news-item:last-child { border-bottom: none; }
+.brief-news-item:hover .bni-title { color: var(--accent); }
+.bni-tag {
+  flex: 0 0 auto; font-size: .68rem; font-weight: 700; color: var(--accent);
+  background: var(--accent-bg); border-radius: 5px; padding: 2px 7px;
+}
+.bni-title { flex: 1; min-width: 0; font-size: .86rem; font-weight: 600; }
+.bni-date { flex: 0 0 auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
+
+/* ── AI가 발견한 특이사항 ── */
+.signal-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.signal-list li {
+  font-size: .86rem; line-height: 1.6; background: var(--card2); border-radius: 10px; padding: 10px 12px;
+}
 
 .home-alert {
   display: flex; align-items: center; gap: 10px;
@@ -690,8 +759,45 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 /* ── 전사 갤러리 / 홈의 "내가 고른 위젯" 공용 카드 그리드 ── */
 .gallery-back-btn { margin-bottom: 12px; }
 .gallery-intro { margin: -6px 0 14px; }
-/* "나의 대시보드" 제목 + "+ 위젯 추가" 버튼이 좁은 화면에서 줄바꿈되게 */
+/* "나의 대시보드" 제목 + "+ 위젯 추가"/"AI가 추천하기" 버튼이 좁은 화면에서 줄바꿈되게 */
 .gallery-root .block-head { flex-wrap: wrap; gap: 6px 10px; }
+.pd-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── 위젯 추가 / AI가 추천하기 모달(오른쪽에서 열리는 시트) ── */
+.wa-modal { position: fixed; inset: 0; z-index: 100; }
+.wa-backdrop { position: absolute; inset: 0; background: rgba(15,20,32,.5); }
+.wa-sheet {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 100%; max-width: 480px;
+  background: var(--bg); box-shadow: -8px 0 24px rgba(16,24,40,.18);
+  display: flex; flex-direction: column; padding: 18px; overflow-y: auto;
+}
+@media (min-width: 640px) {
+  .wa-sheet { top: 5vh; bottom: 5vh; right: 5vw; border-radius: 16px; max-height: 90vh; }
+}
+.wa-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+.wa-head h3 { font-size: 1.05rem; }
+.wa-close {
+  background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 8px; flex: 0 0 auto;
+}
+.wa-close:hover { background: var(--card2); color: var(--fg); }
+.wa-search {
+  width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card2); color: var(--fg); font-size: .86rem; margin-bottom: 14px;
+}
+.wa-body { flex: 1; overflow-y: auto; }
+.wa-group { margin-bottom: 18px; }
+.wa-group:last-child { margin-bottom: 0; }
+.wa-group-title { font-size: .82rem; font-weight: 800; color: var(--muted); margin-bottom: 8px; }
+
+.ai-role-options { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.ai-role-opt {
+  display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; font-weight: 600;
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+}
+.ai-role-opt:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.ai-result-list { list-style: none; padding: 0; margin: 10px 0 16px; display: flex; flex-direction: column; gap: 6px; }
+.ai-result-list li { font-size: .88rem; font-weight: 600; }
 .gal-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .gal-card {
   background: var(--card); border: 1px solid var(--border); border-radius: 14px;

@@ -11,6 +11,7 @@ import logging
 from typing import Callable, TypeVar
 
 from capital.liquidity import get_liquidity_summary
+from capital.market_snapshot import get_market_snapshot
 from credit.today_summary import get_today_leads_summary
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
@@ -82,6 +83,31 @@ def _policy_org_alerts(policy: dict | None) -> list[dict]:
     return alerts
 
 
+def _policy_highlight(policy: dict | None) -> dict | None:
+    """오늘의 브리핑 "꼭 확인하세요" 카드 1건 — 기준일에 실제로 올라온 보도자료 중 첫 건.
+    _policy_org_alerts()와 같은 as_of 필터를 쓰되, "꼭 확인하세요" 카드용으로 제목·기관·
+    날짜·원문 링크를 그대로 돌려준다(지어낸 요약 없음 — 스크랩 대상 자체가 이미 KSFC
+    관련 기관으로 걸러져 있어 "확인이 필요하다"는 문구는 일반적이어도 사실에 부합)."""
+    if not policy:
+        return None
+    as_of = policy.get("as_of")
+    if not as_of:
+        return None
+    for g in policy.get("groups") or []:
+        items = [it for it in (g.get("items") or []) if it.get("date") == as_of]
+        if items:
+            it = items[0]
+            return {
+                "kind": "policy",
+                "title": it.get("title") or "",
+                "org": g.get("org_name") or g.get("badge") or "",
+                "date": as_of,
+                "url": it.get("url"),
+                "hot": True,
+            }
+    return None
+
+
 def _credit_leads_alert() -> dict | None:
     """여신·심사 탭의 "오늘 신규 리드"와 항상 같은 숫자를 보여준다 —
     credit.today_summary.get_today_leads_summary() 하나로 계산을 단일화해
@@ -104,12 +130,27 @@ def _credit_leads_alert() -> dict | None:
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
+    market = _safe("오늘의 시장 한눈에", get_market_snapshot)
     alerts = (
         [a for a in (_liquidity_alert(),) if a]
         + [a for a in (_credit_leads_alert(),) if a]
         + _policy_org_alerts(policy)
     )
     alerts = alerts[:_MAX_ALERTS]
+
+    # "꼭 확인하세요"(오늘의 브리핑) — 정책 발표 1건(있으면) + AI 선별 리서치·뉴스 상위 건.
+    # 리서치 기사는 이미 AI가 업무 관련도순으로 정렬·태깅·이유(reason)까지 판단해둔
+    # research.curate 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
+    articles = research.get("articles") if research else None
+    highlights: list[dict] = []
+    ph = _policy_highlight(policy)
+    if ph:
+        highlights.append(ph)
+    for a in (articles or [])[: (4 if not ph else 3)]:
+        highlights.append({
+            "kind": "research", "title": a.get("title"), "tag": a.get("tag"),
+            "date": a.get("published"), "url": a.get("url"), "reason": a.get("reason"),
+        })
 
     return {
         "policy": {
@@ -124,6 +165,10 @@ def get_home_summary() -> dict:
             "briefing": research.get("briefing"),
             "briefing_note": research.get("briefing_note"),
             "count": len(research.get("articles") or []),
+            "candidate_count": research.get("candidate_count"),
+            "articles": articles or [],
         } if research else None,
+        "market": market,
+        "highlights": highlights,
         "alerts": alerts,
     }

@@ -865,13 +865,16 @@
     "credit-analysis", "credit-filing", "credit-report"
   ];
 
+  function galItemsForCatalog() {
+    return WIDGET_CATALOG.filter(function (w) {
+      return w.status !== "soon" && HIDDEN_FROM_GALLERY.indexOf(w.id) < 0;
+    });
+  }
+
   function renderGallery() {
     var box = document.getElementById("gallery-grid");
     if (!box) return;
-    var items = WIDGET_CATALOG.filter(function (w) {
-      return w.status !== "soon" && HIDDEN_FROM_GALLERY.indexOf(w.id) < 0;
-    });
-    box.innerHTML = items.map(function (w) { return galCardHTML(w); }).join("");
+    box.innerHTML = galItemsForCatalog().map(function (w) { return galCardHTML(w); }).join("");
     bindGalleryCardEvents(box);
   }
 
@@ -882,10 +885,10 @@
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
     if (!items.length) {
       box.innerHTML =
-        '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 전사에 등재된 위젯을 담아보세요.<br>' +
+        '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 위젯을 담아보세요.<br>' +
         '<button type="button" class="dart-btn" id="personal-go-gallery">위젯 추가하러 가기 →</button></div>';
       var gbtn = document.getElementById("personal-go-gallery");
-      if (gbtn) gbtn.addEventListener("click", function () { if (window.AppNav) window.AppNav.go("gallery"); });
+      if (gbtn) gbtn.addEventListener("click", openWidgetAddModal);
       return;
     }
     box.innerHTML = items.map(function (w) { return galCardHTML(w, { mini: true }); }).join("");
@@ -896,6 +899,133 @@
     if (items.some(function (w) { return w.id === "sector-map"; })) initSectorMapWidget();
   }
 
+  // ── 위젯 추가 모달 ── "전사 위젯/부서 위젯" 같은 내부 용어 대신, 실제 있는 구분(담당자가
+  // 직접 만든 위젯 vs 자본시장 정보)만 자연어로 묶어 보여준다(없는 "인기순위"는 지어내지 않음).
+  function waGroupHTML(title, items) {
+    if (!items.length) return "";
+    return (
+      '<div class="wa-group"><div class="wa-group-title">' + esc(title) + "</div>" +
+      items.map(function (w) { return galCardHTML(w); }).join("") +
+      "</div>"
+    );
+  }
+  function renderWidgetAddModal(query) {
+    var body = document.getElementById("wa-body");
+    if (!body) return;
+    var all = galItemsForCatalog();
+    var q = (query || "").trim().toLowerCase();
+    var filtered = q ? all.filter(function (w) {
+      return (w.title + " " + w.desc).toLowerCase().indexOf(q) >= 0;
+    }) : all;
+    var madeByStaff = filtered.filter(function (w) { return !!w.creditBadge; });
+    var capitalInfo = filtered.filter(function (w) { return w.tab === "capital"; });
+    var rest = filtered.filter(function (w) {
+      return madeByStaff.indexOf(w) < 0 && capitalInfo.indexOf(w) < 0;
+    });
+    var html =
+      waGroupHTML("✍️ 담당자가 직접 만든 위젯", madeByStaff) +
+      waGroupHTML("📈 자본시장 정보", capitalInfo) +
+      waGroupHTML("그 밖의 위젯", rest);
+    body.innerHTML = html || '<div class="page-note">검색 결과가 없습니다.</div>';
+    bindGalleryCardEvents(body);
+  }
+  function openWidgetAddModal() {
+    var modal = document.getElementById("widget-add-modal");
+    if (!modal) return;
+    var search = document.getElementById("wa-search");
+    if (search) search.value = "";
+    renderWidgetAddModal("");
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeWidgetAddModal() {
+    var modal = document.getElementById("widget-add-modal");
+    if (modal) modal.hidden = true;
+    document.body.style.overflow = "";
+    renderPersonal(); // 모달에서 추가/제거한 결과를 나의 대시보드에 바로 반영
+  }
+
+  // ── AI가 추천하기(mock) ── 실제 개인화 백엔드가 없어, 선택한 업무·키워드를 위젯
+  // 카탈로그의 제목·설명과 단순 매칭해 추천한다(프런트 mock 플로우 — 실제 AI 판단 아님).
+  var AI_ROLE_OPTIONS = ["투자금융", "리스크", "여신", "자금", "영업", "기타"];
+  var AI_ROLE_MATCH = {
+    "투자금융": ["sector-map", "capital-issuance", "market-reports"],
+    "리스크": ["capital-liquidity", "credit-equity-glance"],
+    "여신": ["credit-equity-glance", "capital-liquidity"],
+    "자금": ["capital-liquidity", "capital-cma"],
+    "영업": ["market-reports", "sector-map"],
+    "기타": ["it-news", "sector-map"]
+  };
+  function aiRecommendFormHTML() {
+    return (
+      '<p class="page-note">주로 어떤 업무를 하시나요?</p>' +
+      '<div class="ai-role-options">' +
+        AI_ROLE_OPTIONS.map(function (r) {
+          return '<label class="ai-role-opt"><input type="radio" name="ai-role" value="' + esc(r) + '">' + esc(r) + "</label>";
+        }).join("") +
+      "</div>" +
+      '<p class="page-note" style="margin-top:14px">최근 관심 있는 주제나 기업이 있나요?</p>' +
+      '<input type="text" class="wa-search" id="ai-keyword" placeholder="예: 2차전지, CFD, 삼성전자">' +
+      '<button type="button" class="dart-btn" id="ai-run-btn" style="margin-top:14px">AI가 추천하기</button>'
+    );
+  }
+  function aiRecommendResultHTML(role, keyword) {
+    var all = galItemsForCatalog();
+    var picked = {};
+    (AI_ROLE_MATCH[role] || []).forEach(function (id) { picked[id] = true; });
+    var kw = (keyword || "").trim().toLowerCase();
+    if (kw) {
+      all.forEach(function (w) {
+        if ((w.title + " " + w.desc).toLowerCase().indexOf(kw) >= 0) picked[w.id] = true;
+      });
+    }
+    var items = all.filter(function (w) { return picked[w.id]; });
+    if (!items.length) items = all.slice(0, 3);
+    var idsCsv = items.map(function (w) { return w.id; }).join(",");
+    return (
+      '<p class="page-note">' + esc(role) + ' 업무에 맞는 위젯을 추천해드릴게요</p>' +
+      '<ul class="ai-result-list">' +
+        items.map(function (w) { return "<li>✓ " + esc(w.emoji) + " " + esc(w.title) + "</li>"; }).join("") +
+      "</ul>" +
+      '<button type="button" class="dart-btn" id="ai-add-all-btn" data-ids="' + esc(idsCsv) + '">모두 추가</button>'
+    );
+  }
+  function bindAiRecommendForm() {
+    var runBtn = document.getElementById("ai-run-btn");
+    if (!runBtn) return;
+    runBtn.addEventListener("click", function () {
+      var checked = document.querySelector('input[name="ai-role"]:checked');
+      var role = checked ? checked.value : "기타";
+      var keywordEl = document.getElementById("ai-keyword");
+      var body = document.getElementById("ai-body");
+      body.innerHTML = aiRecommendResultHTML(role, keywordEl ? keywordEl.value : "");
+      var addAllBtn = document.getElementById("ai-add-all-btn");
+      if (addAllBtn) {
+        addAllBtn.addEventListener("click", function () {
+          addAllBtn.dataset.ids.split(",").forEach(function (id) {
+            if (id && getMyWidgetIds().indexOf(id) < 0) toggleMyWidget(id);
+          });
+          closeAiRecommendModal();
+        });
+      }
+    });
+  }
+  function openAiRecommendModal() {
+    var modal = document.getElementById("ai-recommend-modal");
+    if (!modal) return;
+    var body = document.getElementById("ai-body");
+    if (body) body.innerHTML = aiRecommendFormHTML();
+    bindAiRecommendForm();
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+  function closeAiRecommendModal() {
+    var modal = document.getElementById("ai-recommend-modal");
+    if (modal) modal.hidden = true;
+    document.body.style.overflow = "";
+    renderPersonal();
+  }
+
   // ── 홈 대시보드: 통합 브리핑 + 알림 ──
   function bulletsFromBriefing(b) {
     if (!b) return [];
@@ -904,25 +1034,142 @@
       .filter(Boolean).slice(0, 3);
   }
 
-  function briefCardHTML(opts) {
-    var head =
-      '<div class="brief-head"><span class="brief-label">' + opts.label + "</span>" +
-      '<span class="brief-when">' + esc(opts.when || "") + "</span></div>";
-    var body;
-    if (opts.bullets && opts.bullets.length) {
-      body = '<ol class="brief-list">' +
-        opts.bullets.map(function (b, i) {
-          return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + '</span><span class="bl-tx">' +
-            esc(b) + "</span></li>";
-        }).join("") + "</ol>";
-    } else {
-      body = '<div class="brief-note">' + esc(opts.note || "표시할 브리핑이 없습니다.") + "</div>";
-    }
+  // 날짜 "20260921" → "2026-09-21" (data.go.kr 등 원천이 하이픈 없는 basDt 형식을 줄 때).
+  function fmtDate(s) {
+    s = String(s || "");
+    return /^\d{8}$/.test(s) ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8) : s;
+  }
+
+  // ── 오늘의 브리핑: KPI 요약 카드 ──
+  function briefKpiCardHTML(value, label, sub, jumpId) {
     return (
-      '<div class="brief-card home-brief">' + head + body +
-        '<button type="button" class="dart-btn home-brief-more" data-work="' + opts.tab + '">자세히 보기 →</button>' +
+      '<div class="kpi brief-kpi"' + (jumpId ? ' data-jump="' + jumpId + '"' : ' data-jump="personal"') + '>' +
+        '<div class="k-label">' + esc(label) + "</div>" +
+        '<div class="k-value">' + value + "</div>" +
+        (sub ? '<div class="k-sub">' + esc(sub) + "</div>" : "") +
       "</div>"
     );
+  }
+  function renderBriefKpis(d) {
+    var box = document.getElementById("brief-kpis");
+    if (!box) return;
+    var highlightCount = (d.highlights || []).length;
+    var articles = (d.research && d.research.articles) || [];
+    var usedResearch = (d.highlights || []).filter(function (h) { return h.kind === "research"; }).length;
+    var moreCount = Math.max(0, articles.length - usedResearch);
+    var candidateCount = (d.research && d.research.candidate_count) || 0;
+    box.innerHTML =
+      briefKpiCardHTML(highlightCount, "꼭 확인하세요", "업무 영향이 큰 변화", "brief-highlights-block") +
+      briefKpiCardHTML(moreCount, "오늘 알아두면 좋은 것", "AI 선별 뉴스·리서치", "brief-news-block") +
+      briefKpiCardHTML(candidateCount, "새로운 소식", "오늘 수집된 후보 기사", "brief-news-block") +
+      briefKpiCardHTML(getMyWidgetIds().length, "나의 관심 위젯", "나의 대시보드에서 확인", null);
+    box.querySelectorAll(".brief-kpi").forEach(function (card) {
+      card.addEventListener("click", function () {
+        var jump = card.dataset.jump;
+        if (jump === "personal") { if (window.AppNav) window.AppNav.go("personal"); return; }
+        var el = document.getElementById(jump);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }
+
+  // ── 오늘의 브리핑: 꼭 확인하세요(정책 발표 1건 + AI 선별 리서치 상위건, "우리에게
+  // 중요한 이유" 포함) — research.curate 가 이미 만들어둔 태그·이유를 그대로 쓴다. ──
+  function highlightCardHTML(h) {
+    var isPolicy = h.kind === "policy";
+    var cat = isPolicy ? (h.org || "정책·규제") : (h.tag || "일반");
+    var reason = isPolicy
+      ? "금융당국 발표 — 관련 업무 영향 확인이 필요합니다."
+      : (h.reason || "");
+    return (
+      '<a class="hl-card" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' +
+        '<div class="hl-top">' +
+          '<span class="hl-cat">' + esc(cat) + "</span>" +
+          (isPolicy ? '<span class="hl-badge">HOT</span>' : "") +
+          '<span class="hl-date">' + esc(fmtDate(h.date)) + "</span>" +
+        "</div>" +
+        '<div class="hl-title">' + esc(h.title || "") + "</div>" +
+        (reason ? '<div class="hl-reason"><span class="hl-reason-label">우리에게 중요한 이유</span>' + esc(reason) + "</div>" : "") +
+      "</a>"
+    );
+  }
+  function renderHighlights(d) {
+    var box = document.getElementById("brief-highlights");
+    if (!box) return;
+    var items = d.highlights || [];
+    box.innerHTML = items.length
+      ? items.map(highlightCardHTML).join("")
+      : '<div class="page-note">오늘은 꼭 확인할 만큼 중요한 항목이 없습니다.</div>';
+  }
+
+  // ── 오늘의 브리핑: 시장 한눈에(코스피·코스닥 실시간 지수, capital.market_snapshot) ──
+  function mktIdxHTML(label, idx) {
+    if (!idx) return "";
+    var chg = idx.change_pct;
+    var cls = chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : "";
+    var arrow = chg > 0 ? "▲" : chg < 0 ? "▼" : "";
+    return (
+      '<div class="mkt-idx"><div class="mkt-idx-name">' + label + "</div>" +
+        '<div class="mkt-idx-value">' + Number(idx.close).toLocaleString("ko-KR") + "</div>" +
+        '<div class="mkt-idx-chg ' + cls + '">' + arrow + Math.abs(chg).toFixed(2) + "%</div></div>"
+    );
+  }
+  function renderMarket(d) {
+    var box = document.getElementById("brief-market");
+    if (!box) return;
+    var m = d.market;
+    if (!m || m.source !== "live") {
+      box.innerHTML = '<div class="page-note">시장 데이터를 일시적으로 불러오지 못했습니다.</div>';
+      return;
+    }
+    box.innerHTML =
+      '<div class="mkt-grid">' + mktIdxHTML("KOSPI", m.kospi) + mktIdxHTML("KOSDAQ", m.kosdaq) + "</div>" +
+      '<div class="mkt-sub-row"><span>거래대금(당일)</span><b>' +
+        (m.total_turnover != null ? m.total_turnover.toLocaleString("ko-KR") : "-") + "조원</b></div>" +
+      '<div class="page-note mkt-asof">' + esc(fmtDate(m.as_of)) + " 기준 · 코스피·코스닥 지수시세(공공데이터포털)</div>";
+  }
+
+  // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 리서치·뉴스 탭에서) ──
+  function briefNewsRowHTML(a) {
+    return (
+      '<a class="brief-news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
+        '<span class="bni-tag">' + esc(a.tag || "일반") + "</span>" +
+        '<span class="bni-title">' + esc(a.title) + "</span>" +
+        '<span class="bni-date">' + esc(a.published || "") + "</span>" +
+      "</a>"
+    );
+  }
+  function renderBriefNews(d) {
+    var box = document.getElementById("brief-news");
+    if (!box) return;
+    var arts = (d.research && d.research.articles) || [];
+    box.innerHTML = arts.length
+      ? arts.slice(0, 6).map(briefNewsRowHTML).join("")
+      : '<div class="page-note">' + esc((d.research && d.research.briefing_note) || "오늘 선별된 뉴스가 없습니다.") + "</div>";
+  }
+
+  // ── 오늘의 브리핑: AI가 발견한 특이사항 — 실제 오늘 태그 분포에서 뽑은 사실 1~2줄
+  // (역사 데이터가 없어 "N일 연속" 같은 추세는 지어내지 않고, 오늘 하루 분포만 근거로 삼는다). ──
+  function renderSignal(d) {
+    var box = document.getElementById("brief-signal");
+    if (!box) return;
+    var arts = (d.research && d.research.articles) || [];
+    if (!arts.length) {
+      box.innerHTML = '<div class="page-note">아직 특이사항을 판단할 데이터가 부족합니다.</div>';
+      return;
+    }
+    var counts = {};
+    arts.forEach(function (a) { var t = a.tag || "일반"; counts[t] = (counts[t] || 0) + 1; });
+    var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
+    var bullets = [
+      "오늘 AI가 선별한 뉴스 " + arts.length + "건 중 <b>" + esc(top) + "</b> 관련이 " + counts[top] + "건으로 가장 많습니다."
+    ];
+    if (d.research && d.research.candidate_count) {
+      bullets.push(
+        "당일 수집된 후보 기사 " + d.research.candidate_count + "건 중 " + arts.length + "건이 KSFC 업무 관련도가 높다고 판단됐습니다."
+      );
+    }
+    box.innerHTML = '<ul class="signal-list">' + bullets.map(function (b) { return "<li>💡 " + b + "</li>"; }).join("") + "</ul>";
   }
 
   // 알림 상세문구(detail)에서 날짜만 뽑아 "제목 (YYYY-MM-DD 기준)" 한 줄로 압축한다
@@ -959,37 +1206,68 @@
   function bindGoWorkButtons(scope) {
     scope.querySelectorAll("[data-work]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        // "gallery"는 업무 화면이 아니라 전사 위젯 탭이라 goWork 대신 곧장 이동시킨다.
-        if (btn.dataset.work === "gallery") { if (window.AppNav) window.AppNav.go("gallery"); }
+        // "gallery"는 업무 화면이 아니라 위젯 추가 모달을 여는 자리다.
+        if (btn.dataset.work === "gallery") { openWidgetAddModal(); }
         else goWork(btn.dataset.work, btn.dataset.sub);
       });
     });
+  }
+
+  // 정적 버튼(모달 열기/닫기/검색)은 페이지 로드 시 한 번만 바인딩한다.
+  var waAddBtn = document.getElementById("personal-add-widget-btn");
+  if (waAddBtn) waAddBtn.addEventListener("click", openWidgetAddModal);
+  var waCloseBtn = document.getElementById("wa-close-btn");
+  if (waCloseBtn) waCloseBtn.addEventListener("click", closeWidgetAddModal);
+  var waBackdrop = document.getElementById("wa-backdrop");
+  if (waBackdrop) waBackdrop.addEventListener("click", closeWidgetAddModal);
+  var waSearchInput = document.getElementById("wa-search");
+  if (waSearchInput) waSearchInput.addEventListener("input", function () { renderWidgetAddModal(waSearchInput.value); });
+  var aiRecommendBtn = document.getElementById("personal-ai-recommend-btn");
+  if (aiRecommendBtn) aiRecommendBtn.addEventListener("click", openAiRecommendModal);
+  var aiCloseBtn = document.getElementById("ai-close-btn");
+  if (aiCloseBtn) aiCloseBtn.addEventListener("click", closeAiRecommendModal);
+  var aiBackdrop = document.getElementById("ai-backdrop");
+  if (aiBackdrop) aiBackdrop.addEventListener("click", closeAiRecommendModal);
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    var wa = document.getElementById("widget-add-modal");
+    var ai = document.getElementById("ai-recommend-modal");
+    if (wa && !wa.hidden) closeWidgetAddModal();
+    if (ai && !ai.hidden) closeAiRecommendModal();
+  });
+
+  // home.html의 정적 버튼(오늘의 주요뉴스 "더보기 →")은 매번 다시 그려지지 않으니
+  // 페이지 로드 시 한 번만 바인딩한다(ensureBriefing은 재시도 시 다시 불릴 수 있어
+  // 거기서 바인딩하면 리스너가 중복 등록된다).
+  var briefNewsMoreBtn = document.querySelector('#brief-news-block [data-work]');
+  if (briefNewsMoreBtn) bindGoWorkButtons(briefNewsMoreBtn.parentElement);
+
+  function renderGreetTime() {
+    var el = document.getElementById("brief-greet-time");
+    if (!el) return;
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, "0");
+    var mm = String(now.getMinutes()).padStart(2, "0");
+    el.textContent = "마지막 업데이트 " + hh + ":" + mm;
   }
 
   var briefingLoaded = false;
   function ensureBriefing() {
     if (briefingLoaded) return;
     briefingLoaded = true;
-    var briefBox = document.getElementById("home-briefs");
+    renderGreetTime();
     get("/api/home/summary").then(function (d) {
-      var cards = "";
-      if (d.policy) {
-        cards += briefCardHTML({
-          label: "📜 정책·규제", when: (d.policy.as_of || "") + " 기준",
-          bullets: bulletsFromBriefing(d.policy.briefing), note: d.policy.briefing_note, tab: "policy"
-        });
-      }
-      if (d.research) {
-        cards += briefCardHTML({
-          label: "📰 리서치·뉴스", when: (d.research.date || "") + " · " + (d.research.count || 0) + "건 선별",
-          bullets: bulletsFromBriefing(d.research.briefing), note: d.research.briefing_note, tab: "research"
-        });
-      }
-      briefBox.innerHTML = cards || '<div class="page-note">브리핑을 불러오지 못했습니다.</div>';
-      bindGoWorkButtons(briefBox);
+      renderBriefKpis(d);
+      renderHighlights(d);
+      renderMarket(d);
+      renderBriefNews(d);
+      renderSignal(d);
       renderAlerts([WIDGET_RECOMMENDATION].concat(d.alerts || []));
     }).catch(function (e) {
-      briefBox.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      ["brief-highlights", "brief-market", "brief-news", "brief-signal"].forEach(function (id) {
+        var box = document.getElementById(id);
+        if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
+      });
       renderAlerts([WIDGET_RECOMMENDATION]);
       briefingLoaded = false; // 재방문 시 재시도
     });
