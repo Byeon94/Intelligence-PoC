@@ -952,9 +952,35 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .gal-remove:hover { color: #d33; border-color: #d33; }
 
 @media (min-width: 720px) {
-  .home-briefs { grid-template-columns: repeat(2, 1fr); }
   .gal-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (min-width: 1000px) {
   .gal-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ── 온보딩 투어(첫 방문 시 1회) ── */
+.ob-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(9,12,22,.62); }
+.ob-spot {
+  position: fixed; z-index: 200; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(9,12,22,.62);
+  border: 2px solid var(--accent);
+  transition: top .22s ease, left .22s ease, width .22s ease, height .22s ease;
+}
+.ob-tooltip {
+  position: fixed; z-index: 201; background: var(--card); color: var(--fg);
+  border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.28);
+  padding: 18px; width: 300px; max-width: calc(100vw - 32px);
+}
+.ob-tooltip.ob-centered {
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 340px; max-width: calc(100vw - 32px); text-align: center; padding: 28px 24px;
+}
+.ob-tooltip-step { font-size: .72rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
+.ob-tooltip h3 { font-size: 1.05rem; margin-bottom: 8px; }
+.ob-tooltip p { font-size: .84rem; color: var(--muted); line-height: 1.55; margin-bottom: 16px; }
+.ob-tooltip-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ob-tooltip.ob-centered .ob-tooltip-actions { flex-direction: column-reverse; }
+.ob-skip {
+  background: none; border: none; color: var(--muted); font-size: .78rem; font-weight: 600; cursor: pointer;
+}
+.ob-skip:hover { color: var(--fg); }

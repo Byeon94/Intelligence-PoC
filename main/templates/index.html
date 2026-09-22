@@ -260,6 +260,11 @@
 </main>
 </div>
 
+<!-- 온보딩 투어(첫 방문 시 1회) — main/static/home.js 가 채워 넣는다 -->
+<div class="ob-backdrop" id="ob-backdrop" hidden></div>
+<div class="ob-spot" id="ob-spot" hidden></div>
+<div class="ob-tooltip" id="ob-tooltip" hidden></div>
+
 <script>
 function themeLabel(t) { return t === 'dark' ? '☀️ 라이트' : '🌙 다크'; }
 function applyTheme(t) {

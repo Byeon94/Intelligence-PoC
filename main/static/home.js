@@ -1319,4 +1319,150 @@
     enterGallery: function () { renderGallery(); },
     enterPersonal: function () { renderPersonal(); }
   };
+
+  // ── 온보딩 투어(첫 방문 시 1회) — "오늘의 브리핑/나의 대시보드/업무별 메뉴" 3가지만
+  // 소개한다(환영 화면 + 완료 화면 포함 총 5스텝). 사이드바는 데스크톱에선 세로,
+  // 모바일에선 상단 가로 바로 바뀌므로, 스포트라이트·말풍선 위치는 매번 실제 렌더된
+  // 좌표(getBoundingClientRect)를 기준으로 계산한다. ──
+  var OB_STORAGE_KEY = "ob_tour_done_v1";
+  function obDone() {
+    try { return localStorage.getItem(OB_STORAGE_KEY) === "1"; } catch (e) { return false; }
+  }
+  function obMarkDone() {
+    try { localStorage.setItem(OB_STORAGE_KEY, "1"); } catch (e) {}
+  }
+
+  var OB_STEPS = [
+    { type: "welcome" },
+    { type: "spot", sel: '.side-btn[data-cat="home"]',
+      title: "오늘의 브리핑",
+      body: "매일 아침 가장 먼저 확인하는 곳입니다. AI가 오늘의 핵심 변화와 시장 현황을 미리 정리해 보여드립니다." },
+    { type: "spot", sel: '.side-btn[data-cat="personal"]',
+      title: "나의 대시보드",
+      body: '"+ 위젯 추가"로 내가 관심 있는 정보만 모아 나만의 화면을 만들 수 있습니다.' },
+    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
+      title: "업무별 메뉴",
+      body: "자본시장·여신·심사·정책·규제·리서치·뉴스처럼 부서별 상세 화면은 여기서 확인하세요." },
+    { type: "done" }
+  ];
+  var obIndex = 0;
+
+  function obUnionRect(el1, el2) {
+    var a = el1.getBoundingClientRect(), b = el2.getBoundingClientRect();
+    var top = Math.min(a.top, b.top), left = Math.min(a.left, b.left);
+    var right = Math.max(a.right, b.right), bottom = Math.max(a.bottom, b.bottom);
+    return { top: top, left: left, right: right, bottom: bottom, width: right - left, height: bottom - top };
+  }
+  function obWelcomeHTML() {
+    return (
+      "<h3>안녕하세요! 👋</h3>" +
+      "<p>증금 인텔리전스에 오신 것을 환영합니다.<br>AI가 시장·정책·뉴스 정보를 정리해 매일 아침 업무에 필요한 핵심만 알려드립니다.</p>" +
+      '<div class="ob-tooltip-actions">' +
+        '<button type="button" class="dart-btn" id="ob-next">투어 시작하기 →</button>' +
+        '<button type="button" class="ob-skip" id="ob-skip">건너뛰기</button>' +
+      "</div>"
+    );
+  }
+  function obDoneHTML() {
+    return (
+      "<h3>준비가 완료되었습니다 🎉</h3>" +
+      "<p>이제 오늘의 브리핑, 나의 대시보드, 업무별 메뉴를 자유롭게 둘러보세요.</p>" +
+      '<div class="ob-tooltip-actions">' +
+        '<button type="button" class="dart-btn" id="ob-done-btn">오늘의 브리핑 보기 →</button>' +
+      "</div>"
+    );
+  }
+  function obSpotHTML(step) {
+    var spotSteps = OB_STEPS.filter(function (s) { return s.type === "spot"; });
+    var n = spotSteps.indexOf(step) + 1;
+    return (
+      '<div class="ob-tooltip-step">' + n + "/" + spotSteps.length + "</div>" +
+      "<h3>" + esc(step.title) + "</h3>" +
+      "<p>" + esc(step.body) + "</p>" +
+      '<div class="ob-tooltip-actions">' +
+        '<button type="button" class="ob-skip" id="ob-skip">건너뛰기</button>' +
+        '<button type="button" class="dart-btn" id="ob-next">다음 →</button>' +
+      "</div>"
+    );
+  }
+  function obPosition(rect) {
+    var spot = document.getElementById("ob-spot");
+    var tip = document.getElementById("ob-tooltip");
+    var pad = 6;
+    spot.style.top = (rect.top - pad) + "px";
+    spot.style.left = (rect.left - pad) + "px";
+    spot.style.width = (rect.width + pad * 2) + "px";
+    spot.style.height = (rect.height + pad * 2) + "px";
+
+    var tipW = 300;
+    var mobile = window.innerWidth <= 880;
+    if (mobile) {
+      tip.style.top = (rect.bottom + 14) + "px";
+      tip.style.left = Math.min(Math.max(12, rect.left), window.innerWidth - tipW - 12) + "px";
+    } else {
+      tip.style.top = Math.max(12, rect.top) + "px";
+      tip.style.left = (rect.right + 18) + "px";
+    }
+  }
+  function obBindStepButtons() {
+    var next = document.getElementById("ob-next");
+    if (next) next.addEventListener("click", obNext);
+    var skip = document.getElementById("ob-skip");
+    if (skip) skip.addEventListener("click", obEnd);
+    var doneBtn = document.getElementById("ob-done-btn");
+    if (doneBtn) doneBtn.addEventListener("click", obEnd);
+  }
+  function obRenderStep() {
+    var step = OB_STEPS[obIndex];
+    if (!step) { obEnd(); return; }
+    var backdrop = document.getElementById("ob-backdrop");
+    var spot = document.getElementById("ob-spot");
+    var tip = document.getElementById("ob-tooltip");
+    if (!backdrop || !spot || !tip) return;
+
+    if (step.type === "spot") {
+      var rect;
+      if (step.selRange) {
+        var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
+        if (!a || !b) { obNext(); return; }
+        rect = obUnionRect(a, b);
+      } else {
+        var el = document.querySelector(step.sel);
+        if (!el) { obNext(); return; }
+        rect = el.getBoundingClientRect();
+      }
+      backdrop.hidden = true;
+      spot.hidden = false;
+      tip.hidden = false;
+      tip.className = "ob-tooltip";
+      obPosition(rect);
+      tip.innerHTML = obSpotHTML(step);
+    } else {
+      spot.hidden = true;
+      backdrop.hidden = false;
+      tip.hidden = false;
+      tip.className = "ob-tooltip ob-centered";
+      tip.innerHTML = step.type === "welcome" ? obWelcomeHTML() : obDoneHTML();
+    }
+    obBindStepButtons();
+  }
+  function obNext() { obIndex++; obRenderStep(); }
+  function obEnd() {
+    obMarkDone();
+    ["ob-backdrop", "ob-spot", "ob-tooltip"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    if (window.AppNav) window.AppNav.go("home");
+  }
+  function obResize() {
+    var step = OB_STEPS[obIndex];
+    if (step && step.type === "spot" && !document.getElementById("ob-spot").hidden) obRenderStep();
+  }
+  window.addEventListener("resize", obResize);
+
+  if (!obDone()) {
+    // 사이드바 레이아웃이 자리잡은 뒤 좌표를 재야 스포트라이트 위치가 어긋나지 않는다.
+    setTimeout(function () { obIndex = 0; obRenderStep(); }, 400);
+  }
 })();
