@@ -713,7 +713,14 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 }
 
 /* ── 오늘의 시장 한눈에 ── */
+.mkt-subtabs { margin-bottom: 12px; }
 .mkt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+/* 해외/환율 탭은 카드가 3개라 좁은 화면에선 2열로 접었다가 넓어지면 3열로 */
+.mkt-grid-3 { grid-template-columns: repeat(2, 1fr); }
+.mkt-grid-3 .mkt-idx-value { font-size: 1.05rem; }
+@media (min-width: 480px) {
+  .mkt-grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
 .mkt-idx {
   background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
 }

@@ -11,7 +11,7 @@ import logging
 from typing import Callable, TypeVar
 
 from capital.liquidity import get_liquidity_summary
-from capital.market_snapshot import get_market_snapshot
+from capital.market_snapshot import get_global_market_snapshot, get_market_snapshot
 from credit.today_summary import get_today_leads_summary
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
@@ -130,7 +130,8 @@ def _credit_leads_alert() -> dict | None:
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
-    market = _safe("오늘의 시장 한눈에", get_market_snapshot)
+    market = _safe("오늘의 시장 한눈에(국내)", get_market_snapshot)
+    global_market = _safe("오늘의 시장 한눈에(해외·환율)", get_global_market_snapshot)
     alerts = (
         [a for a in (_liquidity_alert(),) if a]
         + [a for a in (_credit_leads_alert(),) if a]
@@ -169,6 +170,7 @@ def get_home_summary() -> dict:
             "articles": articles or [],
         } if research else None,
         "market": market,
+        "global_market": global_market,
         "highlights": highlights,
         "alerts": alerts,
     }

@@ -1158,31 +1158,64 @@
     bindGoWorkButtons(box);
   }
 
-  // ── 오늘의 브리핑: 시장 한눈에(코스피·코스닥 실시간 지수, capital.market_snapshot) ──
-  function mktIdxHTML(label, idx) {
-    if (!idx) return "";
-    var chg = idx.change_pct;
+  // ── 오늘의 브리핑: 시장 한눈에 ── 국내(코스피·코스닥, data.go.kr)/해외(다우·나스닥·
+  // S&P500)/환율(USD·JPY100·EUR, Yahoo Finance 비공식 API)을 탭으로 전환해서 보여준다.
+  function mktIdxHTML(label, close, chg) {
     var cls = chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : "";
     var arrow = chg > 0 ? "▲" : chg < 0 ? "▼" : "";
+    var chgText = chg == null ? "-" : arrow + Math.abs(chg).toFixed(2) + "%";
     return (
-      '<div class="mkt-idx"><div class="mkt-idx-name">' + label + "</div>" +
-        '<div class="mkt-idx-value">' + Number(idx.close).toLocaleString("ko-KR") + "</div>" +
-        '<div class="mkt-idx-chg ' + cls + '">' + arrow + Math.abs(chg).toFixed(2) + "%</div></div>"
+      '<div class="mkt-idx"><div class="mkt-idx-name">' + esc(label) + "</div>" +
+        '<div class="mkt-idx-value">' + Number(close).toLocaleString("ko-KR") + "</div>" +
+        '<div class="mkt-idx-chg ' + cls + '">' + chgText + "</div></div>"
     );
   }
-  function renderMarket(d) {
-    var box = document.getElementById("brief-market");
-    if (!box) return;
+  var mktActiveTab = "domestic";
+  var mktLastData = null;
+
+  function mktDomesticHTML(d) {
     var m = d.market;
-    if (!m || m.source !== "live") {
-      box.innerHTML = '<div class="page-note">시장 데이터를 일시적으로 불러오지 못했습니다.</div>';
-      return;
-    }
-    box.innerHTML =
-      '<div class="mkt-grid">' + mktIdxHTML("KOSPI", m.kospi) + mktIdxHTML("KOSDAQ", m.kosdaq) + "</div>" +
+    if (!m || m.source !== "live") return '<div class="page-note">국내 시장 데이터를 일시적으로 불러오지 못했습니다.</div>';
+    return (
+      '<div class="mkt-grid">' +
+        mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change_pct) +
+        mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change_pct) +
+      "</div>" +
       '<div class="mkt-sub-row"><span>거래대금(당일)</span><b>' +
         (m.total_turnover != null ? m.total_turnover.toLocaleString("ko-KR") : "-") + "조원</b></div>" +
-      '<div class="page-note mkt-asof">' + esc(fmtDate(m.as_of)) + " 기준 · 코스피·코스닥 지수시세(공공데이터포털)</div>";
+      '<div class="page-note mkt-asof">' + esc(fmtDate(m.as_of)) + " 기준 · 코스피·코스닥 지수시세(공공데이터포털)</div>"
+    );
+  }
+  function mktGlobalHTML(d) {
+    var gm = d.global_market;
+    if (!gm || gm.source !== "live") return '<div class="page-note">해외 시장 데이터를 일시적으로 불러오지 못했습니다.</div>';
+    return (
+      '<div class="mkt-grid mkt-grid-3">' +
+        gm.us_indices.map(function (idx) { return mktIdxHTML(idx.name, idx.close, idx.change_pct); }).join("") +
+      "</div>" +
+      '<div class="page-note mkt-asof">실시간 · Yahoo Finance 기준(참고용)</div>'
+    );
+  }
+  function mktFxHTML(d) {
+    var gm = d.global_market;
+    if (!gm || gm.source !== "live") return '<div class="page-note">환율 데이터를 일시적으로 불러오지 못했습니다.</div>';
+    return (
+      '<div class="mkt-grid mkt-grid-3">' +
+        gm.fx.map(function (f) { return mktIdxHTML(f.name, f.value, f.change_pct); }).join("") +
+      "</div>" +
+      '<div class="page-note mkt-asof">실시간 · Yahoo Finance 기준(참고용)</div>'
+    );
+  }
+  function drawMarketTab() {
+    var box = document.getElementById("brief-market");
+    if (!box || !mktLastData) return;
+    if (mktActiveTab === "global") box.innerHTML = mktGlobalHTML(mktLastData);
+    else if (mktActiveTab === "fx") box.innerHTML = mktFxHTML(mktLastData);
+    else box.innerHTML = mktDomesticHTML(mktLastData);
+  }
+  function renderMarket(d) {
+    mktLastData = d;
+    drawMarketTab();
   }
 
   // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 리서치·뉴스 탭에서) ──
@@ -1242,6 +1275,17 @@
   // 거기서 바인딩하면 리스너가 중복 등록된다).
   var briefNewsMoreBtn = document.querySelector('#brief-news-block [data-work]');
   if (briefNewsMoreBtn) bindGoWorkButtons(briefNewsMoreBtn.parentElement);
+
+  var mktSubtabsEl = document.getElementById("mkt-subtabs");
+  if (mktSubtabsEl) {
+    mktSubtabsEl.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-mkt]");
+      if (!btn) return;
+      mktActiveTab = btn.dataset.mkt;
+      mktSubtabsEl.querySelectorAll("[data-mkt]").forEach(function (b) { b.classList.toggle("active", b === btn); });
+      drawMarketTab();
+    });
+  }
 
   function renderGreetTime() {
     var el = document.getElementById("brief-greet-time");
