@@ -453,8 +453,6 @@
     maybeLoadLeads();
     var mainTabs = document.getElementById("main-tabs");
     if (mainTabs) mainTabs.addEventListener("click", function () { setTimeout(maybeLoadLeads, 0); });
-    var workTabs = document.getElementById("work-subtabs");
-    if (workTabs) workTabs.addEventListener("click", function () { setTimeout(maybeLoadLeads, 0); });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

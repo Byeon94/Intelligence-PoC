@@ -139,8 +139,6 @@
     maybe();
     var tabs = document.getElementById("main-tabs");
     if (tabs) tabs.addEventListener("click", function () { setTimeout(maybe, 0); });
-    var workTabs = document.getElementById("work-subtabs");
-    if (workTabs) workTabs.addEventListener("click", function () { setTimeout(maybe, 0); });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

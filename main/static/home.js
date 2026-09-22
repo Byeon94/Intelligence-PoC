@@ -99,12 +99,12 @@
   }
 
   function goWork(tab, sub) {
-    if (window.AppNav) window.AppNav.go("work", tab);
+    if (window.AppNav) window.AppNav.go(tab);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
-    // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #work-subtabs 클릭을 감지해 처음 한 번
-    // 데이터를 지연 로딩한다. 홈/전사 위젯에서 곧장 이동할 때도 그 로딩이 걸리도록
+    // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #main-tabs 클릭을 감지해 처음 한 번
+    // 데이터를 지연 로딩한다. 홈/나의 대시보드에서 곧장 이동할 때도 그 로딩이 걸리도록
     // 같은 이벤트를 한 번 흉내 낸다.
-    var bar = document.getElementById("work-subtabs");
+    var bar = document.getElementById("main-tabs");
     if (bar) bar.dispatchEvent(new Event("click", { bubbles: true }));
   }
 
@@ -538,7 +538,7 @@
     var toggleHTML = opts.mini
       ? '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>'
       : '<button type="button" class="gal-toggle' + (mine ? " active" : "") + '" data-id="' + w.id + '">' +
-        (mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가") +
+        (mine ? "✓ 나의 대시보드에 추가됨" : "+ 나의 대시보드에 추가") +
       "</button>";
     // 아래 위젯들은 "자세히 보기"가 가리키는 곳이 위젯 내용과 안 맞거나(외부 검색
     // 결과로 이동 등) 카드 안에 이미 내용이 다 보여 detail 이동 자체가 불필요해
@@ -841,7 +841,7 @@
         var ids = toggleMyWidget(btn.dataset.id);
         var mine = ids.indexOf(btn.dataset.id) >= 0;
         btn.classList.toggle("active", mine);
-        btn.textContent = mine ? "✓ 내 위젯에 추가됨" : "+ 내 위젯에 추가";
+        btn.textContent = mine ? "✓ 나의 대시보드에 추가됨" : "+ 나의 대시보드에 추가";
       });
     });
     // "그만보기"(내 위젯 전용) — 제거 후 목록을 다시 그려 카드가 즉시 사라지게 한다.
@@ -882,8 +882,8 @@
     var items = WIDGET_CATALOG.filter(function (w) { return ids.indexOf(w.id) >= 0; });
     if (!items.length) {
       box.innerHTML =
-        '<div class="page-note home-empty-widgets">전사 위젯에서 추가하면 여기에 표시됩니다.<br>' +
-        '<button type="button" class="dart-btn" id="personal-go-gallery">전사 위젯 가기 →</button></div>';
+        '<div class="page-note home-empty-widgets">"+ 위젯 추가"를 눌러 전사에 등재된 위젯을 담아보세요.<br>' +
+        '<button type="button" class="dart-btn" id="personal-go-gallery">위젯 추가하러 가기 →</button></div>';
       var gbtn = document.getElementById("personal-go-gallery");
       if (gbtn) gbtn.addEventListener("click", function () { if (window.AppNav) window.AppNav.go("gallery"); });
       return;
