@@ -1,38 +1,21 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="light">
+<html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
-<!-- 페이지가 자체 테마를 관리함을 알려 브라우저(안드로이드 크롬 등)의 강제 다크모드를 억제 -->
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
+<meta name="theme-color" content="#10162b">
+<meta name="color-scheme" content="light">
 <title>증금 인텔리전스 플랫폼</title>
-<script>
-// 새로 열면 항상 라이트(화이트)로 시작. 다크는 현재 탭 세션에서만 유지.
-(function () {
-  var saved = null;
-  try { saved = sessionStorage.getItem('theme'); } catch (e) {}
-  document.documentElement.setAttribute('data-theme', saved === 'dark' ? 'dark' : 'light');
-})();
-</script>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="stylesheet" href="{{ url_for('sector.static', filename='sector.css') }}">
 </head>
 <body>
 
-<header class="topbar">
-  <div class="topbar-row topbar-brand">
-    <a class="logo" href="#home" id="home-link">
-      증금 인텔리전스<span class="poc-badge">PoC</span>
-    </a>
-    <button class="ghost-btn" id="intro-btn" type="button">소개</button>
-    <button class="ghost-btn theme-btn" id="theme-btn" type="button" onclick="toggleTheme()">🌙 다크</button>
-  </div>
-</header>
-
 <div class="app-shell">
 <aside class="sidebar">
+  <a class="side-brand" href="#home" id="home-link">
+    <span class="side-brand-name">증금 인텔리전스</span><span class="poc-badge">PoC</span>
+  </a>
   <nav class="side-nav" id="main-tabs" aria-label="주요 메뉴">
     <button class="side-btn" data-cat="home">🏠 오늘의 브리핑</button>
     <button class="side-btn" data-cat="personal">👤 나의 대시보드</button>
@@ -42,6 +25,9 @@
     <button class="side-btn" data-cat="policy">📜 정책·규제</button>
     <button class="side-btn" data-cat="research">📰 리서치·뉴스</button>
   </nav>
+  <div class="side-foot">
+    <button class="side-btn" id="intro-btn" type="button">ℹ️ 소개</button>
+  </div>
 </aside>
 
 <main>
@@ -50,165 +36,166 @@
     <div class="card intro-card">
       <h2>👋 증금 인텔리전스 플랫폼</h2>
       <p class="page-note">
-        증권금융 임직원이 업무에 필요한 시장·정책·내부 지표를 한 화면에서 보도록 만든
-        사내 정보 포털 PoC입니다. QR로 접속해 모바일에서도 바로 확인할 수 있게 설계했습니다.
+        증권금융 임직원이 업무에 필요한 시장·정책·내부 지표를 한 화면에서 확인하는 사내 정보 포털 PoC입니다.
+        매일 아침 AI가 중요한 변화를 먼저 정리해 보여주고, 더 필요한 정보는 부서별 화면에서 자세히 볼 수 있습니다.
       </p>
 
-      <h3 class="section-label">메뉴 구성</h3>
+      <h3 class="section-label">메뉴 한눈에 보기</h3>
       <ul class="intro-list">
-        <li>🏠 <b>오늘의 브리핑</b> — 오늘의 알림, 정책·리서치 통합 AI 브리핑</li>
-        <li>👤 <b>나의 대시보드</b> — 내가 고른 위젯 모음. "+ 위젯 추가"를 누르면 전사에 등재된 위젯을 담을 수 있음</li>
-        <li>📈🏦📜📰 <b>자본시장 · 여신·심사 · 정책·규제 · 리서치·뉴스</b> — 부서별 지표 화면</li>
-      </ul>
-
-      <h3 class="section-label">부서 화면</h3>
-      <ul class="intro-list">
-        <li>📈 <b>자본시장</b> — 증시자금·유동성, CMA·단기수신 지표</li>
-        <li>🏦 <b>여신·심사</b> — 증권담보대출·우리사주대출 수요 리드 레이더(DART 실데이터 + 상속·증여·우리사주 관련 뉴스 AI 분석). 종목별 기업분석·공시·리포트는 나의 대시보드에서 제공</li>
-        <li>📜 <b>정책·규제</b> — 금융위·금감원·한국은행·재정경제부 보도자료 + AI 브리핑</li>
-        <li>📰 <b>리서치·뉴스</b> — 네이버 뉴스에서 KSFC 업무 관련 기사 AI 선별·태깅 + 브리핑</li>
+        <li>🏠 <b>오늘의 브리핑</b> — AI가 오늘 가장 먼저 확인해야 할 소식과 시장 현황을 정리해 보여줍니다</li>
+        <li>👤 <b>나의 대시보드</b> — "+ 위젯 추가"로 내가 자주 보는 정보만 모아 나만의 화면을 만들 수 있습니다</li>
+        <li>📈 <b>자본시장</b> — 증시자금·유동성, CMA·단기수신 등 자금 지표</li>
+        <li>🏦 <b>여신·심사</b> — 증권담보대출·우리사주대출 수요 리드, 종목별 기업분석·공시·리포트(나의 대시보드)</li>
+        <li>📜 <b>정책·규제</b> — 금융위·금감원·한국은행·재정경제부 등 보도자료 + AI 브리핑</li>
+        <li>📰 <b>리서치·뉴스</b> — 업무 관련 뉴스 AI 선별·태깅 + 브리핑</li>
       </ul>
       <p class="page-note">
-        🔄 <b>증권대차</b>(대차잔고·공매도 관련 뉴스 AI 선별)와 💼 투자금융·🔐 수탁·💱 자금·외화
-        <span class="soon-tag">준비 중</span>는 현재 좌측 메뉴에는 없지만 화면 자체는 남아 있습니다.
+        🔄 <b>증권대차</b>·💼 <b>투자금융</b>·🔐 <b>수탁</b>·💱 <b>자금·외화</b>는
+        <span class="soon-tag">준비 중</span>이라 좌측 메뉴에는 없지만 화면 자체는 남아 있습니다.
       </p>
 
-      <h3 class="section-label">환경</h3>
-      <ul class="intro-list">
-        <li>⚙️ 프레임워크: Flask (Python) · 프런트는 순수 HTML·CSS·JS (인라인 SVG 차트)</li>
-        <li>🚀 배포: <b>Render</b> (웹 서비스) · 🐙 소스관리: GitHub</li>
-        <li>🗄️ 데이터베이스: <b>Supabase</b> (아래 배치 수집 결과 + 여신·심사 기업분석 당일 조회 결과의 일일 스냅샷 보관)</li>
-      </ul>
+      <details class="intro-details">
+        <summary>🔧 기술적으로 더 궁금하다면 (프레임워크·데이터 출처·배치 수집)</summary>
 
-      <h3 class="section-label">데이터 소스</h3>
-      <div class="table-wrap">
-        <table class="api-table">
-          <thead>
-            <tr><th>영역</th><th>사용 데이터</th><th>제공처</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>자본시장 — 증시자금·유동성</td>
-              <td>투자자예탁금, 신용공여 잔고, CMA 총잔고·유형별, 월별 추이</td>
-              <td>공공데이터포털(data.go.kr) · 금융투자협회 종합통계 (원천: FreeSIS)</td>
-            </tr>
-            <tr>
-              <td>자본시장 — 거래대금</td>
-              <td>코스피·코스닥 일별 거래대금 → 월·일평균·추이</td>
-              <td>공공데이터포털(data.go.kr) · 지수시세정보 (원천: 한국거래소)</td>
-            </tr>
-            <tr>
-              <td>자본시장 — 증권사 CMA 금리</td>
-              <td>RP형·발행어음형 금리, 최고금리 증권사</td>
-              <td>AI 웹검색으로 하루 1회 갱신 (기준값: 비교공시·각 사 공시)</td>
-            </tr>
-            <tr>
-              <td>자본시장 — 발행시장</td>
-              <td>IPO 수요예측·청약·상장 일정, 유상증자 공시</td>
-              <td>38커뮤니케이션 · 금융감독원 DART</td>
-            </tr>
-            <tr>
-              <td>정책·규제</td>
-              <td>금융당국 4곳·유관기관 4곳 보도자료 + AI 브리핑</td>
-              <td>각 기관 공식 홈페이지 · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>리서치·뉴스</td>
-              <td>당일 업무 관련 기사 AI 선별·태깅 + 브리핑</td>
-              <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>IT·정보보호 뉴스</td>
-              <td>당일 업무 관련 기사 AI 선별</td>
-              <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>증권대차 뉴스</td>
-              <td>대차잔고·공매도 관련 기사 AI 선별</td>
-              <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 리드 레이더 · 증권담보대출</td>
-              <td>대량보유·1%p 이상 지분 변동 공시(상속·증여 추정) + 관련 뉴스 AI 관련도 판단</td>
-              <td>금융감독원 DART 「대량보유상황보고」 · 네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 리드 레이더 · 우리사주대출</td>
-              <td>유상증자·IPO 공시 + 관련 뉴스 AI 관련도 판단</td>
-              <td>금융감독원 DART 「공시검색」 · 네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 시장 리포트 동향</td>
-              <td>당해 연도 증권사 리포트 건수 + AI 브리핑</td>
-              <td>한경컨센서스(consensus.hankyung.com) · Google AI Studio(Gemini)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 기업분석 · 기초정보</td>
-              <td>종가·전일대비, 시가총액(+코스피/전체 순위), 거래대금(+시총 대비 %), 거래량, 상장주식수, 52·20·10주 가격범위</td>
-              <td>공공데이터포털(data.go.kr) · 금융위원회 주식시세정보 (원천: 한국거래소, 전 영업일 확정치)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 기업분석 · 개요</td>
-              <td>설립연도·결산월 / 업종(사업분류)·PER·PBR</td>
-              <td>금융감독원 DART 기업개황 / 네이버 금융(업종·PER·PBR, 참고용)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 기업분석 · 재무요약·실적분석</td>
-              <td>최근 3개년 + 4개분기 매출액·영업이익·순이익·자산/부채/자본·부채비율·ROE, PSR(시총÷연간매출)</td>
-              <td>금융감독원 DART 「단일회사 주요계정」(사업·분기보고서, 연결 우선)</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 기업분석 · 공시</td>
-              <td>해당 종목의 최근 1년 DART 공시 목록(보고서명·접수일·제출인), 클릭 시 DART 원문 이동</td>
-              <td>금융감독원 DART 「공시검색」 list API</td>
-            </tr>
-            <tr>
-              <td>여신·심사 — 기업분석 · 리포트</td>
-              <td>당해 연도 증권사 리포트 최신 20건(발간일·목표주가·투자의견·변동·증권사), 목표주가 컨센서스(평균·최저·최고·상승여력)</td>
-              <td>한경컨센서스(consensus.hankyung.com)</td>
-            </tr>
-            <tr>
-              <td>전사 위젯 — 국내 업종별 시가총액 맵</td>
-              <td>전 상장종목 시가총액 합산·등락률(트리맵), 업종 순위표(기본 5개·더보기로 전체) — KRX 업종분류를
-                무료로 제공하는 곳이 없어 Gemini가 전 종목을 업종으로 분류. API 사용량을 아끼려고
-                자동 배치가 아닌 수동 요청 시에만 재분류</td>
-              <td>공공데이터포털(data.go.kr) 금융위원회 주식시세정보 + Google AI Studio(Gemini, 업종 분류)</td>
-            </tr>
-            <tr>
-              <td>전사 위젯 — 업종별 밸류체인</td>
-              <td>반도체·2차전지·바이오·자동차 4개 대표산업 단계별 대표 기업 + 기준일 종가·등락률</td>
-              <td>큐레이션(밸류체인 구성) + 공공데이터포털(data.go.kr) 금융위원회 주식시세정보</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <h3 class="section-label">매일 새벽 자동 수집 (배치)</h3>
-      <p class="page-note">
-        매일 <b>00:01 KST</b>에 GitHub Actions가 <code>/internal/warmup</code>을 호출해 아래 스냅샷을
-        미리 만들어 DB에 저장해둡니다. 화면 접속 시에는 이 스냅샷만 읽어 보여주므로 사용자 접속 자체가
-        외부 API를 재호출하지 않으며, 원천 장애 시에도 직전 스냅샷을 그대로 보여줍니다.
-      </p>
-      <ul class="intro-list">
-        <li>📜 정책·규제 — 금융당국 4곳·유관기관 4곳 보도자료 + AI 브리핑</li>
-        <li>📰 리서치·뉴스 — KSFC 업무 관련 기사 AI 선별·태깅 + 브리핑</li>
-        <li>📈 발행시장 — IPO·유상증자 캘린더 동향 + AI 브리핑</li>
-        <li>💰 CMA 금리 — 증권사별 CMA·RP형 금리 AI 웹검색 갱신</li>
-        <li>📊 시장 리포트 동향 — 당해 연도 증권사 리포트 건수 + AI 브리핑</li>
-        <li>🔐 IT·정보보호 뉴스 AI 선별</li>
-        <li>🔄 증권대차(대차잔고·공매도 관련) 뉴스 AI 선별</li>
-        <li>🏦 여신·심사 리드 — 코스피·코스닥 전 종목 증권담보대출(상속·증여)·우리사주(유상증자·IPO) DART 공시 스캔</li>
-        <li>📰 여신·심사 — 상속·증여 관련 뉴스, 우리사주 관련 뉴스(각각 AI 관련도 판단)</li>
-        <li>🤖 여신·심사 리드 AI 브리핑 — 위 리드·뉴스를 종합한 증권담보대출·우리사주대출 수요 레이더 브리핑</li>
-      </ul>
-      <ul class="intro-list">
-        <li>🕒 모든 AI 생성(브리핑·뉴스 선별·업종 분류 등)은 위 새벽 배치에서만 수행됩니다.
-          화면에는 재생성 버튼을 두지 않으며, 쿼리로도 AI 재호출을 트리거할 수 없습니다 — 비용 통제를
-          위해 <b>배치 전용</b>입니다</li>
-        <li>🕒 여신·심사 기업분석은 종목별로 <b>당일 첫 조회 결과를 DB에 저장</b>해, 같은 날 같은 종목 재조회 시 외부 API를 재호출하지 않습니다</li>
-        <li>🟢 <b>연결됨</b> 배지는 실데이터, <b>샘플·큐레이션</b> 배지는 원천 일시 오류 시 대체 데이터입니다</li>
-        <li>🔗 참고: 금융투자협회 FreeSIS, KRX 정보데이터시스템, KOFIA 비교공시</li>
-      </ul>
-      <p class="page-note" id="intro-close-hint">아무 탭이나 눌러 지표 화면으로 이동하세요.</p>
+        <h3 class="section-label">환경</h3>
+        <ul class="intro-list">
+          <li>⚙️ 프레임워크: Flask (Python) · 프런트는 순수 HTML·CSS·JS (인라인 SVG 차트)</li>
+          <li>🚀 배포: <b>Render</b> (웹 서비스) · 🐙 소스관리: GitHub</li>
+          <li>🗄️ 데이터베이스: <b>Supabase</b> (아래 배치 수집 결과 + 여신·심사 기업분석 당일 조회 결과의 일일 스냅샷 보관)</li>
+        </ul>
+
+        <h3 class="section-label">데이터 소스</h3>
+        <div class="table-wrap">
+          <table class="api-table">
+            <thead>
+              <tr><th>영역</th><th>사용 데이터</th><th>제공처</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>자본시장 — 증시자금·유동성</td>
+                <td>투자자예탁금, 신용공여 잔고, CMA 총잔고·유형별, 월별 추이</td>
+                <td>공공데이터포털(data.go.kr) · 금융투자협회 종합통계 (원천: FreeSIS)</td>
+              </tr>
+              <tr>
+                <td>자본시장 — 거래대금</td>
+                <td>코스피·코스닥 일별 거래대금 → 월·일평균·추이</td>
+                <td>공공데이터포털(data.go.kr) · 지수시세정보 (원천: 한국거래소)</td>
+              </tr>
+              <tr>
+                <td>자본시장 — 증권사 CMA 금리</td>
+                <td>RP형·발행어음형 금리, 최고금리 증권사</td>
+                <td>AI 웹검색으로 하루 1회 갱신 (기준값: 비교공시·각 사 공시)</td>
+              </tr>
+              <tr>
+                <td>자본시장 — 발행시장</td>
+                <td>IPO 수요예측·청약·상장 일정, 유상증자 공시</td>
+                <td>38커뮤니케이션 · 금융감독원 DART</td>
+              </tr>
+              <tr>
+                <td>정책·규제</td>
+                <td>금융당국 4곳·유관기관 4곳 보도자료 + AI 브리핑</td>
+                <td>각 기관 공식 홈페이지 · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>리서치·뉴스</td>
+                <td>당일 업무 관련 기사 AI 선별·태깅 + 브리핑</td>
+                <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>IT·정보보호 뉴스</td>
+                <td>당일 업무 관련 기사 AI 선별</td>
+                <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>증권대차 뉴스</td>
+                <td>대차잔고·공매도 관련 기사 AI 선별</td>
+                <td>네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 리드 레이더 · 증권담보대출</td>
+                <td>대량보유·1%p 이상 지분 변동 공시(상속·증여 추정) + 관련 뉴스 AI 관련도 판단</td>
+                <td>금융감독원 DART 「대량보유상황보고」(시가총액 상위 코스피 200·코스닥 100종목 대상) · 네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 리드 레이더 · 우리사주대출</td>
+                <td>유상증자·IPO 공시 + 관련 뉴스 AI 관련도 판단</td>
+                <td>금융감독원 DART 「공시검색」(전 시장 대상, 상장 전 IPO 후보 포함) · 네이버 뉴스 검색 · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 시장 리포트 동향</td>
+                <td>당해 연도 증권사 리포트 건수 + AI 브리핑</td>
+                <td>한경컨센서스(consensus.hankyung.com) · Google AI Studio(Gemini)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 기업분석 · 기초정보</td>
+                <td>종가·전일대비, 시가총액(+코스피/전체 순위), 거래대금(+시총 대비 %), 거래량, 상장주식수, 52·20·10주 가격범위</td>
+                <td>공공데이터포털(data.go.kr) · 금융위원회 주식시세정보 (원천: 한국거래소, 전 영업일 확정치)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 기업분석 · 개요</td>
+                <td>설립연도·결산월 / 업종(사업분류)·PER·PBR</td>
+                <td>금융감독원 DART 기업개황 / 네이버 금융(업종·PER·PBR, 참고용)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 기업분석 · 재무요약·실적분석</td>
+                <td>최근 3개년 + 4개분기 매출액·영업이익·순이익·자산/부채/자본·부채비율·ROE, PSR(시총÷연간매출)</td>
+                <td>금융감독원 DART 「단일회사 주요계정」(사업·분기보고서, 연결 우선)</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 기업분석 · 공시</td>
+                <td>해당 종목의 최근 1년 DART 공시 목록(보고서명·접수일·제출인), 클릭 시 DART 원문 이동</td>
+                <td>금융감독원 DART 「공시검색」 list API</td>
+              </tr>
+              <tr>
+                <td>여신·심사 — 기업분석 · 리포트</td>
+                <td>당해 연도 증권사 리포트 최신 20건(발간일·목표주가·투자의견·변동·증권사), 목표주가 컨센서스(평균·최저·최고·상승여력)</td>
+                <td>한경컨센서스(consensus.hankyung.com)</td>
+              </tr>
+              <tr>
+                <td>전사 위젯 — 국내 업종별 시가총액 맵</td>
+                <td>전 상장종목 시가총액 합산·등락률(트리맵), 업종 순위표(기본 5개·더보기로 전체) — KRX 업종분류를
+                  무료로 제공하는 곳이 없어 Gemini가 전 종목을 업종으로 분류. API 사용량을 아끼려고
+                  자동 배치가 아닌 수동 요청 시에만 재분류</td>
+                <td>공공데이터포털(data.go.kr) 금융위원회 주식시세정보 + Google AI Studio(Gemini, 업종 분류)</td>
+              </tr>
+              <tr>
+                <td>전사 위젯 — 업종별 밸류체인</td>
+                <td>반도체·2차전지·바이오·자동차 4개 대표산업 단계별 대표 기업 + 기준일 종가·등락률</td>
+                <td>큐레이션(밸류체인 구성) + 공공데이터포털(data.go.kr) 금융위원회 주식시세정보</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="section-label">매일 새벽 자동 수집 (배치)</h3>
+        <p class="page-note">
+          매일 <b>00:01 KST</b>에 GitHub Actions가 <code>/internal/warmup</code>을 호출해 아래 스냅샷을
+          미리 만들어 DB에 저장해둡니다. 화면 접속 시에는 이 스냅샷만 읽어 보여주므로 사용자 접속 자체가
+          외부 API를 재호출하지 않으며, 원천 장애 시에도 직전 스냅샷을 그대로 보여줍니다.
+        </p>
+        <ul class="intro-list">
+          <li>📜 정책·규제 — 금융당국 4곳·유관기관 4곳 보도자료 + AI 브리핑</li>
+          <li>📰 리서치·뉴스 — KSFC 업무 관련 기사 AI 선별·태깅 + 브리핑</li>
+          <li>📈 발행시장 — IPO·유상증자 캘린더 동향 + AI 브리핑</li>
+          <li>💰 CMA 금리 — 증권사별 CMA·RP형 금리 AI 웹검색 갱신</li>
+          <li>📊 시장 리포트 동향 — 당해 연도 증권사 리포트 건수 + AI 브리핑</li>
+          <li>🔐 IT·정보보호 뉴스 AI 선별</li>
+          <li>🔄 증권대차(대차잔고·공매도 관련) 뉴스 AI 선별</li>
+          <li>🏦 여신·심사 리드 — 시가총액 상위 코스피 200·코스닥 100종목 증권담보대출(상속·증여) + 전 시장 우리사주(유상증자·IPO) DART 공시 스캔</li>
+          <li>📰 여신·심사 — 상속·증여 관련 뉴스, 우리사주 관련 뉴스(각각 AI 관련도 판단)</li>
+          <li>🤖 여신·심사 리드 AI 브리핑 — 위 리드·뉴스를 종합한 증권담보대출·우리사주대출 수요 레이더 브리핑</li>
+        </ul>
+        <ul class="intro-list">
+          <li>🕒 모든 AI 생성(브리핑·뉴스 선별·업종 분류 등)은 위 새벽 배치에서만 수행됩니다.
+            화면에는 재생성 버튼을 두지 않으며, 쿼리로도 AI 재호출을 트리거할 수 없습니다 — 비용 통제를
+            위해 <b>배치 전용</b>입니다</li>
+          <li>🕒 여신·심사 기업분석은 종목별로 <b>당일 첫 조회 결과를 DB에 저장</b>해, 같은 날 같은 종목 재조회 시 외부 API를 재호출하지 않습니다</li>
+          <li>🟢 <b>연결됨</b> 배지는 실데이터, <b>샘플·큐레이션</b> 배지는 원천 일시 오류 시 대체 데이터입니다</li>
+          <li>🔗 참고: 금융투자협회 FreeSIS, KRX 정보데이터시스템, KOFIA 비교공시</li>
+        </ul>
+      </details>
+
+      <p class="page-note" id="intro-close-hint">아무 메뉴나 눌러 화면으로 이동하세요.</p>
     </div>
   </section>
 
@@ -266,19 +253,6 @@
 <div class="ob-tooltip" id="ob-tooltip" hidden></div>
 
 <script>
-function themeLabel(t) { return t === 'dark' ? '☀️ 라이트' : '🌙 다크'; }
-function applyTheme(t) {
-  document.documentElement.dataset.theme = t;
-  document.getElementById('theme-btn').textContent = themeLabel(t);
-  try { sessionStorage.setItem('theme', t); } catch (e) {}
-}
-function toggleTheme() {
-  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-}
-// 테마는 <head> 인라인 스크립트가 이미 결정함. 여기선 버튼 라벨만 맞춘다.
-document.getElementById('theme-btn').textContent =
-  themeLabel(document.documentElement.dataset.theme || 'light');
-
 // 사이드바(오늘의 브리핑/나의 대시보드/자본시장/여신·심사/정책·규제/리서치·뉴스) 6개 +
 // 사이드바엔 없지만 여전히 존재하는 화면(전사 위젯 갤러리, 준비중 3개, 증권대차).
 // 예전엔 부서 화면들이 "work" 상위 카테고리 + 하위탭(work-subtabs)으로 한 단계 더

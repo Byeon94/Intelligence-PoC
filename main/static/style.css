@@ -61,29 +61,36 @@ body {
 }
 .ghost-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 
-/* ── 좌측 사이드바 내비게이션(오늘의 브리핑/나의 대시보드/부서 4개) ──
-   데스크톱(881px~)에서는 세로 사이드바, 모바일에서는 기존처럼 상단 가로 스크롤
-   탭으로 보여준다(수많은 화면에서 이미 검증된 모바일 UX를 그대로 재사용). */
+/* ── 좌측 사이드바 내비게이션(브랜드 + 오늘의 브리핑/나의 대시보드/부서 4개 + 소개) ──
+   데스크톱(881px~)에서는 세로 사이드바 전체(브랜드→메뉴→소개), 모바일에서는 기존처럼
+   상단 가로 스크롤 탭으로 보여준다(수많은 화면에서 이미 검증된 모바일 UX를 재사용).
+   페이지에 별도 상단바(topbar)가 없으므로 사이드바가 화면 맨 위부터 시작한다. */
 /* align-items 기본값(stretch)을 그대로 둬서 .sidebar가 .main과 같은 높이로 늘어나게
-   한다 — flex-start로 두면 사이드바가 버튼 6개 높이(약 290px)에서 뚝 끊겨 버린다. */
+   한다 — flex-start로 두면 사이드바가 메뉴 높이만큼에서 뚝 끊겨 버린다. */
 .app-shell { max-width: 1180px; margin: 0 auto; display: flex; }
-/* .topbar 실제 높이(브랜드 행 50px + 테두리 1px + 노치 안전영역)만큼 아래에 붙여야
-   .topbar(z-index 50)에 사이드바 상단이 가려지지 않는다 — 둘 다 sticky top:0이면
-   스크롤 시 사이드바가 topbar 뒤로 숨어버린다. */
 /* 다크/라이트 테마와 무관하게 항상 짙은 남색으로 고정 — 내비게이션 영역을 콘텐츠와
    시각적으로 분리하는 용도라, 사이트 전체 테마 토글의 영향을 받지 않는다.
-   position:sticky는 박스 전체(.sidebar)에 걸려 있고 .side-nav는 그 안의 맨 위
-   자식이라, 늘어난 박스가 스크롤 내내 상단에 붙어 있는 동안 네비 버튼도 항상
+   position:sticky는 박스 전체(.sidebar)에 걸려 있고 안의 내용은 맨 위에 붙어 있는
+   flex column이라, 늘어난 박스가 스크롤 내내 상단에 붙어 있는 동안 메뉴도 항상
    같은 자리에 보인다 — 남색 배경만 페이지 길이만큼 아래로 이어진다. */
 .sidebar {
-  flex: 0 0 auto; position: sticky; top: calc(51px + env(safe-area-inset-top));
+  flex: 0 0 auto; position: sticky; top: env(safe-area-inset-top);
   z-index: 49; margin: 14px 0;
   background: #10162b; border-radius: 16px;
+  display: flex; flex-direction: column;
   --side-fg: #99a3bd; --side-fg-active: #fff;
   --side-hover-bg: rgba(255,255,255,.07); --side-active-bg: rgba(91,141,239,.32);
   --side-sep: rgba(255,255,255,.12);
 }
-.side-nav { display: flex; flex-direction: column; gap: 3px; padding: 16px 10px; width: 196px; }
+.side-brand {
+  display: flex; align-items: baseline; gap: 7px; text-decoration: none;
+  padding: 18px 16px 6px;
+}
+.side-brand-name { font-weight: 800; font-size: 1rem; color: #fff; white-space: nowrap; }
+.side-brand .poc-badge {
+  color: #9db4ff; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18);
+}
+.side-nav { display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 16px; width: 196px; }
 .side-btn {
   display: flex; align-items: center; gap: 9px; text-align: left; white-space: nowrap;
   background: none; border: none; border-radius: 10px; color: var(--side-fg);
@@ -92,17 +99,28 @@ body {
 .side-btn:hover { background: var(--side-hover-bg); color: var(--side-fg-active); }
 .side-btn.active { background: var(--side-active-bg); color: var(--side-fg-active); }
 .side-sep { height: 1px; background: var(--side-sep); margin: 8px 6px; }
+.side-foot {
+  margin-top: auto; padding: 10px; border-top: 1px solid var(--side-sep);
+}
 
 @media (max-width: 880px) {
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; margin: 10px 0; border-radius: 12px; }
+  /* 짧은 가로 탭바가 스크롤 내내 topbar 자리에 들러붙어 화면이 덜컥거리던 문제를
+     막기 위해 모바일에서는 sticky를 끄고 페이지와 함께 자연스럽게 스크롤되게 한다. */
+  .sidebar {
+    position: static; width: 100%; margin: 10px 0; border-radius: 12px;
+    flex-direction: row; align-items: center; flex-wrap: nowrap;
+  }
+  .side-brand { padding: 10px 6px 10px 12px; flex: 0 0 auto; }
+  .side-brand-name { font-size: .84rem; }
   .side-nav {
-    flex-direction: row; width: auto; padding: 6px 8px; gap: 2px;
+    flex: 1 1 auto; flex-direction: row; width: auto; padding: 6px 4px; gap: 2px;
     overflow-x: auto; scrollbar-width: none;
   }
   .side-nav::-webkit-scrollbar { display: none; }
   .side-btn { flex: 0 0 auto; padding: 9px 12px; font-size: .8rem; }
   .side-sep { display: none; }
+  .side-foot { margin-top: 0; padding: 10px 12px 10px 4px; border-top: none; flex: 0 0 auto; }
 }
 
 /* ── 레이아웃 ── */
@@ -154,8 +172,10 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .subtab-btn.active { color: var(--fg); background: var(--card); border: 1px solid var(--border); }
 /* 자본시장 세부탭 라벨이 길어 조금 작게 */
 #capital-subtabs .subtab-btn { font-size: .78rem; padding: 8px 6px; }
-/* 서브탭 전환 시 sticky 헤더에 가리지 않도록 */
-.subtabs { scroll-margin-top: 104px; }
+/* 서브탭 전환 시 sticky 헤더에 가리지 않도록 — index.html 화면들은 이제 sticky
+   상단바가 없어졌지만, /sector 단독 페이지(sector_page.html)는 여전히 자체
+   .topbar(51px)를 sticky로 쓰고 있어 그만큼은 남겨둔다. */
+.subtabs { scroll-margin-top: 64px; }
 .sub-panel[hidden] { display: none; }
 
 /* ── 블록 ── */
@@ -363,15 +383,20 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
   .cal-ev .ce-t { display: none; }
 }
 
-/* ── 리서치·뉴스 피드 ── */
+/* ── 리서치·뉴스 피드 ── 키워드 칩을 탭처럼 써서, 누른 태그의 기사만 그리드로
+   보여준다(기본은 "전체" — 모든 태그 그룹을 순서대로, 각 그룹 안은 그리드). 예전엔
+   태그 그룹을 전부 세로로 쌓아 칩을 누르면 그 위치로 스크롤만 했는데, 그러면 아래
+   태그를 보려고 계속 스크롤해야 했다. */
 .ni-keyword-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .ni-kw-chip {
-  display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
   font-size: .78rem; font-weight: 700; color: var(--accent);
   background: var(--accent-bg); border: 1px solid var(--border); border-radius: 999px;
   padding: 5px 12px; cursor: pointer;
 }
 .ni-kw-chip:hover { border-color: var(--accent); }
+.ni-kw-chip.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+.ni-kw-chip.active .ni-kw-chip-n { color: rgba(255,255,255,.85); }
 .ni-kw-chip-n { font-size: .7rem; color: var(--muted); }
 #rs-feed { display: flex; flex-direction: column; gap: 20px; }
 .ni-group-head {
@@ -380,7 +405,9 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 .ni-group-tag { font-size: .9rem; font-weight: 800; color: var(--fg); }
 .ni-group-count { font-size: .74rem; color: var(--muted); }
-.ni-group-items { display: flex; flex-direction: column; gap: 8px; }
+.ni-group-items {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
+}
 .news-item {
   display: flex; gap: 12px; text-decoration: none; color: inherit;
   background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
@@ -734,10 +761,10 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 }
 .hl-reason-sm { font-size: .76rem; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
-/* ── 오늘의 시장 한눈에 ── */
-.mkt-subtabs { margin-bottom: 12px; }
+/* ── 오늘의 시장 한눈에 ── 국내(코스피·코스닥)·해외(다우·나스닥·S&P500) 지수를 탭
+   전환 없이 한 그리드에 같이 보여주고, 환율은 그 아래 별도 줄로 붙인다. */
 .mkt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-/* 해외/환율 탭은 카드가 3개라 좁은 화면에선 2열로 접었다가 넓어지면 3열로 */
+/* 카드가 3개 이상이라 좁은 화면에선 2열로 접었다가 넓어지면 3열로 */
 .mkt-grid-3 { grid-template-columns: repeat(2, 1fr); }
 .mkt-grid-3 .mkt-idx-value { font-size: 1.05rem; }
 @media (min-width: 480px) {
@@ -749,18 +776,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .mkt-idx-name { font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
 .mkt-idx-value { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
 .mkt-idx-chg { font-size: .8rem; font-weight: 700; margin-top: 3px; }
-.mkt-sub-row {
-  display: flex; justify-content: space-between; align-items: center; font-size: .82rem;
-  padding: 9px 12px; background: var(--card2); border-radius: 10px; margin-bottom: 8px;
-}
-.mkt-sub-row span { color: var(--muted); }
-.mkt-note {
-  font-size: .8rem; color: var(--fg); line-height: 1.55; background: var(--accent-bg);
-  border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
-}
-.mkt-note-label {
-  display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
-}
+.mkt-sub-label { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 4px 0 8px; }
 .mkt-asof { margin: 0; }
 
 /* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ── */
@@ -827,8 +843,13 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; cursor: pointer;
 }
 .ai-role-opt:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-.ai-result-list { list-style: none; padding: 0; margin: 10px 0 16px; display: flex; flex-direction: column; gap: 6px; }
-.ai-result-list li { font-size: .88rem; font-weight: 600; }
+.ai-result-list { list-style: none; padding: 0; margin: 10px 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.ai-result-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px 8px 12px;
+}
+.ai-result-name { font-size: .86rem; font-weight: 600; }
+.ai-result-add { flex: 0 0 auto; }
 .gal-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .gal-card {
   background: var(--card); border: 1px solid var(--border); border-radius: 14px;

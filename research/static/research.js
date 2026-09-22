@@ -37,10 +37,6 @@
     box.innerHTML = head + '<div class="brief-body" id="rs-brief-body">' + body + "</div>";
   }
 
-  function groupId(tag) {
-    return "rs-g-" + tag.replace(/[^\p{L}\p{N}]+/gu, "-");
-  }
-
   function newsItemHTML(a, rank) {
     return (
       '<a class="news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
@@ -54,9 +50,56 @@
     );
   }
 
-  // 오늘 선별된 기사를 쭉 나열하지 않고, AI가 붙인 태그(키워드)별로 묶어서 보여준다.
-  // 그룹 순서는 그룹 안에서 가장 순위가 높은(=AI가 가장 관련도 높다고 본) 기사를
-  // 기준으로 정해, 전체 관련도 우선순위는 그대로 유지한다.
+  // 오늘 선별된 기사를 쭉 나열하지 않고, AI가 붙인 태그(키워드)별로 묶는다. 예전엔
+  // 태그 그룹을 전부 세로로 쌓아두고 #키워드 칩을 누르면 그 위치로 스크롤만 했는데,
+  // 그러면 밑에 있는 태그를 보려고 계속 내려야 했다. 이제 칩은 탭처럼 동작해서
+  // 누른 태그의 기사만(그리드로) 보여주고 나머지는 감춘다 — 기본은 "전체".
+  var feedGroups = {};
+  var feedOrder = [];
+  var feedActiveTag = null; // null = 전체
+
+  function drawFeed() {
+    var wrap = document.getElementById("rs-feed");
+    if (!wrap) return;
+    var tags = feedActiveTag ? [feedActiveTag] : feedOrder;
+    wrap.innerHTML = tags.map(function (tag) {
+      var items = feedGroups[tag];
+      return (
+        '<div class="ni-group">' +
+          (feedActiveTag ? "" :
+            '<div class="ni-group-head"><span class="ni-group-tag">' + esc(tag) + "</span>" +
+              '<span class="ni-group-count">' + items.length + "건</span></div>") +
+          '<div class="ni-group-items">' +
+            items.map(function (it) { return newsItemHTML(it.a, it.rank); }).join("") +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
+  function drawKeywordNav() {
+    var nav = document.getElementById("rs-keyword-nav");
+    if (!nav) return;
+    var total = feedOrder.reduce(function (n, tag) { return n + feedGroups[tag].length; }, 0);
+    var chips = ['<button type="button" class="ni-kw-chip' + (feedActiveTag === null ? " active" : "") +
+      '" data-tag="">전체 <span class="ni-kw-chip-n">' + total + "</span></button>"];
+    feedOrder.forEach(function (tag) {
+      chips.push('<button type="button" class="ni-kw-chip' + (feedActiveTag === tag ? " active" : "") +
+        '" data-tag="' + esc(tag) + '">#' + esc(tag) +
+        ' <span class="ni-kw-chip-n">' + feedGroups[tag].length + "</span></button>");
+    });
+    nav.innerHTML = chips.join("");
+    nav.querySelectorAll(".ni-kw-chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        feedActiveTag = chip.dataset.tag || null;
+        nav.querySelectorAll(".ni-kw-chip").forEach(function (c) {
+          c.classList.toggle("active", c === chip);
+        });
+        drawFeed();
+      });
+    });
+  }
+
   function renderFeed(d) {
     var wrap = document.getElementById("rs-feed");
     var nav = document.getElementById("rs-keyword-nav");
@@ -70,40 +113,16 @@
       if (nav) nav.innerHTML = "";
       return;
     }
-    var groups = {};
-    var order = [];
+    feedGroups = {};
+    feedOrder = [];
+    feedActiveTag = null;
     arts.forEach(function (a, i) {
       var tag = a.tag || "일반";
-      if (!groups[tag]) { groups[tag] = []; order.push(tag); }
-      groups[tag].push({ a: a, rank: i + 1 });
+      if (!feedGroups[tag]) { feedGroups[tag] = []; feedOrder.push(tag); }
+      feedGroups[tag].push({ a: a, rank: i + 1 });
     });
-    if (nav) {
-      // #키워드 칩을 누르면 해당 그룹 위치로 바로 이동한다.
-      nav.innerHTML = order.map(function (tag) {
-        return '<a class="ni-kw-chip" href="#' + groupId(tag) + '">#' + esc(tag) +
-          ' <span class="ni-kw-chip-n">' + groups[tag].length + "</span></a>";
-      }).join("");
-      nav.querySelectorAll(".ni-kw-chip").forEach(function (chip) {
-        chip.addEventListener("click", function (e) {
-          var el = document.getElementById(chip.getAttribute("href").slice(1));
-          if (!el) return;
-          e.preventDefault();
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      });
-    }
-    wrap.innerHTML = order.map(function (tag) {
-      var items = groups[tag];
-      return (
-        '<div class="ni-group" id="' + groupId(tag) + '">' +
-          '<div class="ni-group-head"><span class="ni-group-tag">' + esc(tag) + "</span>" +
-            '<span class="ni-group-count">' + items.length + "건</span></div>" +
-          '<div class="ni-group-items">' +
-            items.map(function (it) { return newsItemHTML(it.a, it.rank); }).join("") +
-          "</div>" +
-        "</div>"
-      );
-    }).join("");
+    drawKeywordNav();
+    drawFeed();
   }
 
   function fetchDigest(refresh) {

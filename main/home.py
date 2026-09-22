@@ -99,26 +99,6 @@ def _credit_leads_alert() -> dict | None:
     }
 
 
-def _market_interpretation(market: dict | None) -> str | None:
-    """"시장 한눈에" 아래 붙는 한 줄 해석. 코스피·코스닥 등락 부호만으로 판단할 수 있는
-    사실만 말한다 — 수급(외국인·기관 순매수) 데이터가 없어 "며칠째 순매수" 같은 추세는
-    지어내지 않는다."""
-    if not market or market.get("source") != "live":
-        return None
-    kospi, kosdaq = market.get("kospi") or {}, market.get("kosdaq") or {}
-    kc, dc = kospi.get("change_pct"), kosdaq.get("change_pct")
-    if kc is None or dc is None:
-        return None
-
-    def word(v: float) -> str:
-        return "상승" if v > 0 else ("하락" if v < 0 else "보합")
-
-    kw, dw = word(kc), word(dc)
-    if kw == dw:
-        return f"코스피·코스닥 모두 {kw} 마감했습니다."
-    return f"코스피는 {kw}, 코스닥은 {dw}하며 엇갈린 흐름을 보였습니다."
-
-
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
@@ -167,6 +147,5 @@ def get_home_summary() -> dict:
         } if research else None,
         "market": market,
         "global_market": global_market,
-        "market_note": _market_interpretation(market),
         "today_key": today_key,
     }

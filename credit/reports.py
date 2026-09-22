@@ -164,7 +164,7 @@ def get_reports(code: str, limit: int = 20) -> dict:
 _MARKET_TABLE = "market_report_snapshots"
 _MARKET_MAX_PAGES = 8     # 하루치 페이지 상한(과도한 스크랩 방지) — 넘으면 total_capped=True
 _MARKET_MAX_BACK_DAYS = 5  # 오늘부터 최대 이만큼 거슬러 올라가며 '전영업일' 탐색
-_MARKET_SCHEMA_V = 2  # v2: report_type=CO(기업만) → ""(전체 유형)로 변경, 총 건수 버그 수정
+_MARKET_SCHEMA_V = 3  # v3: category_counts(유형별 건수 집계) 추가
 
 _MARKET_BRIEF_SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 임직원을 위한 증권사 리서치 리포트 브리핑 어시스턴트야.\n"
@@ -320,6 +320,14 @@ def get_market_report_digest(force: bool = False) -> dict:
             seen_titles.add(key)
         deduped.append(it)
 
+    # 건수 옆에 "27건(기업 18·산업 5·시장 3·경제 1)"처럼 바로 보여줄 수 있게, AI 호출
+    # 없이 이미 파싱해둔 category 필드만으로 집계한다(total과 합이 맞도록 dedup 전
+    # 원본 items 기준 — total도 같은 기준).
+    category_counts: dict[str, int] = {}
+    for it in items:
+        cat = it.get("category") or "기타"
+        category_counts[cat] = category_counts.get(cat, 0) + 1
+
     payload = {
         "v": _MARKET_SCHEMA_V,
         "date": today,
@@ -327,6 +335,7 @@ def get_market_report_digest(force: bool = False) -> dict:
         "items": deduped[:20],
         "total": len(items),
         "total_capped": capped,
+        "category_counts": category_counts,
         "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
         "briefing": None,
         "briefing_at": None,

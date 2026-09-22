@@ -54,7 +54,28 @@
 
   function renderGroups(d) {
     renderGroupsInto("pol-groups", d.groups || [], d.failed, ["FSC", "FSS", "BOK", "MOEF"]);
-    renderGroupsInto("pol-aff-groups", d.affiliate_groups || [], d.failed, ["KRX", "KDIC", "KSD", "KOFIA"]);
+    var aff = d.affiliate_groups || [];
+    // 한국거래소·예탁결제원은 목록을 직접 못 불러와(홈페이지가 동적 페이지) 카드
+    // 대신 "참조" 형식의 링크 한 줄로만 하단에 안내한다 — 금융당국 동향처럼 실제
+    // 목록이 있는 예보·금투협만 카드로 보여준다.
+    var real = aff.filter(function (g) { return !(g.items && g.items[0] && g.items[0].link_only); });
+    var refOnly = aff.filter(function (g) { return g.items && g.items[0] && g.items[0].link_only; });
+    renderGroupsInto("pol-aff-groups", real, d.failed, ["KDIC", "KOFIA"]);
+    renderAffiliateRefNote(refOnly);
+  }
+
+  function renderAffiliateRefNote(refOnly) {
+    var el = document.getElementById("pol-aff-ref");
+    if (!el) return;
+    if (!refOnly.length) { el.innerHTML = ""; return; }
+    var names = refOnly.map(function (g) { return esc(g.org_name); }).join("·");
+    var links = refOnly.map(function (g) {
+      var url = (g.items[0] || {}).url || "#";
+      return '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(g.org_name) + " 보도자료 →</a>";
+    }).join(" · ");
+    el.innerHTML =
+      '<p class="page-note">📎 ' + names + '은(는) 홈페이지가 동적 페이지라 이 화면에서 목록을 직접 불러올 수 없습니다. ' +
+      links + "</p>";
   }
 
   function renderGroupsInto(elId, groups, failed, scope) {

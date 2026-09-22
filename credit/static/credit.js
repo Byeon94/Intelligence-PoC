@@ -358,7 +358,7 @@
       renderInheritList();
       renderEsopList();
       document.getElementById("leads-scope-note").textContent =
-        "대상 범위: 증권담보대출(상속·증여) 리드는 코스피·코스닥 전체 상장종목(" + (d.universe || 0) + "종목) · " +
+        "대상 범위: 증권담보대출(상속·증여) 리드는 시가총액 상위 코스피·코스닥 종목(" + (d.universe || 0) + "종목, 코스피 200·코스닥 100) · " +
         "우리사주 리드는 전 시장(유상증자) + 상장 전 IPO 공모 공시 포함 · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
         (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
     }).catch(function (e) {
