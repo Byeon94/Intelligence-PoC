@@ -1,4 +1,4 @@
-"""여신·심사 > 기업분석 > 공시: 종목별 DART 공시 목록.
+"""여신 > 기업분석 > 공시: 종목별 DART 공시 목록.
 
 DART OpenAPI  list.json
   params: crtfc_key, corp_code, bgn_de(YYYYMMDD), end_de, page_no, page_count

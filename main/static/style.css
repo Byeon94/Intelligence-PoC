@@ -451,7 +451,7 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .ni-title { font-size: .88rem; font-weight: 600; line-height: 1.45; }
 .ni-reason { font-size: .78rem; color: var(--muted); margin-top: 4px; line-height: 1.55; }
 
-/* ── 여신·심사 > 기업분석 ── */
+/* ── 여신 > 기업분석 ── */
 .eq-search { position: relative; display: flex; gap: 8px; margin-bottom: 14px; }
 .eq-search input {
   flex: 1; min-width: 0; padding: 10px 12px; font-size: .9rem; color: var(--fg);
@@ -604,7 +604,7 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
   .fil-go { display: none; }
 }
 
-/* 여신·심사 메인: 담보대출·우리사주 리드 레이더 */
+/* 여신 메인: 담보대출·우리사주 리드 레이더 */
 .lead-row {
   display: block; text-decoration: none; color: inherit;
   background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
@@ -636,10 +636,10 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 .lead-more-btn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
 
-/* 여신·심사 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
+/* 여신 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
 .credit #leads-subtabs { margin-bottom: 20px; }
 .credit .kpi-grid { gap: 14px; margin-bottom: 24px; }
-/* 카드 수가 많아(4개) 기본 크기로는 과하게 커 보여서 여신·심사 탭에서만 살짝 축소 */
+/* 카드 수가 많아(4개) 기본 크기로는 과하게 커 보여서 여신 탭에서만 살짝 축소 */
 .credit .kpi { padding: 10px 12px; }
 .credit .kpi .k-label { font-size: .7rem; margin-bottom: 4px; }
 .credit .kpi .k-value { font-size: 1.15rem; }

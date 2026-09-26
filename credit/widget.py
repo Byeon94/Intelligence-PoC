@@ -34,7 +34,7 @@ def _code_arg() -> str | None:
 
 @credit_bp.route("/credit")
 def credit_tab():
-    """여신·심사 탭 부분 템플릿 (index.html 에서 include)."""
+    """여신 탭 부분 템플릿 (index.html 에서 include)."""
     return render_template("credit.html")
 
 
@@ -89,7 +89,7 @@ def market_reports():
 
 @credit_bp.route("/api/credit/leads")
 def leads():
-    """여신·심사 메인 화면: 코스피·코스닥 전 종목 증권담보대출·우리사주 금융 수요 리드(DART 실데이터).
+    """여신 메인 화면: 코스피·코스닥 전 종목 증권담보대출·우리사주 금융 수요 리드(DART 실데이터).
 
     수집 자체는 코스피·코스닥 전 종목을 훑어 수 분이 걸리고 DART 호출량도 많아,
     /internal/warmup 배치에서만 force=True 로 수행한다. 이 라우트는 절대 force 를
@@ -100,7 +100,7 @@ def leads():
 
 @credit_bp.route("/api/credit/today-summary")
 def today_summary():
-    """여신·심사 전체 탭의 "오늘 신규 리드" — 홈 대시보드 알림과 반드시 같은
+    """여신 전체 탭의 "오늘 신규 리드" — 홈 대시보드 알림과 반드시 같은
     계산(credit.today_summary.get_today_leads_summary)을 써서 화면마다 건수가
     어긋나지 않게 한다."""
     return _safe(lambda: get_today_leads_summary(), "오늘 신규 리드")
@@ -108,7 +108,7 @@ def today_summary():
 
 @credit_bp.route("/api/credit/inherit-news")
 def inherit_news():
-    """여신·심사 메인 화면: 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단).
+    """여신 메인 화면: 상속·증여 관련 뉴스 동향(참고용, AI 관련도 판단).
 
     AI 판단은 /internal/warmup 배치에서만 수행한다 — 쿼리로 재생성을 트리거하지
     못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""
@@ -117,7 +117,7 @@ def inherit_news():
 
 @credit_bp.route("/api/credit/esop-news")
 def esop_news():
-    """여신·심사 메인 화면: 우리사주(유상증자·IPO) 관련 뉴스 동향(참고용, AI 관련도 판단).
+    """여신 메인 화면: 우리사주(유상증자·IPO) 관련 뉴스 동향(참고용, AI 관련도 판단).
 
     AI 판단은 /internal/warmup 배치에서만 수행한다 — 쿼리로 재생성을 트리거하지
     못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""
@@ -126,7 +126,7 @@ def esop_news():
 
 @credit_bp.route("/api/credit/lead-briefings")
 def lead_briefings():
-    """여신·심사 메인 화면(전체 탭): 증권담보대출·우리사주 리드에 대한 AI 브리핑.
+    """여신 메인 화면(전체 탭): 증권담보대출·우리사주 리드에 대한 AI 브리핑.
 
     AI 브리핑은 /internal/warmup 배치에서만 생성한다 — 쿼리로 재생성을 트리거하지
     못하게 이 라우트는 항상 저장된 스냅샷만 반환한다."""

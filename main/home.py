@@ -25,7 +25,7 @@ _RATIO_ALERT_PP = 1.0
 
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
 # 나열하지 않는다). 우선순위: ①이상징후(유동성) ②금융당국(금융위원회 등) 보도자료 1건
-# ③여신·심사 신규 리드(상속·증여/우리사주) ④AI 선별 리서치 기사(나머지 자리를 채움).
+# ③여신 신규 리드(상속·증여/우리사주) ④AI 선별 리서치 기사(나머지 자리를 채움).
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -111,10 +111,10 @@ def _policy_highlight(policy: dict | None) -> dict | None:
 
 
 def _credit_leads_alert() -> dict | None:
-    """여신·심사 탭의 "오늘 신규 리드"와 항상 같은 숫자를 보여준다 —
+    """여신 탭의 "오늘 신규 리드"와 항상 같은 숫자를 보여준다 —
     credit.today_summary.get_today_leads_summary() 하나로 계산을 단일화해
-    화면마다(홈/여신·심사 탭) 다른 건수가 표시되던 문제를 막는다."""
-    summary = _safe("여신·심사 오늘 신규 리드", get_today_leads_summary)
+    화면마다(홈/여신 탭) 다른 건수가 표시되던 문제를 막는다."""
+    summary = _safe("여신 오늘 신규 리드", get_today_leads_summary)
     if not summary or summary.get("pending"):
         return None
     count = summary.get("count") or 0
@@ -123,7 +123,7 @@ def _credit_leads_alert() -> dict | None:
     ref_date = max(summary["dart_ref_date"], summary["news_ref_date"])
     return {
         "level": "info",
-        "title": f"여신·심사 신규 공시/뉴스 {count}건",
+        "title": f"여신 신규 공시/뉴스 {count}건",
         "detail": f"{ref_date} 기준 · 상속·증여/우리사주 관련 신규 공시·뉴스",
         "tab": "credit",
     }

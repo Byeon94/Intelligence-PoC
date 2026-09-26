@@ -96,7 +96,7 @@ def _run_warmup() -> None:
         try:
             get_leads(force=True)   # 이미 백그라운드 스레드 안이라 동기 실행해도 안전
         except Exception:  # noqa: BLE001
-            logger.exception("여신·심사 리드(증권담보대출·우리사주) 워밍업 실패")
+            logger.exception("여신 리드(증권담보대출·우리사주) 워밍업 실패")
         try:
             get_inherit_news()
         except Exception:  # noqa: BLE001
@@ -108,7 +108,7 @@ def _run_warmup() -> None:
         try:
             get_lead_briefings(force=True)   # 위 스냅샷들을 방금 새로 만들었으니 브리핑도 같이 갱신
         except Exception:  # noqa: BLE001
-            logger.exception("여신·심사 리드 AI 브리핑 워밍업 실패")
+            logger.exception("여신 리드 AI 브리핑 워밍업 실패")
         # 업종별 시가총액 맵의 전종목 재분류(sector.classify.refresh_sector_classification)는
         # 일부러 새벽 배치에 넣지 않는다 — API 사용량을 최소화하기 위해 사용자가 명시적으로
         # 요청할 때만(수동으로) 돌린다. 화면은 항상 sector.classify.get_cached_classification()
@@ -120,7 +120,7 @@ def _run_warmup() -> None:
 @app.route("/internal/warmup")
 def warmup():
     """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/시장 리포트
-    동향/IT·정보보호 뉴스/증권대차 뉴스/여신·심사 리드·상속증여 뉴스 스냅샷을 미리 생성.
+    동향/IT·정보보호 뉴스/증권대차 뉴스/여신 리드·상속증여 뉴스 스냅샷을 미리 생성.
 
     스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.

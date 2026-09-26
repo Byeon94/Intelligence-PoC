@@ -26,13 +26,13 @@
   // ── 전사 갤러리 카탈로그(= 업무별 화면의 주요 섹션 단위) ──
   // sub: 자본시장처럼 내부에 세부탭이 있는 화면일 때, 그 세부탭까지 바로 이동시키기 위한 힌트.
   var WIDGET_CATALOG = [
-    { id: "sector-map", externalUrl: "/sector",
-      title: "국내 업종별 시가총액 순위 및 밸류체인", emoji: "📊", creditBadge: "투자금융부 이OO 과장 제작",
-      desc: "국내 업종별 시가총액 순위 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "credit-equity-glance", tab: "credit", title: "한눈에 보는 기업분석 정보", emoji: "🔎",
       creditBadge: "투자금융부 박OO 과장 제작",
       desc: "예시로 삼성전자 정보를 바로 보여드려요 — 종목을 검색하면 다른 기업 정보도 바로 확인할 수 있습니다.",
       status: "live" },
+    { id: "sector-map", externalUrl: "/sector",
+      title: "국내 업종별 시가총액 순위 및 밸류체인", emoji: "📊", creditBadge: "투자금융부 이OO 과장 제작",
+      desc: "국내 업종별 시가총액 순위 및 대표산업(4가지) 밸류체인", status: "live" },
     { id: "market-reports", externalUrl: "https://consensus.hankyung.com/analysis/list",
       title: "오늘의 증권사 리포트", emoji: "📑", creditBadge: "기획부 유OO 과장 제작",
       desc: "조회 기준일(전영업일) 시장 전체 리포트 건수 + AI 브리핑", status: "live" },
@@ -71,7 +71,7 @@
   // 나의 대시보드에 기본으로 미리 담아두는 위젯 2개 — 처음 열었을 때부터 실데이터로
   // 바로 보여주기 위함(빈 화면 대신). 이 순서 그대로 노출한다(위젯 추가 목록도
   // WIDGET_CATALOG 순서상 이미 같은 순서로 나온다).
-  var DEFAULT_WIDGET_IDS = ["sector-map", "credit-equity-glance"];
+  var DEFAULT_WIDGET_IDS = ["credit-equity-glance", "sector-map"];
 
   // "부서 위젯" 배지 — 업무별 화면에 실제로 구현된(=live) 위젯에는 "전사 등재" 옆에
   // 함께 표시해, 원래 부서 업무 화면에서 만들어졌다는 출처를 나타낸다.
@@ -320,7 +320,7 @@
   }
 
   // ── 기업분석/공시/리포트: 내 위젯 안에서 검색한 종목을 셋이 함께 따라간다 ──
-  // (여신·심사 화면과는 독립적 — 기업분석 위젯의 검색창이 유일한 입력 지점)
+  // (여신 화면과는 독립적 — 기업분석 위젯의 검색창이 유일한 입력 지점)
   var STOCK_PICK_KEY = "personalStockPick";
   function getStockPick() {
     var pick;
@@ -1395,8 +1395,17 @@
       title: "나의 대시보드 — 위젯 추가",
       body: "지금처럼 기본 위젯 2개를 미리 담아드렸어요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 더 담아 나만의 화면을 만들 수 있습니다." },
     { type: "spot", nav: "capital", sel: "#capital-root",
+      // 자본시장 화면은 진입 시 유동성 요약을 비동기로 불러온다 — 그 응답이 채워질 때까지
+      // 기다렸다가 스포트라이트를 보여줘야, 아직 다 안 그려진 화면을 가리켰다가 데이터가
+      // 도착하면서 박스가 커지는 "깜빡임"이 생기지 않는다.
+      navReady: function () {
+        var dateEl = document.getElementById("liq-asof-date");
+        var trendEl = document.getElementById("liq-trend");
+        return !!(dateEl && dateEl.textContent) &&
+          !!(trendEl && !trendEl.querySelector(".chart-loading"));
+      },
       title: "업무별 메뉴(부서 위젯)",
-      body: "지금 보시는 자본시장처럼, 사이드바에서 여신·심사·정책·규제·리서치·뉴스로 이동해 부서별 상세 화면을 확인할 수 있습니다." },
+      body: "지금 보시는 자본시장처럼, 사이드바에서 여신·정책·규제·리서치·뉴스로 이동해 부서별 상세 화면을 확인할 수 있습니다." },
     { type: "done" }
   ];
   var obIndex = 0;
@@ -1490,6 +1499,50 @@
     var doneBtn = document.getElementById("ob-done-btn");
     if (doneBtn) doneBtn.addEventListener("click", obEnd);
   }
+  // 스텝 전환마다 증가 — 이동 대기 중(obWaitNavReady) 사용자가 "다음/건너뛰기"로 다른
+  // 스텝으로 넘어가면, 늦게 도착하는 이전 폴링 콜백이 더 이상 화면을 덮어쓰지 않게 막는다.
+  var obRenderToken = 0;
+
+  // 대상이 실제로 화면에 잡힐 때까지 스포트라이트·말풍선을 그리고 위치를 맞춘다
+  // (nav 스텝이든 아니든 공통 — 대상 엘리먼트가 "지금" 존재한다고 가정).
+  function obShowSpot(step) {
+    var backdrop = document.getElementById("ob-backdrop");
+    var spot = document.getElementById("ob-spot");
+    var tip = document.getElementById("ob-tooltip");
+    if (!backdrop || !spot || !tip) return;
+    var rect;
+    if (step.selRange) {
+      var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
+      if (!a || !b) { obNext(); return; }
+      a.scrollIntoView({ block: "center", behavior: "auto" });
+      rect = obUnionRect(a, b);
+    } else {
+      var el = document.querySelector(step.sel);
+      if (!el) { obNext(); return; }
+      el.scrollIntoView({ block: "center", behavior: "auto" });
+      rect = el.getBoundingClientRect();
+    }
+    backdrop.hidden = true;
+    spot.hidden = false;
+    tip.hidden = false;
+    tip.className = "ob-tooltip";
+    tip.innerHTML = obSpotHTML(step);
+    obPosition(rect);
+    obBindStepButtons();
+  }
+
+  // step.navReady가 있으면(예: 자본시장의 유동성 요약) 그게 true가 될 때까지 짧게
+  // 폴링한다 — 원천 장애 등으로 끝내 안 채워져도 3초 뒤엔 그냥 지금 상태로 보여준다.
+  function obWaitNavReady(step, token, cb) {
+    if (!step.navReady) { cb(); return; }
+    var start = Date.now();
+    (function poll() {
+      if (token !== obRenderToken) return; // 그 사이 다른 스텝으로 넘어감
+      if (step.navReady() || Date.now() - start > 3000) { cb(); return; }
+      setTimeout(poll, 80);
+    })();
+  }
+
   function obRenderStep() {
     var step = OB_STEPS[obIndex];
     if (!step) { obEnd(); return; }
@@ -1497,32 +1550,22 @@
     var spot = document.getElementById("ob-spot");
     var tip = document.getElementById("ob-tooltip");
     if (!backdrop || !spot || !tip) return;
+    var token = ++obRenderToken;
 
     if (step.type === "spot") {
-      // 이 스텝이 다른 업무 화면을 소개하는 스텝이면(나의 대시보드/업무별 메뉴), 사이드바
-      // 버튼만 가리키는 대신 실제로 그 화면으로 이동해서 설명한다.
-      if (step.nav) goWork(step.nav);
-      var rect;
-      if (step.selRange) {
-        var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
-        if (!a || !b) { obNext(); return; }
-        a.scrollIntoView({ block: "center", behavior: "auto" });
-        rect = obUnionRect(a, b);
-      } else {
-        var el = document.querySelector(step.sel);
-        if (!el) { obNext(); return; }
-        el.scrollIntoView({ block: "center", behavior: "auto" });
-        rect = el.getBoundingClientRect();
+      if (step.nav) {
+        // 이 스텝은 다른 업무 화면으로 실제 이동해서 설명한다(나의 대시보드/업무별 메뉴).
+        // 이동 도중 이전 스텝의 스포트라이트가 잘못된 위치에 잠깐 보였다 다시 그려지는
+        // "깜빡임"을 막기 위해, 화면이 준비될 때까지는 아무것도 안 보여준다.
+        backdrop.hidden = true; spot.hidden = true; tip.hidden = true;
+        goWork(step.nav);
+        obWaitNavReady(step, token, function () {
+          if (token !== obRenderToken) return;
+          obShowSpot(step);
+        });
+        return;
       }
-      backdrop.hidden = true;
-      spot.hidden = false;
-      tip.hidden = false;
-      tip.className = "ob-tooltip";
-      tip.innerHTML = obSpotHTML(step);
-      obPosition(rect);
-      // 방금 이동한 화면은 데이터가 비동기로 늦게 채워질 수 있어(예: 자본시장 차트),
-      // 크기가 자리잡은 뒤 스포트라이트를 한 번 더 재본다.
-      if (step.nav) setTimeout(obResize, 600);
+      obShowSpot(step);
     } else {
       spot.hidden = true;
       backdrop.hidden = false;
@@ -1534,20 +1577,34 @@
       // 화면 밖으로 잘려 보인다(실제로 모바일에서 이렇게 잘려 보인다는 제보 확인).
       tip.style.top = ""; tip.style.left = ""; tip.style.width = "";
       tip.innerHTML = step.type === "welcome" ? obWelcomeHTML() : obDoneHTML();
+      obBindStepButtons();
     }
-    obBindStepButtons();
   }
   function obNext() { obIndex++; obRenderStep(); }
   function obEnd() {
+    obRenderToken++; // 진행 중이던 nav 대기가 있으면 이제 와서 화면을 덮어쓰지 않게
     ["ob-backdrop", "ob-spot", "ob-tooltip"].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.hidden = true;
     });
     if (window.AppNav) window.AppNav.go("home");
   }
+  // 창 크기 변경 시에는 위치만 다시 잰다 — 내용을 다시 그리면(말풍선 재생성·버튼 재바인딩)
+  // 크기 변화가 없어도 매번 다시 깜빡여 보인다.
   function obResize() {
     var step = OB_STEPS[obIndex];
-    if (step && step.type === "spot" && !document.getElementById("ob-spot").hidden) obRenderStep();
+    if (!step || step.type !== "spot" || document.getElementById("ob-spot").hidden) return;
+    var rect;
+    if (step.selRange) {
+      var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
+      if (!a || !b) return;
+      rect = obUnionRect(a, b);
+    } else {
+      var el = document.querySelector(step.sel);
+      if (!el) return;
+      rect = el.getBoundingClientRect();
+    }
+    obPosition(rect);
   }
   window.addEventListener("resize", obResize);
 

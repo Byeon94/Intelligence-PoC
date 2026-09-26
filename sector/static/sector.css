@@ -10,10 +10,14 @@
 .st-c-down { color: var(--stock-down); }
 
 /* ── 업종 순위 표 ── */
+/* 표 바로 위 캡션처럼 있던 것을(표 일부처럼 보여 눈에 안 띈다는 피드백) 강조 배너로
+   분리 — 다른 곳의 "왜 중요한가?" 박스와 같은 accent 배경 톤을 재사용한다. */
 .sector-rank-total {
-  font-size: .82rem; color: var(--muted); margin-bottom: 8px;
+  display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+  font-size: .8rem; font-weight: 600; color: var(--muted);
+  background: var(--accent-bg); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
 }
-.sector-rank-total b { color: var(--fg); font-weight: 800; }
+.sector-rank-total b { color: var(--accent); font-weight: 800; font-size: 1.2rem; }
 .sector-rank th, .sector-rank td { text-align: right; }
 .sector-rank th:first-child, .sector-rank td:first-child { text-align: left; }
 .rank-share { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }

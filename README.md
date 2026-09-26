@@ -21,7 +21,7 @@ QR로 접속해 모바일에서도 확인할 수 있도록 만든 데모입니�
 | 📈 자본시장 | 증시자금·유동성(투자자예탁금·신용공여·CMA), CMA·단기수신(유형별 비중·증권사 금리), 발행시장(IPO·유상증자 캘린더 + AI 브리핑) |
 | 📜 정책·규제 | 금융당국 4곳·유관기관 4곳 보도자료 + AI 브리핑 |
 | 📰 리서치·뉴스 | 네이버 뉴스에서 업무 관련 기사 AI 선별·태깅 + 브리핑 |
-| 🏦 여신·심사 | 종목 기업분석(기초정보·가격범위·재무요약·실적분석) / 공시(DART) / 증권사 리포트(목표주가 컨센서스) |
+| 🏦 여신 | 종목 기업분석(기초정보·가격범위·재무요약·실적분석) / 공시(DART) / 증권사 리포트(목표주가 컨센서스) |
 | 💼 투자금융 / 🔐 수탁 / 💱 자금·외화 / 🔄 증권대차 | 준비 중 |
 
 ## 코드 구조
@@ -45,7 +45,7 @@ capital/            자본시장 탭 (증시자금유동성 / CMA·단기수신 
   sample_data.py       공공데이터 실패 시 대체 데이터
   templates/, static/  capital.html, capital.js, charts.js(공용 인라인 SVG 차트)
 
-credit/             여신·심사 탭 (기업분석 / 공시 / 리포트)
+credit/             여신 탭 (기업분석 / 공시 / 리포트)
   equity.py, financials.py, filings.py, reports.py, corp_map.py, store.py
   sample_data.py       외부 API 실패 시 대체 데이터
   templates/, static/  credit.html, credit.js
