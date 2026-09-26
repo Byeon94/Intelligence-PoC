@@ -4,7 +4,7 @@
 -- 별도 DB가 필요 없습니다. 모든 지표는 data.go.kr(금융위원회) API를 조회해
 -- 프로세스 메모리에 짧게 캐시합니다. 증권사별 CMA 금리는 capital/cma_rates.json.
 
--- ── 정책·규제 / 리서치·뉴스 탭 ────────────────────────────────
+-- ── 정책·규제 / 뉴스 탭 ────────────────────────────────
 -- 하루 1회 수집한 원자료 + AI 산출물(브리핑·선별)을 날짜별 스냅샷 1건으로 저장.
 create table if not exists policy_snapshots (
     snapshot_date date primary key,

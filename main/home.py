@@ -1,4 +1,4 @@
-"""홈 대시보드: 정책·리서치 통합 브리핑 + 자본시장/여신심사/정책 알림.
+"""홈 대시보드: 정책·뉴스 통합 브리핑 + 자본시장/여신심사/정책 알림.
 
 각 탭이 이미 하루 1회 캐시해둔 스냅샷(get_policy_digest/get_research_digest/
 get_leads/get_inherit_news)과 ttl_cache 된 자본시장 유동성 요약을 재사용한다. 그날 첫
@@ -31,7 +31,7 @@ _RATIO_ALERT_PP = 1.0
 
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
 # 나열하지 않는다). 우선순위: ①이상징후(유동성) ②금융당국(금융위원회 등) 보도자료 1건
-# ③여신 신규 리드(상속·증여/우리사주) ④AI 선별 리서치 기사(나머지 자리를 채움).
+# ③여신 신규 리드(상속·증여/우리사주) ④AI 선별 뉴스 기사(나머지 자리를 채움).
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -152,23 +152,12 @@ def _market_briefing_key(briefing: dict | None) -> dict | None:
     if not headline:
         return None
     rest = [f"{k}: {_first_sentence(sections[k])}" for k in CATEGORIES if sections.get(k)]
-    return {"kind": "market", "title": headline, "detail": " ".join(rest) if rest else None}
-
-
-def _market_related_article(articles: list[dict] | None) -> dict | None:
-    """오늘의 시장 브리핑 하단 "관련 기사" — research.curate 가 이미 관련도순으로 골라둔
-    기사 중 1건을 그대로 링크로 보여준다(새 수집·AI 호출 없이 기존 큐레이션 재사용)."""
-    if not articles:
-        return None
-    a = articles[0]
-    if not a.get("title") or not a.get("url"):
-        return None
-    return {"title": a["title"], "url": a["url"], "published": a.get("published")}
+    return {"kind": "market", "title": headline, "detail": "\n".join(rest) if rest else None}
 
 
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
-    research = _safe("리서치·뉴스", get_research_digest)
+    research = _safe("뉴스", get_research_digest)
     market = _safe("오늘의 시장 한눈에(국내)", get_market_snapshot)
     global_market = _safe("오늘의 시장 한눈에(해외·환율)", get_global_market_snapshot)
     market_history = _safe("시장 한눈에 1년 차트(국내)", get_market_history_1y)
@@ -178,8 +167,8 @@ def get_home_summary() -> dict:
     # "오늘의 핵심" — AI가 먼저 걸러준 최대 3건. 뉴스 feed가 아니라 우선순위 목록이라는
     # 인상을 주기 위해, 이미 계산해둔 실데이터 신호를 정해진 순서로 최대 3개까지만 채운다.
     # 1번은 항상 시장 브리핑 요약(있으면) — 나머지는 기존 우선순위(유동성 이상징후 →
-    # 금융당국 발표 → 여신 신규 리드 → AI 선별 리서치 기사)로 남은 자리를 채운다.
-    # 리서치 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
+    # 금융당국 발표 → 여신 신규 리드 → AI 선별 뉴스 기사)로 남은 자리를 채운다.
+    # 뉴스 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
     # 판단해둔 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
     articles = research.get("articles") if research else None
     today_key: list[dict] = []
@@ -229,7 +218,7 @@ def get_home_summary() -> dict:
             "summary": market_briefing.get("summary"),
             "note": market_briefing.get("note"),
             "generated_at": market_briefing.get("generated_at"),
-            "related_article": _market_related_article(articles),
+            "related_articles": market_briefing.get("related_articles"),
         } if market_briefing else None,
         "today_key": today_key,
         "today_news": _diversify_news(articles or [], _MAX_TODAY_NEWS, _MAX_PER_TAG_TODAY_NEWS),

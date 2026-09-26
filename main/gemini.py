@@ -8,7 +8,7 @@
   업종 분류 배치(sector/classify.py)처럼 이미 자체적으로 월 1회로 제한된 대량 호출은
   count_against_daily_budget=False 로 이 예산에서 제외한다.
 
-정책·리서치·발행시장·CMA 탭이 모두 이 함수를 쓴다. 여기만 고치면 된다.
+정책·뉴스·발행시장·CMA 탭이 모두 이 함수를 쓴다. 여기만 고치면 된다.
 """
 from __future__ import annotations
 

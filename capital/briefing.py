@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 from main.config import get_settings
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, save_snapshot
+from research.sources import search_news
 
 from .market_snapshot import (
     get_global_market_history_1y,
@@ -28,6 +29,16 @@ from .market_snapshot import (
 
 _TABLE = "market_briefing_snapshots"
 logger = logging.getLogger(__name__)
+
+# 카테고리별 "관련 기사" 검색어 — 한국 경제지에서 매 거래일 관행적으로 나오는 시황
+# 기사 제목 패턴이라 실제 기사가 거의 매일 검색된다(없으면 그냥 링크를 비워둔다 —
+# 실제로 없는 기사를 지어내지 않는다는 원칙).
+_RELATED_QUERIES = {
+    "주식": "코스피 마감",
+    "채권": "미국채 금리",
+    "환율": "원달러 환율",
+    "장전": "뉴욕증시 마감",
+}
 KST = ZoneInfo("Asia/Seoul")
 
 CATEGORIES = ["주식", "채권", "환율", "장전"]
@@ -167,6 +178,26 @@ def _generate(market: dict | None, gm: dict | None, mh: dict | None, gh: dict | 
     return result
 
 
+def _related_articles(sections: dict) -> dict:
+    """카테고리별 "관련 기사" 1건씩 — Naver 뉴스에서 그 카테고리 검색어로 가장 최신
+    기사를 찾아 링크만 붙인다(요약 재작성 없음, AI 호출 없음). 검색 결과가 없는
+    카테고리는 그냥 빠진다."""
+    out: dict = {}
+    for key in sections:
+        query = _RELATED_QUERIES.get(key)
+        if not query:
+            continue
+        try:
+            hits = search_news(query, days=2, limit=1)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("시장 브리핑 관련 기사 검색 실패(%s): %s", key, exc)
+            continue
+        if hits:
+            h = hits[0]
+            out[key] = {"title": h["title"], "url": h["url"], "published": h["published"]}
+    return out
+
+
 def _maybe_generate(payload: dict, force: bool = False) -> dict:
     s = get_settings()
     has = bool(payload.get("sections"))
@@ -192,6 +223,7 @@ def _maybe_generate(payload: dict, force: bool = False) -> dict:
         result = _generate(market, gm, mh, gh)
         payload["sections"] = result["sections"]
         payload["summary"] = result["summary"]
+        payload["related_articles"] = _related_articles(result["sections"])
         payload["note"] = None
     except Exception as exc:  # noqa: BLE001
         logger.warning("시장 브리핑 생성 실패: %s", exc)
@@ -215,6 +247,7 @@ def get_market_briefing(force: bool = False) -> dict:
         "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
         "sections": None,
         "summary": None,
+        "related_articles": None,
         "note": None,
         "gemini_attempts": 0,
     }

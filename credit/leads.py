@@ -33,7 +33,7 @@ _scan_universe 로는 잡을 수도 없는 대상이라, IPO 리드만큼은 처
 LLM이 수치를 지어낼 위험을 피하려고 여기서는 Gemini를 호출하지 않는다.
 
 증권담보대출 리드는 코스피·코스닥 전 종목(~2,500개)마다 majorstock.json을 호출해야 해서
-스레드풀로 병렬 조회해도 수 분이 걸린다. 정책·리서치 브리핑 등 다른 스냅샷과 동일하게,
+스레드풀로 병렬 조회해도 수 분이 걸린다. 정책·뉴스 브리핑 등 다른 스냅샷과 동일하게,
 실제 수집(_collect)은 /internal/warmup 배치(하루 1회, GitHub Actions cron)에서만
 force=True 로 수행하고, 일반 웹 요청(get_leads(force=False))은 절대 DART를 직접
 호출하지 않고 이미 저장된 스냅샷만 읽는다(오늘자가 없으면 가장 최근 스냅샷을
@@ -420,7 +420,7 @@ _SCHEMA_V = 7  # v7: 실패율 감지 보정(표본 적어도 전부 실패면 �
 
 def get_leads(force: bool = False) -> dict:
     """force=True 는 /internal/warmup 배치 전용 — 이 값 없이는 절대 DART 를 호출하지 않고
-    이미 저장된 스냅샷만 읽는다(정책·리서치 등 다른 브리핑과 동일한 '배치 수집 + 스냅샷
+    이미 저장된 스냅샷만 읽는다(정책·뉴스 등 다른 브리핑과 동일한 '배치 수집 + 스냅샷
     조회' 방식)."""
     today = datetime.now(KST).date().isoformat()
     if not force:

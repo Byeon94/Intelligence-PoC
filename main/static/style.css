@@ -107,7 +107,7 @@ body {
 .side-btn.active { background: var(--side-active-bg); color: var(--side-fg-active); }
 .side-sep { height: 1px; background: var(--side-sep); margin: 8px 6px; }
 .side-btn-intro { margin-top: auto; padding-top: 21px; border-top: 1px solid var(--side-sep); }
-/* "부서 위젯" 그룹 라벨 — 자본시장/여신/정책·규제/리서치·뉴스 4개가 하나의 묶음이라는
+/* "부서 위젯" 그룹 라벨 — 자본시장/여신/정책·규제/뉴스 4개가 하나의 묶음이라는
    걸 보여준다(전사 위젯 카드의 "부서 위젯" 배지와 같은 용어를 재사용). */
 .side-group-label {
   font-size: .88rem; font-weight: 800; color: #fff; text-transform: uppercase;
@@ -451,7 +451,7 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
   .cal-ev .ce-t { display: none; }
 }
 
-/* ── 리서치·뉴스 피드 ── 키워드 칩을 탭처럼 써서, 누른 태그의 기사만 그리드로
+/* ── 뉴스 피드 ── 키워드 칩을 탭처럼 써서, 누른 태그의 기사만 그리드로
    보여준다(기본은 "전체" — 모든 태그 그룹을 순서대로, 각 그룹 안은 그리드). 예전엔
    태그 그룹을 전부 세로로 쌓아 칩을 누르면 그 위치로 스크롤만 했는데, 그러면 아래
    태그를 보려고 계속 스크롤해야 했다. */
@@ -792,7 +792,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .brief-block-sub { margin: -4px 0 12px; }
 
 /* ── 오늘의 핵심: AI가 먼저 걸러준 최대 3건만(뉴스 feed처럼 보이지 않도록). .hl-card
-   는 kind에 따라 <a>(정책·리서치, 외부 링크) 또는 .hl-card-btn(<div data-work>, 알림 —
+   는 kind에 따라 <a>(정책·뉴스, 외부 링크) 또는 .hl-card-btn(<div data-work>, 알림 —
    클릭 시 해당 화면으로 이동)로 렌더된다. rank 1(.hl-card-primary)은 크게 + "왜
    중요한가?" 박스를, 2·3(.hl-card-compact)은 작게 + 한 줄 이유만 보여줘 hierarchy를
    만든다. ── */
@@ -823,6 +823,10 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .hl-reason {
   font-size: .8rem; color: var(--fg); line-height: 1.55; background: var(--accent-bg);
   border-radius: 8px; padding: 8px 10px;
+  /* 시장 브리핑 카드는 주식/채권/환율/장전을 한 줄씩(개행 포함) 넘겨준다 — 한 문단으로
+     길게 붙어 보이지 않도록 실제 줄바꿈을 그대로 살린다(다른 카드의 reason은 원래도
+     한 줄짜리 텍스트라 영향 없음). */
+  white-space: pre-line;
 }
 .hl-reason-label {
   display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
@@ -872,19 +876,16 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .mb-item-icon { font-size: .9rem; }
 .mb-item-label { font-size: .78rem; font-weight: 800; color: var(--muted); }
 .mb-item-text { font-size: .86rem; line-height: 1.5; }
-.mb-related {
-  display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 12px;
-  background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
-  text-decoration: none; color: inherit;
+/* 카테고리별 "관련 기사" 1건 — 카드 하단에 한 줄로, 길면 말줄임(카드 높이를 늘리지
+   않기 위함. 전체 제목은 타이틀 툴팁으로). */
+.mb-item-link {
+  display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border2);
+  font-size: .76rem; font-weight: 600; color: var(--muted); text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.mb-related:hover { border-color: var(--accent); color: var(--accent); }
-.mb-related-label {
-  flex: 0 0 auto; font-size: .68rem; font-weight: 800; color: var(--accent);
-  background: var(--accent-bg); border-radius: 5px; padding: 2px 7px;
-}
-.mb-related-title { flex: 1; min-width: 0; font-size: .84rem; font-weight: 600; }
+.mb-item-link:hover { color: var(--accent); }
 
-/* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ──
+/* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 뉴스 탭) ──
    태그·날짜를 제목과 한 줄에 나란히 두면 제목 칸이 좁아져 줄바꿈이 잦았다.
    태그+날짜를 위 메타줄로 분리해 제목이 카드 전체 너비를 쓰게 한다. */
 .brief-news-item {

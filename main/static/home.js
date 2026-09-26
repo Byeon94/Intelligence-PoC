@@ -48,7 +48,7 @@
       desc: "IPO·유상증자 캘린더 + AI 브리핑", status: "live" },
     { id: "policy-briefing", tab: "policy", title: "정책·규제 브리핑", emoji: "📜",
       desc: "금융당국·유관기관 보도자료 + AI 3줄 요약", status: "live" },
-    { id: "research-briefing", tab: "research", title: "리서치·뉴스 브리핑", emoji: "📰",
+    { id: "research-briefing", tab: "research", title: "뉴스 브리핑", emoji: "📰",
       desc: "업무 관련 기사 AI 선별·태깅 + 요약", status: "live" },
     { id: "credit-analysis", tab: "credit", title: "기업분석", emoji: "🏦",
       desc: "종목 기초정보·가격범위·재무요약·실적분석", status: "live" },
@@ -101,7 +101,7 @@
   function goWork(tab, sub) {
     if (window.AppNav) window.AppNav.go(tab);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
-    // 각 업무 모듈(정책·규제/리서치·뉴스 등)은 #main-tabs 클릭을 감지해 처음 한 번
+    // 각 업무 모듈(정책·규제/뉴스 등)은 #main-tabs 클릭을 감지해 처음 한 번
     // 데이터를 지연 로딩한다. 홈/나의 대시보드에서 곧장 이동할 때도 그 로딩이 걸리도록
     // 같은 이벤트를 한 번 흉내 낸다.
     var bar = document.getElementById("main-tabs");
@@ -1125,7 +1125,7 @@
   }
 
   // ── 오늘의 브리핑: 오늘의 핵심 ── AI가 먼저 골라낸 최대 3건만 보여준다(이상징후
-  // 알림 → 정책 발표 → AI 선별 리서치 기사 순으로 채워짐, main/home.py get_home_summary
+  // 알림 → 정책 발표 → AI 선별 뉴스 기사 순으로 채워짐, main/home.py get_home_summary
   // 참고). 뉴스 feed처럼 보이지 않도록 01번은 크게(+"왜 중요한가?"), 02/03은 컴팩트하게
   // 렌더한다. research.curate 가 이미 만들어둔 태그·이유(reason)를 그대로 재사용,
   // 새 Gemini 호출 없음.
@@ -1311,7 +1311,7 @@
     }
   }
 
-  // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 리서치·뉴스 탭에서) ──
+  // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 뉴스 탭에서) ──
   function briefNewsRowHTML(a) {
     // 태그·제목·날짜를 한 줄에 나란히 두면 제목 칸이 좁아져 줄바꿈이 잦았다.
     // 태그+날짜는 위 메타줄로 따로 빼고, 제목은 카드 전체 너비를 쓰게 해 줄바꿈을 최소화한다.
@@ -1342,19 +1342,20 @@
       box.innerHTML = '<div class="page-note">' + esc((mb && mb.note) || "오늘 시장 브리핑을 아직 준비하지 못했습니다.") + "</div>";
       return;
     }
-    var rel = mb && mb.related_article;
-    var relHTML = rel && rel.url && rel.title
-      ? '<a class="mb-related" href="' + esc(rel.url) + '" target="_blank" rel="noopener">' +
-          '<span class="mb-related-label">관련 기사</span>' +
-          '<span class="mb-related-title">' + esc(rel.title) + '</span></a>'
-      : '';
+    var relMap = (mb && mb.related_articles) || {};
     box.innerHTML = '<div class="mb-grid">' + cats.map(function (c) {
+      var rel = relMap[c.key];
+      var relHTML = rel && rel.url && rel.title
+        ? '<a class="mb-item-link" href="' + esc(rel.url) + '" target="_blank" rel="noopener" title="' + esc(rel.title) + '">' +
+            '📎 ' + esc(rel.title) + '</a>'
+        : '';
       return '<div class="mb-item">' +
         '<div class="mb-item-head"><span class="mb-item-icon">' + c.icon + '</span>' +
           '<span class="mb-item-label">' + esc(c.key) + '</span></div>' +
         '<div class="mb-item-text">' + esc(sections[c.key]) + '</div>' +
+        relHTML +
       '</div>';
-    }).join('') + '</div>' + relHTML;
+    }).join('') + '</div>';
   }
 
   function renderBriefNews(d) {
@@ -1466,15 +1467,15 @@
     { type: "spot", sel: "#brief-key-block",
       title: "오늘의 핵심",
       body: "오늘 가장 먼저 확인할 곳입니다. AI가 여러 정보 중 업무에 중요한 변화를 먼저 선별해 보여드립니다." },
-    { type: "spot", sel: "#brief-market-block",
+    { type: "spot", sel: "#brief-market-block", titleSel: "#brief-market-block .block-head",
       title: "시장 한눈에",
       body: "국내외 주요 지수와 환율을 한눈에 확인하세요." },
-    { type: "spot", sel: "#brief-briefing-block",
+    { type: "spot", sel: "#brief-briefing-block", titleSel: "#brief-briefing-block .block-head",
       title: "오늘의 시장 브리핑",
       body: "매일 새벽 AI가 전영업일 마감 기준 주식·채권·환율·장전(미국시장)을 데이터로 분석해 정리합니다. 관련 기사 링크를 누르면 원문으로 바로 이동합니다." },
     { type: "spot", sel: "#brief-news-block",
       title: "오늘의 주요뉴스",
-      body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 리서치·뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
+      body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
     { type: "spot", nav: "personal", sel: "#personal-add-widget-btn",
       title: "나의 대시보드 — 위젯 추가",
       body: "지금처럼 기본 위젯 2개를 미리 담아드렸어요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 더 담아 나만의 화면을 만들 수 있습니다." },
@@ -1483,7 +1484,7 @@
     // 사이드바의 부서 메뉴 자체를 가리키는 방식으로 되돌린다.
     { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
       title: "업무별 메뉴(부서 위젯)",
-      body: "자본시장·여신·정책·규제·리서치·뉴스처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다." },
+      body: "자본시장·여신·정책·규제·뉴스처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다." },
     { type: "done" }
   ];
   var obIndex = 0;
@@ -1616,7 +1617,12 @@
       a.scrollIntoView({ block: "center", behavior: "auto" });
       rect = obUnionRect(a, b);
     } else {
-      var el = document.querySelector(step.sel);
+      // 내용이 길어 화면보다 큰 블록(시장 한눈에·오늘의 시장 브리핑 등)은 전체를
+      // scrollIntoView(block:"center")하면 블록 중간 어딘가에서 뚝 걸쳐 보이고, 그
+      // 전체 높이를 스포트라이트로 잡으면 말풍선 위치도 애매해진다 — titleSel이 있으면
+      // 블록 전체 대신 그 제목(.block-head)만 기준으로 스크롤·스포트라이트·말풍선
+      // 위치를 잡는다(제목 기준으로 상단에 딱 붙어 보이도록).
+      var el = document.querySelector(step.titleSel || step.sel);
       if (!el) { obNext(); return; }
       el.scrollIntoView({ block: "center", behavior: "auto" });
       rect = el.getBoundingClientRect();
@@ -1699,7 +1705,7 @@
       if (!a || !b) return;
       rect = obUnionRect(a, b);
     } else {
-      var el = document.querySelector(step.sel);
+      var el = document.querySelector(step.titleSel || step.sel);
       if (!el) return;
       rect = el.getBoundingClientRect();
     }

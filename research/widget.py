@@ -27,5 +27,5 @@ def digest():
         data = get_research_digest()
         return jsonify({k: data.get(k) for k in _PUBLIC})  # 후보 원본(candidates)은 제외
     except Exception:  # noqa: BLE001
-        research_bp.logger.exception("리서치 다이제스트 조회 실패")
-        return jsonify({"error": "리서치·뉴스 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}), 502
+        research_bp.logger.exception("뉴스 다이제스트 조회 실패")
+        return jsonify({"error": "뉴스 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}), 502

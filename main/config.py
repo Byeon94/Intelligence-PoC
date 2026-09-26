@@ -22,19 +22,19 @@ class Settings:
     # 별도로 이미 월 1회로 제한된 대량 호출은 이 예산에서 제외한다(main/gemini.py 참고).
     gemini_max_calls_per_day: int
 
-    # Naver 검색 API — 리서치/뉴스 탭.
+    # Naver 검색 API — 뉴스 탭.
     naver_client_id: str | None
     naver_client_secret: str | None
 
     # DART OpenAPI — 자본시장 > 발행시장 탭(유상증자·회사채 공시).
     dart_api_key: str | None
 
-    # Supabase — 정책/규제·리서치 탭 일일 스냅샷 저장용. 없으면 프로세스 메모리에 임시 저장.
+    # Supabase — 정책/규제·뉴스 탭 일일 스냅샷 저장용. 없으면 프로세스 메모리에 임시 저장.
     supabase_url: str | None
     supabase_key: str | None
 
     # /internal/warmup 호출 인증용 비밀키. 매일 아침 외부 스케줄러(GitHub Actions 등)가
-    # 이 키를 붙여 호출하면 정책·규제/리서치·뉴스 스냅샷을 미리 만들어둔다.
+    # 이 키를 붙여 호출하면 정책·규제/뉴스 스냅샷을 미리 만들어둔다.
     warmup_key: str | None
 
 

@@ -73,7 +73,7 @@ def _run_warmup() -> None:
         try:
             get_research_digest()
         except Exception:  # noqa: BLE001
-            logger.exception("리서치·뉴스 워밍업 실패")
+            logger.exception("뉴스 워밍업 실패")
         try:
             get_issuance_digest()
         except Exception:  # noqa: BLE001
@@ -124,7 +124,7 @@ def _run_warmup() -> None:
 
 @app.route("/internal/warmup")
 def warmup():
-    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/오늘의 시장
+    """매일 아침 외부 스케줄러가 호출 → 정책·규제/뉴스/발행시장/CMA금리/오늘의 시장
     브리핑/시장 리포트 동향/IT·정보보호 뉴스/증권대차 뉴스/여신 리드·상속증여 뉴스 스냅샷을
     미리 생성.
 
