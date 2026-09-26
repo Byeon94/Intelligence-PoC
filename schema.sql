@@ -95,6 +95,14 @@ create table if not exists equity_snapshots (
     primary key (snapshot_date, code)
 );
 
+-- 오늘의 브리핑 > 오늘의 시장 브리핑: 주식/채권/환율/장전 4개 카테고리 AI 브리핑을
+-- 하루 1건 스냅샷(capital/briefing.py).
+create table if not exists market_briefing_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
 -- 전사 위젯 > 국내 업종별 시가총액 맵: 전 상장종목 업종 분류(Gemini, 약 30일 주기로만 재분류).
 -- 화면은 이 스냅샷만 읽고(get_cached_classification), 실제 재분류는 /internal/warmup 배치에서만.
 create table if not exists sector_classification_snapshots (

@@ -10,7 +10,7 @@ Gemini 호출 없음 — ttl_cache로 반복 호출만 줄인다).
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 
@@ -22,11 +22,11 @@ _OP = "getStockMarketIndex"
 _JO = 1_000_000_000_000  # 원 → 조원
 
 
-def _fetch_recent(idx_nm: str, days: int = 10) -> list[dict]:
+def _fetch_recent(idx_nm: str, days: int = 10, rows: int = 100) -> list[dict]:
     begin = (date.today() - timedelta(days=days)).strftime("%Y%m%d")
     end = date.today().strftime("%Y%m%d")
     rows = get_json(_SERVICE, _OP, {
-        "idxNm": idx_nm, "beginBasDt": begin, "endBasDt": end, "numOfRows": 100,
+        "idxNm": idx_nm, "beginBasDt": begin, "endBasDt": end, "numOfRows": rows,
     })
     out = []
     for r in rows:
@@ -76,6 +76,22 @@ def get_market_snapshot() -> dict:
         return {"source": "unavailable", "error": str(exc)}
 
 
+# 시장 한눈에 스파크라인용 — 코스피·코스닥 1년치 일별 종가. 장중에는 당일 확정치가
+# 아직 안 올라와 최신 값이 자주 안 바뀌므로, 스냅샷(30분)보다 훨씬 길게 캐시한다.
+@ttl_cache(3600 * 6)
+def get_market_history_1y() -> dict:
+    try:
+        kospi = _fetch_recent("코스피", days=380, rows=400)
+        kosdaq = _fetch_recent("코스닥", days=380, rows=400)
+        return {
+            "source": "live",
+            "kospi": {"labels": [r["date"] for r in kospi], "values": [r["close"] for r in kospi]},
+            "kosdaq": {"labels": [r["date"] for r in kosdaq], "values": [r["close"] for r in kosdaq]},
+        }
+    except (DataGoError, KeyError, TypeError, ValueError) as exc:
+        return {"source": "unavailable", "error": str(exc)}
+
+
 # ── 해외증시·환율(Yahoo Finance 비공식 chart API) ──
 # 네이버 증권이 Next.js SPA로 개편되면서 페이지를 그대로 긁어서는 값을 못 가져와(값이
 # 클라이언트 쪽 내부 API 호출로 채워짐), 같은 값을 주는 공개 엔드포인트로 대체했다.
@@ -86,6 +102,9 @@ _YF_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/"
 _US_INDICES = [("다우존스", "%5EDJI"), ("나스닥", "%5EIXIC"), ("S&P500", "%5EGSPC")]
 # (표시명, 심볼, 심볼값에 곱할 배수) — 엔화는 관행상 100엔 기준으로 표기.
 _FX_PAIRS = [("USD/KRW", "KRW=X", 1), ("JPY100/KRW", "JPYKRW=X", 100), ("EUR/KRW", "EURKRW=X", 1)]
+# CBOE ^TNX는 미국채 10년물 금리를 그대로 %(예: 4.25 = 4.25%)로 준다 — 10을 곱한 값이
+# 아니라 실제 확인 결과 그대로 퍼센트였음(오배수 주의).
+_US_BOND_SYMBOL = "%5ETNX"
 
 
 def _yf_quote(symbol: str) -> dict:
@@ -116,6 +135,50 @@ def get_global_market_snapshot() -> dict:
                 "name": name, "value": round(q["price"] * mult, 2),
                 "change_pct": round(q["change_pct"], 2) if q["change_pct"] is not None else None,
             })
-        return {"source": "live", "us_indices": us, "fx": fx}
+        bond_us10y = None
+        try:
+            qb = _yf_quote(_US_BOND_SYMBOL)
+            bond_us10y = {
+                "name": "미국채10년", "value": round(qb["price"], 3),
+                "change_pct": round(qb["change_pct"], 2) if qb["change_pct"] is not None else None,
+            }
+        except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
+            pass  # 지수·환율은 살아있는데 금리만 실패해도 나머지는 그대로 보여준다.
+        return {"source": "live", "us_indices": us, "fx": fx, "bond_us10y": bond_us10y}
+    except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as exc:
+        return {"source": "unavailable", "error": str(exc)}
+
+
+# 시장 한눈에 스파크라인용 — 다우/나스닥/S&P500/미국채10년 1년치 일별 종가(Yahoo chart
+# API의 timestamp[]+close[] 배열을 그대로 씀. get_global_market_snapshot과 별도 캐시라,
+# 스파크라인 요청이 실시간 시세 캐시를 밀어내지 않는다).
+def _yf_history(symbol: str) -> dict:
+    resp = requests.get(
+        _YF_CHART + symbol, params={"range": "1y", "interval": "1d"},
+        headers={"User-Agent": "Mozilla/5.0"}, timeout=8,
+    )
+    resp.raise_for_status()
+    result = resp.json()["chart"]["result"][0]
+    ts = result.get("timestamp") or []
+    closes = (result.get("indicators") or {}).get("quote", [{}])[0].get("close") or []
+    labels, values = [], []
+    for t, c in zip(ts, closes):
+        if c is None:
+            continue
+        labels.append(datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%d"))
+        values.append(round(c, 2))
+    if not values:
+        raise ValueError(f"{symbol} 히스토리 없음")
+    return {"labels": labels, "values": values}
+
+
+@ttl_cache(3600 * 6)
+def get_global_market_history_1y() -> dict:
+    try:
+        out = {"source": "live"}
+        for name, sym in _US_INDICES:
+            out[name] = _yf_history(sym)
+        out["bond_us10y"] = _yf_history(_US_BOND_SYMBOL)
+        return out
     except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as exc:
         return {"source": "unavailable", "error": str(exc)}

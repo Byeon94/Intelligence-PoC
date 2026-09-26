@@ -10,8 +10,14 @@ from __future__ import annotations
 import logging
 from typing import Callable, TypeVar
 
+from capital.briefing import get_market_briefing
 from capital.liquidity import get_liquidity_summary
-from capital.market_snapshot import get_global_market_snapshot, get_market_snapshot
+from capital.market_snapshot import (
+    get_global_market_history_1y,
+    get_global_market_snapshot,
+    get_market_history_1y,
+    get_market_snapshot,
+)
 from credit.today_summary import get_today_leads_summary
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
@@ -129,18 +135,37 @@ def _credit_leads_alert() -> dict | None:
     }
 
 
+def _market_briefing_key(briefing: dict | None) -> dict | None:
+    """오늘의 핵심 1번 카드 — 시장 브리핑 중 "주식"을 헤드라인으로, 나머지(채권·환율·
+    장전)는 한 줄로 압축해 "왜 중요한가?" 자리에 보여준다."""
+    sections = (briefing or {}).get("sections") or {}
+    headline = sections.get("주식")
+    if not headline:
+        return None
+    rest = [f"{k}: {sections[k]}" for k in ("채권", "환율", "장전") if sections.get(k)]
+    return {"kind": "market", "title": headline, "detail": " ".join(rest) if rest else None}
+
+
 def get_home_summary() -> dict:
     policy = _safe("정책·규제", get_policy_digest)
     research = _safe("리서치·뉴스", get_research_digest)
     market = _safe("오늘의 시장 한눈에(국내)", get_market_snapshot)
     global_market = _safe("오늘의 시장 한눈에(해외·환율)", get_global_market_snapshot)
+    market_history = _safe("시장 한눈에 1년 차트(국내)", get_market_history_1y)
+    global_market_history = _safe("시장 한눈에 1년 차트(해외)", get_global_market_history_1y)
+    market_briefing = _safe("오늘의 시장 브리핑", get_market_briefing)
 
     # "오늘의 핵심" — AI가 먼저 걸러준 최대 3건. 뉴스 feed가 아니라 우선순위 목록이라는
     # 인상을 주기 위해, 이미 계산해둔 실데이터 신호를 정해진 순서로 최대 3개까지만 채운다.
+    # 1번은 항상 시장 브리핑 요약(있으면) — 나머지는 기존 우선순위(유동성 이상징후 →
+    # 금융당국 발표 → 여신 신규 리드 → AI 선별 리서치 기사)로 남은 자리를 채운다.
     # 리서치 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
     # 판단해둔 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
     articles = research.get("articles") if research else None
     today_key: list[dict] = []
+    market_key = _market_briefing_key(market_briefing)
+    if market_key:
+        today_key.append(market_key)
     liquidity_alert = _liquidity_alert()
     if liquidity_alert:
         today_key.append({"kind": "alert", **liquidity_alert})
@@ -177,6 +202,13 @@ def get_home_summary() -> dict:
         } if research else None,
         "market": market,
         "global_market": global_market,
+        "market_history": market_history,
+        "global_market_history": global_market_history,
+        "market_briefing": {
+            "sections": market_briefing.get("sections"),
+            "note": market_briefing.get("note"),
+            "generated_at": market_briefing.get("generated_at"),
+        } if market_briefing else None,
         "today_key": today_key,
         "today_news": _diversify_news(articles or [], _MAX_TODAY_NEWS, _MAX_PER_TAG_TODAY_NEWS),
     }

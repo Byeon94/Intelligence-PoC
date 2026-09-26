@@ -201,5 +201,29 @@
     return m[1] !== lastYear ? "’" + m[1].slice(2) + " " + mon : mon;
   }
 
-  global.Charts = { line: lineChart, stackBar: stackBar, donut: donut };
+  /* ── 스파크라인(축·범례 없는 초소형 추이선) ── "시장 한눈에" 지수 카드 등, 좁은
+     공간에 대략적인 1년 흐름만 보여주면 되는 곳에서 쓴다. */
+  function sparkline(box, opts) {
+    clear(box);
+    var values = (opts.values || []).filter(function (v) { return v != null; });
+    var n = values.length;
+    if (n < 2) { box.textContent = ""; return; }
+    var W = 100, H = 28, pad = 2;
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var span = (max - min) || 1;
+    var x = function (i) { return (W - pad * 2) * (i / (n - 1)) + pad; };
+    var y = function (v) { return H - pad - (H - pad * 2) * ((v - min) / span); };
+    var up = values[n - 1] >= values[0];
+    var col = "var(" + (opts.color || (up ? "--stock-up" : "--stock-down")) + ")";
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none", class: "sparkline-svg" });
+    var d = "";
+    values.forEach(function (v, i) { d += (i === 0 ? "M" : " L") + x(i).toFixed(1) + " " + y(v).toFixed(1); });
+    svg.appendChild(el("path", {
+      d: d, fill: "none", stroke: col, "stroke-width": 1.6,
+      "stroke-linejoin": "round", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
+    }));
+    box.appendChild(svg);
+  }
+
+  global.Charts = { line: lineChart, stackBar: stackBar, donut: donut, sparkline: sparkline };
 })(window);

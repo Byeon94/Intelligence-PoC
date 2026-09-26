@@ -1145,6 +1145,11 @@
       badge = '<span class="hl-badge">HOT</span>';
       reason = "금융당국 발표 — 관련 업무 영향 확인이 필요합니다.";
       dateText = fmtDate(h.date);
+    } else if (h.kind === "market") {
+      cat = "시장 브리핑";
+      badge = "";
+      reason = h.detail || "";
+      dateText = "";
     } else {
       cat = h.tag || "일반";
       badge = "";
@@ -1172,6 +1177,10 @@
       return '<div class="' + cls + ' hl-card-btn" data-work="' + esc(h.tab || "") + '"' +
         (h.sub ? ' data-sub="' + esc(h.sub) + '"' : "") + ">" + inner + "</div>";
     }
+    if (h.kind === "market") {
+      // 다른 탭으로 이동하는 대신, 같은 화면 아래 "오늘의 시장 브리핑" 섹션으로 스크롤한다.
+      return '<div class="' + cls + ' hl-card-btn" data-scroll="brief-briefing-block">' + inner + "</div>";
+    }
     return '<a class="' + cls + '" href="' + esc(h.url || "#") + '" target="_blank" rel="noopener">' + inner + "</a>";
   }
 
@@ -1183,34 +1192,58 @@
       ? items.map(function (h, i) { return todayKeyCardHTML(h, i + 1); }).join("")
       : '<div class="page-note">오늘은 꼭 확인할 만큼 중요한 항목이 없습니다.</div>';
     bindGoWorkButtons(box);
+    box.querySelectorAll("[data-scroll]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var el = document.getElementById(btn.dataset.scroll);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
   }
 
   // ── 오늘의 브리핑: 시장 한눈에 ── 국내(코스피·코스닥, data.go.kr)와 해외(다우·나스닥·
   // S&P500, Yahoo Finance 비공식 API)를 탭 전환 없이 한 화면에 같이 보여주고, 환율은
   // 그 아래 별도 줄로 붙인다(지수와 단위가 달라 같은 그리드에 섞지는 않음).
-  function mktIdxHTML(label, close, chg) {
+  // sparkValues가 있으면 카드 안에 빈 자리(id 부여)를 만들어두고, box.innerHTML 대입
+  // 이후에 window.Charts.sparkline로 채운다(SVG를 문자열로 직접 만들지 않기 위함).
+  var mktSparkQueue = [];
+  function mktIdxHTML(label, close, chg, sparkValues, unit) {
     var cls = chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : "";
     var arrow = chg > 0 ? "▲" : chg < 0 ? "▼" : "";
     var chgText = chg == null ? "-" : arrow + Math.abs(chg).toFixed(2) + "%";
+    var sparkHTML = "";
+    if (sparkValues && sparkValues.length > 1) {
+      var id = "mkt-spark-" + mktSparkQueue.length;
+      mktSparkQueue.push({ id: id, values: sparkValues });
+      sparkHTML = '<div class="mkt-idx-spark" id="' + id + '"></div>';
+    }
     return (
       '<div class="mkt-idx"><div class="mkt-idx-name">' + esc(label) + "</div>" +
-        '<div class="mkt-idx-value">' + Number(close).toLocaleString("ko-KR") + "</div>" +
-        '<div class="mkt-idx-chg ' + cls + '">' + chgText + "</div></div>"
+        '<div class="mkt-idx-value">' + Number(close).toLocaleString("ko-KR") + (unit || "") + "</div>" +
+        '<div class="mkt-idx-chg ' + cls + '">' + chgText + "</div>" +
+        sparkHTML +
+      "</div>"
     );
   }
   function renderMarket(d) {
     var box = document.getElementById("brief-market");
     if (!box) return;
     var m = d.market, gm = d.global_market;
+    var mh = d.market_history, gh = d.global_market_history;
+    var mhLive = mh && mh.source === "live";
+    var ghLive = gh && gh.source === "live";
+    mktSparkQueue = [];
     var html = "";
 
     var idxCards = "";
     if (m && m.source === "live") {
-      idxCards += mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change_pct) +
-        mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change_pct);
+      idxCards += mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change_pct, mhLive && mh.kospi.values) +
+        mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change_pct, mhLive && mh.kosdaq.values);
     }
     if (gm && gm.source === "live") {
-      idxCards += gm.us_indices.map(function (idx) { return mktIdxHTML(idx.name, idx.close, idx.change_pct); }).join("");
+      idxCards += gm.us_indices.map(function (idx) {
+        var hist = ghLive && gh[idx.name];
+        return mktIdxHTML(idx.name, idx.close, idx.change_pct, hist && hist.values);
+      }).join("");
     }
     if (idxCards) {
       html += '<div class="mkt-grid mkt-grid-3">' + idxCards + "</div>";
@@ -1225,17 +1258,32 @@
         "</div>";
     }
 
+    // 국고채 3년물은 아직 안정적인 데이터 소스를 못 구해 표시하지 않는다(있는 척 지어내지
+    // 않음). 미국채10년은 Yahoo Finance(^TNX)로 붙였다.
+    if (gm && gm.source === "live" && gm.bond_us10y) {
+      var bondHist = ghLive && gh.bond_us10y;
+      html += '<div class="mkt-sub-label">금리</div>' +
+        '<div class="mkt-grid mkt-grid-3">' +
+          mktIdxHTML(gm.bond_us10y.name, gm.bond_us10y.value, gm.bond_us10y.change_pct,
+            bondHist && bondHist.values, "%") +
+        "</div>";
+    }
+
     var asofBits = [];
     if (m && m.source === "live") asofBits.push(esc(fmtDate(m.as_of)) + " 기준 코스피·코스닥(공공데이터포털)");
-    if (gm && gm.source === "live") asofBits.push("실시간 해외·환율(Yahoo Finance, 참고용)");
+    if (gm && gm.source === "live") asofBits.push("실시간 해외·환율·금리(Yahoo Finance, 참고용)");
     if (asofBits.length) {
       html += '<div class="page-note mkt-asof"><span class="mkt-asof-inline">' + asofBits.join(" · ") +
-        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율은 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다." ' +
+        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율·금리는 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다. 그래프는 최근 1년 일별 종가 추이입니다." ' +
           'aria-label="기준일 안내">!</button></span></div>';
     }
 
     box.innerHTML = html;
     bindAsofInfo(box);
+    mktSparkQueue.forEach(function (s) {
+      var el = document.getElementById(s.id);
+      if (el && window.Charts) window.Charts.sparkline(el, { values: s.values });
+    });
   }
 
   // "!" 기준일 안내 아이콘 — 자본시장 탭(capital.js)과 같은 UX(클릭 시 작은 팝업)를
@@ -1277,6 +1325,32 @@
       "</a>"
     );
   }
+  // ── 오늘의 브리핑: 오늘의 시장 브리핑(AI, 주식/채권/환율/장전 4개 카테고리, 하루 1회) ──
+  var BRIEFING_CATS = [
+    { key: "주식", icon: "📊" },
+    { key: "채권", icon: "💵" },
+    { key: "환율", icon: "💱" },
+    { key: "장전", icon: "🌙" }
+  ];
+  function renderMarketBriefing(d) {
+    var box = document.getElementById("brief-briefing");
+    if (!box) return;
+    var mb = d.market_briefing;
+    var sections = mb && mb.sections;
+    var cats = sections ? BRIEFING_CATS.filter(function (c) { return sections[c.key]; }) : [];
+    if (!cats.length) {
+      box.innerHTML = '<div class="page-note">' + esc((mb && mb.note) || "오늘 시장 브리핑을 아직 준비하지 못했습니다.") + "</div>";
+      return;
+    }
+    box.innerHTML = '<div class="mb-grid">' + cats.map(function (c) {
+      return '<div class="mb-item">' +
+        '<div class="mb-item-head"><span class="mb-item-icon">' + c.icon + '</span>' +
+          '<span class="mb-item-label">' + esc(c.key) + '</span></div>' +
+        '<div class="mb-item-text">' + esc(sections[c.key]) + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+
   function renderBriefNews(d) {
     var box = document.getElementById("brief-news");
     if (!box) return;
@@ -1349,11 +1423,12 @@
     get("/api/home/summary").then(function (d) {
       renderHighlights(d);
       renderMarket(d);
+      renderMarketBriefing(d);
       renderBriefNews(d);
       obStart(); // 브리핑 데이터가 실제 렌더된 뒤에 시작해야 스포트라이트 박스가
                  // "불러오는 중" 자리(짧음)가 아니라 실제 콘텐츠 크기에 맞는다.
     }).catch(function (e) {
-      ["brief-highlights", "brief-market", "brief-news"].forEach(function (id) {
+      ["brief-highlights", "brief-market", "brief-briefing", "brief-news"].forEach(function (id) {
         var box = document.getElementById(id);
         if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
       });
