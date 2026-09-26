@@ -12,21 +12,22 @@
 <body>
 
 <div class="app-shell">
-<aside class="sidebar">
+<aside class="sidebar" id="main-tabs">
   <a class="side-brand" href="#home" id="home-link">
     <span class="side-brand-name">증금 인텔리전스</span><span class="poc-badge">PoC</span>
   </a>
-  <nav class="side-nav" id="main-tabs" aria-label="주요 메뉴">
+  <nav class="side-row-primary" aria-label="주요 메뉴">
     <button class="side-btn" data-cat="home">🏠 오늘의 브리핑</button>
     <button class="side-btn" data-cat="personal">👤 나의 대시보드</button>
     <div class="side-sep" role="separator"></div>
+    <button class="side-btn side-btn-intro" data-cat="intro" id="intro-btn" type="button">ℹ️ 소개</button>
+  </nav>
+  <nav class="side-row-work" aria-label="업무별 메뉴">
     <button class="side-btn" data-cat="capital">📈 자본시장</button>
     <button class="side-btn" data-cat="credit">🏦 여신·심사</button>
     <button class="side-btn" data-cat="policy">📜 정책·규제</button>
     <button class="side-btn" data-cat="research">📰 리서치·뉴스</button>
-    <button class="side-btn side-btn-intro" data-cat="intro" id="intro-btn" type="button">ℹ️ 소개</button>
   </nav>
-  <span class="side-nav-fade" id="side-nav-fade" aria-hidden="true">›</span>
 </aside>
 
 <main>
@@ -298,21 +299,6 @@ document.getElementById('home-link').addEventListener('click', function (e) {
   e.preventDefault(); applyView('home');
 });
 
-// 모바일에서 메뉴가 가로 스크롤 영역이라 "소개" 등 오른쪽 항목이 화면 밖으로 잘려
-// 있어도 티가 잘 안 났다 — 더 스크롤할 내용이 남아있는 동안만 오른쪽 끝에 옅은
-// 그라데이션(화살표)을 보여주고, 끝까지 밀면 사라지게 해서 "더 있다"는 걸 알려준다.
-(function () {
-  var nav = document.getElementById('main-tabs');
-  var fade = document.getElementById('side-nav-fade');
-  if (!nav || !fade) return;
-  function update() {
-    var hasMore = nav.scrollWidth - nav.clientWidth - nav.scrollLeft > 4;
-    fade.classList.toggle('show', hasMore);
-  }
-  nav.addEventListener('scroll', update, { passive: true });
-  window.addEventListener('resize', update);
-  update();
-})();
 // "+ 위젯 추가"는 이제 별도 화면(전사 위젯 탭) 대신 나의 대시보드 안의 모달로 연다
 // (main/static/home.js 의 openWidgetAddModal). gallery.html 화면 자체는 옛 링크·해시
 // 호환을 위해 남겨두고, 그 안의 "돌아가기" 버튼만 여기서 계속 처리한다.

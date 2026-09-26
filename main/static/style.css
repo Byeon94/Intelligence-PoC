@@ -61,9 +61,14 @@ body {
 }
 .ghost-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 
-/* ── 좌측 사이드바 내비게이션(브랜드 + 오늘의 브리핑/나의 대시보드/부서 4개 + 소개) ──
-   데스크톱(881px~)에서는 세로 사이드바 전체(브랜드→메뉴→소개), 모바일에서는 기존처럼
-   상단 가로 스크롤 탭으로 보여준다(수많은 화면에서 이미 검증된 모바일 UX를 재사용).
+/* ── 좌측 사이드바 내비게이션(브랜드 + 오늘의 브리핑/나의 대시보드/소개 + 부서 4개) ──
+   데스크톱(881px~)에서는 세로 사이드바 전체(브랜드→메뉴→부서4개→소개)를 한 줄씩,
+   모바일(880px~)에서는 웹과 다른 배치를 일부러 쓴다 — 브랜드+주요메뉴(오늘의 브리핑/
+   나의 대시보드/소개)를 1행에, 부서별 메뉴 4개를 2행에 나눠 보여준다(한 줄에 다
+   욱여넣으면 글자가 잘려 안 읽혔음). 마크업은 두 화면에서 동일(.side-row-primary 안에
+   "소개"까지 포함)하고, 데스크톱에서만 .side-row-primary를 display:contents로 풀어
+   "소개"가 order로 맨 아래까지 이동하게 한다 — 모바일에서는 그 그룹 자체가 1행의
+   실제 박스(가로 스크롤 가능)로 남는다.
    페이지에 별도 상단바(topbar)가 없으므로 사이드바가 화면 맨 위부터 시작한다. */
 /* align-items 기본값(stretch)을 그대로 둬서 .sidebar가 .main과 같은 높이로 늘어나게
    한다 — flex-start로 두면 사이드바가 메뉴 높이만큼에서 뚝 끊겨 버린다. */
@@ -93,12 +98,6 @@ body {
 .side-brand .poc-badge {
   color: #9db4ff; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18);
 }
-/* flex:1 1 auto 로 .sidebar(늘어난 전체 높이) 안에서 남는 세로 공간을 .side-nav가
-   다 차지하게 한다 — "소개"(.side-btn-intro)가 margin-top:auto로 그 안 맨 아래에
-   붙을 수 있어야 하기 때문(예전엔 별도 .side-foot 형제 요소가 이 역할을 했는데,
-   모바일에서 "소개"도 다른 메뉴처럼 가로 스크롤 영역 안에 들어가야 해서 같은
-   .side-nav 안의 마지막 버튼으로 합쳤다). */
-.side-nav { display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 16px; width: 196px; flex: 1 1 auto; }
 .side-btn {
   display: flex; align-items: center; gap: 9px; text-align: left; white-space: nowrap;
   background: none; border: none; border-radius: 10px; color: var(--side-fg);
@@ -108,44 +107,45 @@ body {
 .side-btn.active { background: var(--side-active-bg); color: var(--side-fg-active); }
 .side-sep { height: 1px; background: var(--side-sep); margin: 8px 6px; }
 .side-btn-intro { margin-top: auto; padding-top: 21px; border-top: 1px solid var(--side-sep); }
-/* 데스크톱에선 메뉴가 전부 세로로 한눈에 보여 스크롤 힌트가 필요 없다 */
-.side-nav-fade { display: none; }
+
+/* 데스크톱: .side-row-primary(오늘의 브리핑/나의 대시보드/소개)를 풀어(display:contents)
+   .sidebar 세로 목록에 합치고, order로 예전과 같은 순서(브랜드→메뉴→부서4개→소개 맨
+   아래)를 만든다. .side-row-work(부서 4개)는 세로 스택 박스 하나로 그 사이에 끼운다. */
+@media (min-width: 881px) {
+  .sidebar { width: 196px; gap: 3px; }
+  .side-brand { order: 1; padding-bottom: 13px; }
+  .side-row-primary { display: contents; }
+  .side-btn[data-cat="home"] { order: 2; }
+  .side-btn[data-cat="personal"] { order: 3; }
+  .side-sep { order: 4; }
+  .side-row-work { order: 10; display: flex; flex-direction: column; gap: 3px; }
+  .side-btn-intro { order: 20; }
+}
 
 @media (max-width: 880px) {
   .app-shell { flex-direction: column; }
   /* 짧은 가로 탭바가 스크롤 내내 topbar 자리에 들러붙어 화면이 덜컥거리던 문제를
      막기 위해 모바일에서는 sticky를 끄고 페이지와 함께 자연스럽게 스크롤되게 한다.
-     position:relative는 .side-nav-fade(오른쪽 끝 그라데이션 힌트)의 기준점 역할. */
+     flex-wrap으로 1행(브랜드+주요메뉴)과 2행(.side-row-work, flex-basis:100%라
+     너비가 남아도 항상 새 줄로 밀려남)을 나눈다. */
   .sidebar {
     position: relative; width: 100%; margin: 0; border-radius: 0;
-    flex-direction: row; align-items: center; flex-wrap: nowrap;
+    flex-direction: row; flex-wrap: wrap; align-items: center;
   }
-  .side-brand { padding: 10px 6px 10px 12px; flex: 0 0 auto; }
+  .side-brand { padding: 10px 6px 10px 12px; flex: 0 0 auto; order: 1; }
   .side-brand-name { font-size: .84rem; }
-  .side-nav {
-    flex: 1 1 auto; flex-direction: row; width: auto; padding: 6px 4px; gap: 2px;
+  .side-row-primary, .side-row-work {
+    display: flex; flex-direction: row; gap: 2px; padding: 6px 4px;
     overflow-x: auto; scrollbar-width: none;
   }
-  .side-nav::-webkit-scrollbar { display: none; }
+  .side-row-primary::-webkit-scrollbar, .side-row-work::-webkit-scrollbar { display: none; }
+  .side-row-primary { flex: 1 1 auto; min-width: 0; order: 2; }
+  .side-row-work { flex: 0 0 100%; order: 3; }
   .side-btn { flex: 0 0 auto; padding: 9px 12px; font-size: .8rem; }
   .side-sep { display: none; }
-  /* "소개"도 다른 메뉴와 똑같이 가로 스크롤 목록의 마지막 항목일 뿐 — 화면에 항상
-     고정으로 보일 필요 없이, 옆으로 밀어야 보이게 한다(데스크톱 전용 하단 고정
-     스타일은 해제). */
+  /* "소개"도 1행 안에서 다른 메뉴와 나란히 보일 뿐이라, 데스크톱 전용 하단 고정
+     스타일(margin-top:auto 등)은 해제한다. */
   .side-btn-intro { margin-top: 0; padding-top: 9px; border-top: none; }
-
-  /* 스크롤할 메뉴가 더 남아있을 때만(JS가 .show 토글) 오른쪽 끝에 옅은 그라데이션 +
-     화살표를 보여줘, "옆으로 밀면 더 있다"는 걸 눈에 띄게 알려준다. 끝까지 밀면
-     사라져서 더 이상 스크롤할 게 없다는 것도 함께 알 수 있다. */
-  .side-nav-fade {
-    display: flex; align-items: center; justify-content: flex-end;
-    position: absolute; top: 0; right: 0; bottom: 0; width: 34px;
-    padding-right: 4px; pointer-events: none;
-    background: linear-gradient(to right, rgba(16,22,43,0), #10162b 65%);
-    color: #fff; font-size: 1.05rem; font-weight: 800; line-height: 1;
-    opacity: 0; transition: opacity .15s ease;
-  }
-  .side-nav-fade.show { opacity: 1; }
 }
 
 /* ── 레이아웃 ── */
@@ -785,6 +785,18 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
 }
 .hl-reason-sm { font-size: .76rem; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+/* 모바일 화면에서는 1번 카드(.hl-card-primary)의 큰 순번·제목·"왜 중요한가?" 박스가
+   유독 커 보인다는 피드백에 따라, 오늘의 핵심 전체를 한 단계씩 줄인다. */
+@media (max-width: 880px) {
+  .hl-card { gap: 10px; padding: 11px 13px; }
+  .hl-no { font-size: 1.05rem; }
+  .hl-card-primary .hl-no { font-size: 1.35rem; }
+  .hl-card-compact { padding: 9px 13px; }
+  .hl-title { font-size: .92rem; }
+  .hl-card-compact .hl-title { font-size: .82rem; }
+  .hl-reason { font-size: .76rem; padding: 7px 9px; }
+}
 
 /* ── 오늘의 시장 한눈에 ── 국내(코스피·코스닥)·해외(다우·나스닥·S&P500) 지수를 탭
    전환 없이 한 그리드에 같이 보여주고, 환율은 그 아래 별도 줄로 붙인다. */
