@@ -387,6 +387,16 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
   font-size: .82rem; color: var(--muted); background: var(--card2);
   border: 1px solid var(--border2); border-radius: 8px; padding: 10px 12px; margin-top: 10px;
 }
+/* 정책·규제 / 뉴스 AI 브리핑: 첫 줄만 보이고 나머지는 "더보기"로 펼침 */
+.brief-collapsed .brief-list li:nth-child(n+2),
+.brief-collapsed .brief-note,
+.brief-collapsed .brief-meta { display: none; }
+.brief-more-btn {
+  display: block; width: 100%; margin-top: 8px; padding: 7px 0;
+  background: var(--card2); border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--accent); font-size: .8rem; font-weight: 700; cursor: pointer;
+}
+.brief-more-btn:hover { border-color: var(--accent); }
 
 #pol-groups { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
 .pol-group {

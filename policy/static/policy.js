@@ -10,8 +10,27 @@
     });
   }
 
-  // AI 브리핑을 더보기 없이 바로 펼쳐서 보여준다(예전엔 홈 대시보드와 중복 노출을
-  // 줄이려고 기본 접어뒀는데, 이 화면에 들어온 사용자는 바로 보고 싶어함).
+  // AI 브리핑은 첫 줄만 보여주고 나머지는 "더보기"로 펼친다 — 모바일에서 브리핑이
+  // 화면을 다 차지하면 아래에 보도자료 목록이 있다는 걸 알아채기 어렵기 때문.
+  function bindBriefMore(bodyEl, moreCount) {
+    if (!bodyEl || moreCount < 1) return;
+    bodyEl.classList.add("brief-collapsed");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "brief-more-btn";
+    function sync() {
+      var collapsed = bodyEl.classList.contains("brief-collapsed");
+      btn.textContent = collapsed ? "더보기 (" + moreCount + "건) ▾" : "접기 ▴";
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }
+    btn.addEventListener("click", function () {
+      bodyEl.classList.toggle("brief-collapsed");
+      sync();
+    });
+    sync();
+    bodyEl.appendChild(btn);
+  }
+
   function renderBriefing(d) {
     var box = document.getElementById("pol-brief");
     if (!box) return;
@@ -23,7 +42,7 @@
         '<span class="brief-when">' + esc(when) + " 생성</span>" +
       "</div>";
 
-    var body;
+    var body, moreCount = 0;
     if (!d.briefing) {
       body = '<div class="brief-note">' + esc(d.briefing_note || "AI 브리핑을 사용할 수 없습니다.") + "</div>";
     } else {
@@ -33,8 +52,9 @@
         .map(function (l) { return l.replace(/\s*·?\s*출처[:：].*$/, "").trim(); })
         .filter(Boolean)
         .slice(0, 3);
+      moreCount = bullets.length - 1;
 
-      body = '<ol class="brief-list">' +
+      body ='<ol class="brief-list">' +
           bullets.map(function (b, i) {
             return '<li><span class="bl-no">' + (CIRCLED[i] || (i + 1)) + "</span>" +
                    '<span class="bl-tx">' + esc(b) + "</span></li>";
@@ -45,6 +65,7 @@
           (d.stale ? " · 이전 자료" : "") + "</div>";
     }
     box.innerHTML = head + '<div class="brief-body" id="pol-brief-body">' + body + "</div>";
+    bindBriefMore(document.getElementById("pol-brief-body"), moreCount);
   }
 
   var ORG_NAMES = {

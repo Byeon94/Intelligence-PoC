@@ -9,8 +9,27 @@
     });
   }
 
-  // AI 브리핑을 더보기 없이 바로 펼쳐서 보여준다(예전엔 홈 대시보드와 중복 노출을
-  // 줄이려고 기본 접어뒀는데, 이 화면에 들어온 사용자는 바로 보고 싶어함).
+  // AI 브리핑은 첫 줄만 보여주고 나머지는 "더보기"로 펼친다 — 모바일에서 브리핑이
+  // 화면을 다 차지하면 아래에 뉴스 피드가 있다는 걸 알아채기 어렵기 때문.
+  function bindBriefMore(bodyEl, moreCount) {
+    if (!bodyEl || moreCount < 1) return;
+    bodyEl.classList.add("brief-collapsed");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "brief-more-btn";
+    function sync() {
+      var collapsed = bodyEl.classList.contains("brief-collapsed");
+      btn.textContent = collapsed ? "더보기 (" + moreCount + "건) ▾" : "접기 ▴";
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }
+    btn.addEventListener("click", function () {
+      bodyEl.classList.toggle("brief-collapsed");
+      sync();
+    });
+    sync();
+    bodyEl.appendChild(btn);
+  }
+
   function renderBrief(d) {
     var box = document.getElementById("rs-brief");
     if (!box) return;
@@ -35,6 +54,7 @@
         '<div class="brief-meta">📌 네이버 뉴스에서 당일 수집한 기사 중 한국증권금융 업무 관련 항목을 AI가 선별·요약합니다.</div>';
     }
     box.innerHTML = head + '<div class="brief-body" id="rs-brief-body">' + body + "</div>";
+    bindBriefMore(document.getElementById("rs-brief-body"), bullets.length - 1);
   }
 
   function newsItemHTML(a, rank) {
