@@ -68,9 +68,10 @@
   var STATUS_LABEL = { live: "전사 등재", dept: "부서 검증중", soon: "준비중" };
   var STATUS_CLASS = { live: "st-live", dept: "st-dept", soon: "st-soon" };
 
-  // 나의 대시보드에 아직 위젯이 하나도 없을 때 미리 보여주는 예시 2개 — 이 순서 그대로
-  // 노출한다(위젯 추가 목록도 WIDGET_CATALOG 순서상 이미 같은 순서로 나온다).
-  var EXAMPLE_WIDGET_IDS = ["sector-map", "credit-equity-glance"];
+  // 나의 대시보드에 기본으로 미리 담아두는 위젯 2개 — 처음 열었을 때부터 실데이터로
+  // 바로 보여주기 위함(빈 화면 대신). 이 순서 그대로 노출한다(위젯 추가 목록도
+  // WIDGET_CATALOG 순서상 이미 같은 순서로 나온다).
+  var DEFAULT_WIDGET_IDS = ["sector-map", "credit-equity-glance"];
 
   // "부서 위젯" 배지 — 업무별 화면에 실제로 구현된(=live) 위젯에는 "전사 등재" 옆에
   // 함께 표시해, 원래 부서 업무 화면에서 만들어졌다는 출처를 나타낸다.
@@ -85,8 +86,9 @@
 
   // ── 내가 고른 위젯: 이 탭이 열려 있는 동안만(메모리) 유지 ──
   // 예전엔 localStorage에 저장해 재접속해도 남아 있었으나, 링크로 새로 열 때마다
-  // "내 위젯"이 항상 빈 상태로 시작하도록(=재접속 시 지속되지 않도록) 요청에 따라 변경.
-  var myWidgetIds = [];
+  // "내 위젯"이 DEFAULT_WIDGET_IDS 2개만 담긴 상태로 시작하도록(=그 외엔 재접속 시
+  // 지속되지 않음) 변경. 위젯 추가 목록에서도 이 2개는 처음부터 "추가됨"으로 보인다.
+  var myWidgetIds = DEFAULT_WIDGET_IDS.slice();
   function getMyWidgetIds() {
     return myWidgetIds.slice();
   }
@@ -547,24 +549,14 @@
     }
   }
 
-  // 나의 대시보드 미니 카드 전용 액션 버튼 — 평소엔 "✕ 그만보기"(제거)지만, 아직 위젯을
-  // 하나도 안 담았을 때 보여주는 예시 카드(opts.example)에서는 실제로는 안 담겨 있으므로
-  // "그만보기"가 아니라 "+ 나의 대시보드에 추가"를 보여준다(누르면 진짜로 담아 예시를 대체).
-  function miniActionButtonHTML(w, opts) {
-    if (opts && opts.example) {
-      return '<button type="button" class="pd-example-add" data-id="' + w.id + '">+ 나의 대시보드에 추가</button>';
-    }
-    return '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>';
-  }
-
   // ── 카드(전사 위젯 / 내 위젯 공용) ──
   // opts.mini: 내 위젯 전용 — 있으면 실데이터 미리보기 영역을 넣고 "내 위젯에 추가" 토글 대신
   // "그만보기"(제거) 버튼을 보여준다. 제거해도 전사 위젯에서는 다시 "+ 내 위젯에 추가"로 보인다.
   function galCardHTML(w, opts) {
     opts = opts || {};
     if (opts.mini && w.id === "credit-analysis") return creditAnalysisCardHTML(w);
-    if (opts.mini && w.id === "credit-equity-glance") return creditGlanceCardHTML(w, opts);
-    if (opts.mini && w.id === "sector-map") return sectorMapCardHTML(w, opts);
+    if (opts.mini && w.id === "credit-equity-glance") return creditGlanceCardHTML(w);
+    if (opts.mini && w.id === "sector-map") return sectorMapCardHTML(w);
     var mine = getMyWidgetIds().indexOf(w.id) >= 0;
     var miniHTML = (opts.mini && MINI_LOADERS[w.id])
       ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
@@ -633,7 +625,7 @@
 
   // "한눈에 보는 기업분석 정보"(내 위젯 전용) — 종목 검색 1번으로 기초정보 + 최근 공시를
   // 한 카드 안에서 같이 보여준다(기업분석/공시 위젯을 따로 추가할 필요 없음).
-  function creditGlanceCardHTML(w, opts) {
+  function creditGlanceCardHTML(w) {
     return (
       '<div class="gal-card gal-card-glance">' +
         '<div class="gal-top">' +
@@ -653,7 +645,7 @@
           '<span class="page-note">불러오는 중…</span></div></div>' +
         '<div class="gal-actions">' +
           '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '">자세히 보기 →</button>' +
-          miniActionButtonHTML(w, opts) +
+          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
         "</div>" +
       "</div>"
     );
@@ -814,7 +806,7 @@
   // 렌더 함수 자체는 sector/static/sector.js 가 window.SectorWidget 으로 공개한 것을 그대로 쓴다
   // (독립 페이지 /sector 와 중복 구현하지 않기 위함). 시가총액 트리맵 맵은 모바일에서
   // 레이아웃이 깨져 기능을 제거했다.
-  function sectorMapCardHTML(w, opts) {
+  function sectorMapCardHTML(w) {
     var id = "mini-" + w.id;
     return (
       '<div class="gal-card gal-card-sector">' +
@@ -833,7 +825,7 @@
           '<div id="' + id + '-vc-detail"><span class="page-note">불러오는 중…</span></div>' +
         "</div>" +
         '<div class="gal-actions">' +
-          miniActionButtonHTML(w, opts) +
+          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
         "</div>" +
       "</div>"
     );
@@ -946,29 +938,6 @@
     });
   }
 
-  // 아직 위젯을 하나도 담지 않았을 때, 실제로 담긴 것처럼 실데이터를 바로 보여주는
-  // 예시 2개(EXAMPLE_WIDGET_IDS)를 렌더한다. myWidgetIds에는 담지 않으므로 위젯 추가
-  // 목록에서는 여전히 "+ 추가"로 보이고, 여기서 "+ 나의 대시보드에 추가"를 누르면
-  // 그제서야 실제로 담겨 renderPersonal()이 일반 표시(잡 네비 포함)로 다시 그린다.
-  function renderPersonalExamples(box) {
-    var items = EXAMPLE_WIDGET_IDS.map(function (id) {
-      return WIDGET_CATALOG.filter(function (w) { return w.id === id; })[0];
-    }).filter(Boolean);
-    box.innerHTML =
-      '<div class="page-note pd-example-note">아직 담은 위젯이 없어 예시로 먼저 보여드립니다 — ' +
-        '마음에 들면 아래에서 바로 "+ 나의 대시보드에 추가"를 눌러보세요.</div>' +
-      items.map(function (w) { return galCardHTML(w, { mini: true, example: true }); }).join("");
-    bindGalleryCardEvents(box);
-    box.querySelectorAll(".pd-example-add").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        toggleMyWidget(btn.dataset.id);
-        renderPersonal();
-      });
-    });
-    if (items.some(function (w) { return w.id === "credit-equity-glance"; })) initCreditGlanceSearch();
-    if (items.some(function (w) { return w.id === "sector-map"; })) initSectorMapWidget();
-  }
-
   function renderPersonal() {
     var box = document.getElementById("personal-grid");
     if (!box) return;
@@ -977,7 +946,10 @@
     if (!items.length) {
       personalActiveId = null;
       document.getElementById("personal-jump-nav").innerHTML = "";
-      renderPersonalExamples(box);
+      // 상단 헤더에 이미 "+ 위젯 추가" 버튼이 있어, 여기서는 문구만 안내하고
+      // 별도 버튼(예전엔 "위젯 추가하러 가기 →")은 중복이라 없앴다.
+      // 위 block-head 소개 문구("+ 위젯 추가"를 눌러...)와 중복이라 별도 안내 없이 빈 채로 둔다.
+      box.innerHTML = "";
       return;
     }
     // 이전에 선택했던 위젯이 아직 있으면 유지, 없으면(처음이거나 방금 제거됐으면) 첫 위젯으로.
@@ -1421,7 +1393,7 @@
       body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 리서치·뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
     { type: "spot", nav: "personal", sel: "#personal-add-widget-btn",
       title: "나의 대시보드 — 위젯 추가",
-      body: "지금처럼 처음엔 예시 위젯 2개를 먼저 보여드려요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 담아 나만의 화면을 만들 수 있습니다." },
+      body: "지금처럼 기본 위젯 2개를 미리 담아드렸어요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 더 담아 나만의 화면을 만들 수 있습니다." },
     { type: "spot", nav: "capital", sel: "#capital-root",
       title: "업무별 메뉴(부서 위젯)",
       body: "지금 보시는 자본시장처럼, 사이드바에서 여신·심사·정책·규제·리서치·뉴스로 이동해 부서별 상세 화면을 확인할 수 있습니다." },

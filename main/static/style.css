@@ -1041,12 +1041,6 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
 }
 .gal-remove:hover { color: #d33; border-color: #d33; }
-.pd-example-add {
-  background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent);
-  border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
-}
-.pd-example-add:hover { filter: brightness(1.05); }
-.pd-example-note { margin: -4px 0 14px; }
 
 @media (min-width: 720px) {
   .gal-grid { grid-template-columns: repeat(2, 1fr); }
