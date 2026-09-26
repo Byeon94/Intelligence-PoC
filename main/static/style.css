@@ -110,8 +110,8 @@ body {
 /* "부서 위젯" 그룹 라벨 — 자본시장/여신/정책·규제/리서치·뉴스 4개가 하나의 묶음이라는
    걸 보여준다(전사 위젯 카드의 "부서 위젯" 배지와 같은 용어를 재사용). */
 .side-group-label {
-  font-size: .7rem; font-weight: 700; color: var(--side-fg); text-transform: uppercase;
-  letter-spacing: .04em; opacity: .7; white-space: nowrap;
+  font-size: .8rem; font-weight: 700; color: var(--side-fg); text-transform: uppercase;
+  letter-spacing: .04em; opacity: .85; white-space: nowrap;
 }
 
 /* 데스크톱: .side-row-primary(홈/나의 대시보드/소개)를 풀어(display:contents) .sidebar
@@ -143,7 +143,7 @@ body {
   .side-brand { padding: 10px 6px 10px 12px; flex: 0 0 auto; order: 1; }
   .side-brand-name { font-size: .84rem; }
   .side-row-primary {
-    display: flex; flex-direction: row; gap: 2px; padding: 6px 4px;
+    display: flex; flex-direction: row; gap: 2px; padding: 6px 16px 6px 4px;
     overflow-x: auto; scrollbar-width: none;
   }
   .side-row-primary::-webkit-scrollbar { display: none; }
@@ -162,7 +162,7 @@ body {
   .side-group-label { flex: 0 0 auto; }
   .side-row-work-scroll {
     display: flex; flex-direction: row; gap: 2px; min-width: 0; flex: 1 1 0;
-    overflow-x: auto; scrollbar-width: none;
+    padding-right: 16px; overflow-x: auto; scrollbar-width: none;
   }
   .side-row-work-scroll::-webkit-scrollbar { display: none; }
   .side-btn { flex: 0 0 auto; padding: 9px 12px; font-size: .8rem; }

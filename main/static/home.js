@@ -1452,7 +1452,9 @@
     var tip = document.getElementById("ob-tooltip");
     var pad = 6;
     var boxLeft = rect.left - pad;
+    var boxTop = rect.top - pad;
     var boxWidth = rect.width + pad * 2;
+    var boxHeight = rect.height + pad * 2;
     // 사이드바 버튼처럼 대상이 컨테이너 경계에 딱 붙어 있으면, 패딩만큼 그 경계를 넘어
     // 튀어나와(진한 남색 사이드바 밖 흰 배경까지 파란 테두리가 걸쳐) 보인다 — 대상이
     // 사이드바 안에 있을 때는 그 오른쪽 경계를 넘지 않게 잘라준다.
@@ -1464,10 +1466,16 @@
         if (boxLeft + boxWidth > maxRight) boxWidth = Math.max(0, maxRight - boxLeft);
       }
     }
-    spot.style.top = (rect.top - pad) + "px";
+    // 그 밖에도 화면 가장자리에 바짝 붙은 대상은(예: 모바일 헤더 버튼) 패딩만큼 화면
+    // 밖으로 밀려나 잘려 보일 수 있어, 뷰포트 경계도 넘지 않게 한 번 더 잘라준다.
+    if (boxLeft < 2) { boxWidth -= (2 - boxLeft); boxLeft = 2; }
+    if (boxTop < 2) { boxHeight -= (2 - boxTop); boxTop = 2; }
+    if (boxLeft + boxWidth > window.innerWidth - 2) boxWidth = Math.max(0, window.innerWidth - 2 - boxLeft);
+    if (boxTop + boxHeight > window.innerHeight - 2) boxHeight = Math.max(0, window.innerHeight - 2 - boxTop);
+    spot.style.top = boxTop + "px";
     spot.style.left = boxLeft + "px";
     spot.style.width = boxWidth + "px";
-    spot.style.height = (rect.height + pad * 2) + "px";
+    spot.style.height = boxHeight + "px";
 
     var margin = 12;
     var tipW = Math.min(300, window.innerWidth - margin * 2);
