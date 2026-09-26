@@ -156,9 +156,12 @@ body {
   /* .side-row-work: 브랜드+.side-row-primary와 같은 패턴 — "부서 위젯" 라벨은 고정,
      그 옆의 .side-row-work-scroll(버튼 4개)만 가로로 밀린다(라벨까지 같이 밀려
      사라지면 무슨 그룹인지 안 보이므로 분리). */
+  /* 왼쪽 패딩을 .side-brand(12px)와 맞춰 "증금 인텔리전스 PoC"와 "부서 위젯" 라벨이
+     세로로 나란히 시작하도록 한다(4px로 두면 부서 위젯이 브랜드보다 더 왼쪽으로 튀어나와
+     보였음). */
   .side-row-work {
     display: flex; flex-direction: row; align-items: center; gap: 8px;
-    padding: 6px 4px; flex: 0 0 100%; order: 3;
+    padding: 6px 4px 6px 12px; flex: 0 0 100%; order: 3;
   }
   .side-group-label { flex: 0 0 auto; }
   .side-row-work-scroll {
