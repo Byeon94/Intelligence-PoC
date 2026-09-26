@@ -1397,9 +1397,9 @@
     // 실제로 자본시장 화면까지 들어갔다 나오면(모바일에서는 사이드바가 2행이라 화면이
     // 아래로 길어져) 스포트라이트 위치가 어색해진다는 피드백에 따라, 페이지 이동 없이
     // 사이드바의 부서 메뉴 자체를 가리키는 방식으로 되돌린다.
-    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="credit"]'],
+    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
       title: "업무별 메뉴(부서 위젯)",
-      body: "자본시장·여신처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다(정책·규제, 리서치·뉴스도 마찬가지입니다)." },
+      body: "자본시장·여신·정책·규제·리서치·뉴스처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다." },
     { type: "done" }
   ];
   var obIndex = 0;
@@ -1451,9 +1451,22 @@
     var spot = document.getElementById("ob-spot");
     var tip = document.getElementById("ob-tooltip");
     var pad = 6;
+    var boxLeft = rect.left - pad;
+    var boxWidth = rect.width + pad * 2;
+    // 사이드바 버튼처럼 대상이 컨테이너 경계에 딱 붙어 있으면, 패딩만큼 그 경계를 넘어
+    // 튀어나와(진한 남색 사이드바 밖 흰 배경까지 파란 테두리가 걸쳐) 보인다 — 대상이
+    // 사이드바 안에 있을 때는 그 오른쪽 경계를 넘지 않게 잘라준다.
+    var sidebar = document.getElementById("main-tabs");
+    if (sidebar) {
+      var sbRect = sidebar.getBoundingClientRect();
+      if (rect.left >= sbRect.left - 1 && rect.right <= sbRect.right + 1) {
+        var maxRight = sbRect.right - 2;
+        if (boxLeft + boxWidth > maxRight) boxWidth = Math.max(0, maxRight - boxLeft);
+      }
+    }
     spot.style.top = (rect.top - pad) + "px";
-    spot.style.left = (rect.left - pad) + "px";
-    spot.style.width = (rect.width + pad * 2) + "px";
+    spot.style.left = boxLeft + "px";
+    spot.style.width = boxWidth + "px";
     spot.style.height = (rect.height + pad * 2) + "px";
 
     var margin = 12;
