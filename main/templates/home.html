@@ -1,9 +1,11 @@
 <div class="home-root">
   <div class="brief-greet">
-    <div class="brief-eyebrow">TODAY'S BRIEFING</div>
+    <div class="brief-eyebrow-row">
+      <span class="brief-eyebrow">TODAY'S BRIEFING</span>
+      <span class="brief-greet-time" id="brief-greet-time"></span>
+    </div>
     <h2 id="brief-greet-title">좋은 아침입니다.</h2>
-    <p class="page-note">AI가 오늘의 변화를 분석해, 업무에 중요한 내용을 먼저 정리했습니다.<span id="brief-greet-asof"> 단, 국내주식(코스피·코스닥) 정보는 무료 공공데이터를 사용해 오늘이 아닌 특정 기준일 데이터입니다.</span></p>
-    <span class="brief-greet-time" id="brief-greet-time"></span>
+    <p class="page-note">AI가 오늘의 변화를 분석해, 업무에 중요한 내용을 정리했습니다.</p>
   </div>
 
   <div class="brief-main-grid">
@@ -20,14 +22,16 @@
   </div>
 
   <section class="block" id="brief-briefing-block">
-    <div class="block-head"><h3>오늘의 시장 브리핑</h3></div>
+    <div class="block-head">
+      <div class="block-title-row"><h3>오늘의 시장 브리핑</h3><span class="block-updated" id="brief-briefing-time"></span></div>
+    </div>
     <p class="page-note brief-block-sub">AI가 주식·채권·환율·장전(해외) 4개 영역으로 오늘 시장을 요약했습니다.</p>
     <div id="brief-briefing"><div class="chart-loading">불러오는 중…</div></div>
   </section>
 
   <section class="block" id="brief-news-block">
     <div class="block-head">
-      <h3>오늘의 주요뉴스</h3>
+      <div class="block-title-row"><h3>오늘의 주요뉴스</h3><span class="block-updated" id="brief-news-time"></span></div>
       <button type="button" class="dart-btn" data-work="research">더보기 →</button>
     </div>
     <div id="brief-news"><div class="chart-loading">불러오는 중…</div></div>

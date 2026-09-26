@@ -140,11 +140,6 @@
         '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율·금리는 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다. 그래프는 최근 1년 일별 종가 추이입니다." ' +
           'aria-label="기준일 안내">!</button></span></div>';
     }
-    var greetAsof = document.getElementById("brief-greet-asof");
-    if (greetAsof && m && m.source === "live") {
-      greetAsof.textContent = " 단, 국내주식(코스피·코스닥) 정보는 무료 공공데이터를 사용해 " +
-        fmtDate(m.as_of) + " 기준으로 표시됩니다.";
-    }
 
     var idxCards = "";
     if (m && m.source === "live") {
@@ -223,10 +218,19 @@
     { key: "환율", icon: "💱" },
     { key: "장전", icon: "🌙" }
   ];
+  // 블록 제목 옆 "HH:MM 업데이트" — 서버 스냅샷 시각('YYYY-MM-DD HH:MM', KST) 기준
+  function setUpdatedAt(id, stamp) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var m = /(\d{4})-(\d{2})-(\d{2})\s+(\d{2}:\d{2})/.exec(stamp || "");
+    el.textContent = m ? m[2] + "." + m[3] + " " + m[4] + " 업데이트" : "";
+  }
+
   function renderMarketBriefing(d) {
     var box = document.getElementById("brief-briefing");
     if (!box) return;
     var mb = d.market_briefing;
+    setUpdatedAt("brief-briefing-time", mb && mb.sections && mb.generated_at);
     var sections = mb && mb.sections;
     var allCats = (mb && mb.categories && mb.categories.length) ? mb.categories : DEFAULT_BRIEFING_CATS;
     var cats = sections ? allCats.filter(function (c) { return sections[c.key]; }) : [];
@@ -268,6 +272,8 @@
     var box = document.getElementById("brief-news");
     if (!box) return;
     var arts = d.today_news || [];
+    var rs = d.research;
+    setUpdatedAt("brief-news-time", arts.length && rs && (rs.briefing_at || rs.generated_at));
     box.innerHTML = arts.length
       ? arts.map(briefNewsRowHTML).join("")
       : '<div class="page-note">' + esc((d.research && d.research.briefing_note) || "오늘 선별된 뉴스가 없습니다.") + "</div>";

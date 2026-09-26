@@ -224,6 +224,8 @@ def get_home_summary() -> dict:
             "briefing_note": research.get("briefing_note"),
             "count": len(research.get("articles") or []),
             "candidate_count": research.get("candidate_count"),
+            "generated_at": research.get("generated_at"),   # 후보 수집 시각
+            "briefing_at": research.get("briefing_at"),     # AI 선별 시각(홈 "업데이트" 표기)
             "articles": articles or [],
         } if research else None,
         "market": market,
