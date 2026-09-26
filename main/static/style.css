@@ -240,7 +240,10 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
   flex: 1; background: none; border: none; color: var(--muted); cursor: pointer;
   font-size: .86rem; font-weight: 700; padding: 9px 8px; border-radius: 9px;
 }
-.subtab-btn.active { color: var(--fg); background: var(--card); border: 1px solid var(--border); }
+/* 선택된 탭은 사이드바 선택 항목(.side-btn.active)과 같은 남색 톤 — #10162b 위의
+   rgba(91,141,239,.32)를 불투명색으로 풀어 쓴 값 */
+.subtab-btn:not(.active):hover { color: var(--fg); }
+.subtab-btn.active { color: #fff; background: #2a3a6b; border: 1px solid #2a3a6b; }
 /* 자본시장 세부탭 라벨이 길어 조금 작게 */
 #capital-subtabs .subtab-btn { font-size: .78rem; padding: 8px 6px; }
 /* 서브탭 전환 시 sticky 헤더에 가리지 않도록 — index.html 화면들은 이제 sticky
