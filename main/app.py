@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, jsonify, render_template, request
 
+from capital.briefing import get_market_briefing
 from capital.cma import get_cma_rates
 from capital.issuance.calendar import get_issuance_digest
 from capital.issuance.widget import issuance_bp
@@ -82,6 +83,10 @@ def _run_warmup() -> None:
         except Exception:  # noqa: BLE001
             logger.exception("CMA 금리 워밍업 실패")
         try:
+            get_market_briefing()   # 전영업일 마감 수치 기준 오늘의 시장 브리핑(AI)
+        except Exception:  # noqa: BLE001
+            logger.exception("오늘의 시장 브리핑 워밍업 실패")
+        try:
             get_market_report_digest()
         except Exception:  # noqa: BLE001
             logger.exception("시장 리포트 동향 워밍업 실패")
@@ -119,8 +124,9 @@ def _run_warmup() -> None:
 
 @app.route("/internal/warmup")
 def warmup():
-    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/시장 리포트
-    동향/IT·정보보호 뉴스/증권대차 뉴스/여신 리드·상속증여 뉴스 스냅샷을 미리 생성.
+    """매일 아침 외부 스케줄러가 호출 → 정책·규제/리서치·뉴스/발행시장/CMA금리/오늘의 시장
+    브리핑/시장 리포트 동향/IT·정보보호 뉴스/증권대차 뉴스/여신 리드·상속증여 뉴스 스냅샷을
+    미리 생성.
 
     스크랩+AI 요약이 gunicorn 응답 타임아웃(120초)을 넘을 수 있어 즉시 202를
     응답하고, 실제 작업은 백그라운드 스레드에서 이어간다.

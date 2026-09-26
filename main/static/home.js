@@ -1342,13 +1342,19 @@
       box.innerHTML = '<div class="page-note">' + esc((mb && mb.note) || "오늘 시장 브리핑을 아직 준비하지 못했습니다.") + "</div>";
       return;
     }
+    var rel = mb && mb.related_article;
+    var relHTML = rel && rel.url && rel.title
+      ? '<a class="mb-related" href="' + esc(rel.url) + '" target="_blank" rel="noopener">' +
+          '<span class="mb-related-label">관련 기사</span>' +
+          '<span class="mb-related-title">' + esc(rel.title) + '</span></a>'
+      : '';
     box.innerHTML = '<div class="mb-grid">' + cats.map(function (c) {
       return '<div class="mb-item">' +
         '<div class="mb-item-head"><span class="mb-item-icon">' + c.icon + '</span>' +
           '<span class="mb-item-label">' + esc(c.key) + '</span></div>' +
         '<div class="mb-item-text">' + esc(sections[c.key]) + '</div>' +
       '</div>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' + relHTML;
   }
 
   function renderBriefNews(d) {
@@ -1463,6 +1469,9 @@
     { type: "spot", sel: "#brief-market-block",
       title: "시장 한눈에",
       body: "국내외 주요 지수와 환율을 한눈에 확인하세요." },
+    { type: "spot", sel: "#brief-briefing-block",
+      title: "오늘의 시장 브리핑",
+      body: "매일 새벽 AI가 전영업일 마감 기준 주식·채권·환율·장전(미국시장)을 데이터로 분석해 정리합니다. 관련 기사 링크를 누르면 원문으로 바로 이동합니다." },
     { type: "spot", sel: "#brief-news-block",
       title: "오늘의 주요뉴스",
       body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 리서치·뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },

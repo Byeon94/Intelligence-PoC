@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from typing import Callable, TypeVar
 
-from capital.briefing import get_market_briefing
+from capital.briefing import CATEGORIES, get_market_briefing
 from capital.liquidity import get_liquidity_summary
 from capital.market_snapshot import (
     get_global_market_history_1y,
@@ -135,15 +135,35 @@ def _credit_leads_alert() -> dict | None:
     }
 
 
+def _first_sentence(text: str) -> str:
+    for sep in ("다.", "요.", "함.", "임."):
+        idx = text.find(sep)
+        if idx != -1:
+            return text[: idx + len(sep)].strip()
+    return text.strip()
+
+
 def _market_briefing_key(briefing: dict | None) -> dict | None:
-    """오늘의 핵심 1번 카드 — 시장 브리핑 중 "주식"을 헤드라인으로, 나머지(채권·환율·
-    장전)는 한 줄로 압축해 "왜 중요한가?" 자리에 보여준다."""
+    """오늘의 핵심 1번 카드 — 오늘의 시장 브리핑의 "요약"을 헤드라인으로, 4개 카테고리
+    각각의 첫 문장을 압축해 "왜 중요한가?" 자리에 보여준다(오늘의 시장 브리핑 섹션과
+    같은 내용을 참고해 만들어, 아래로 스크롤하면 더 자세한 내용을 볼 수 있다)."""
     sections = (briefing or {}).get("sections") or {}
-    headline = sections.get("주식")
+    headline = (briefing or {}).get("summary") or sections.get("주식")
     if not headline:
         return None
-    rest = [f"{k}: {sections[k]}" for k in ("채권", "환율", "장전") if sections.get(k)]
+    rest = [f"{k}: {_first_sentence(sections[k])}" for k in CATEGORIES if sections.get(k)]
     return {"kind": "market", "title": headline, "detail": " ".join(rest) if rest else None}
+
+
+def _market_related_article(articles: list[dict] | None) -> dict | None:
+    """오늘의 시장 브리핑 하단 "관련 기사" — research.curate 가 이미 관련도순으로 골라둔
+    기사 중 1건을 그대로 링크로 보여준다(새 수집·AI 호출 없이 기존 큐레이션 재사용)."""
+    if not articles:
+        return None
+    a = articles[0]
+    if not a.get("title") or not a.get("url"):
+        return None
+    return {"title": a["title"], "url": a["url"], "published": a.get("published")}
 
 
 def get_home_summary() -> dict:
@@ -206,8 +226,10 @@ def get_home_summary() -> dict:
         "global_market_history": global_market_history,
         "market_briefing": {
             "sections": market_briefing.get("sections"),
+            "summary": market_briefing.get("summary"),
             "note": market_briefing.get("note"),
             "generated_at": market_briefing.get("generated_at"),
+            "related_article": _market_related_article(articles),
         } if market_briefing else None,
         "today_key": today_key,
         "today_news": _diversify_news(articles or [], _MAX_TODAY_NEWS, _MAX_PER_TAG_TODAY_NEWS),
