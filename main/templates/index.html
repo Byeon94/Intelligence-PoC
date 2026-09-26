@@ -282,6 +282,9 @@ function applyView(cat) {
     if (cat === 'home') window.HomeDashboard.enterHome();
     else if (cat === 'gallery') window.HomeDashboard.enterGallery();
     else if (cat === 'personal') window.HomeDashboard.enterPersonal();
+    // 홈이 아닌 화면(부서 탭 등)으로 바로 들어온 경우, 온보딩은 브리핑 로딩을 기다릴
+    // 필요가 없으니 여기서 바로 시작한다(온보딩 쪽에서 이미 시작됐으면 그냥 무시됨).
+    else window.HomeDashboard.obStart();
   }
 }
 

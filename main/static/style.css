@@ -761,7 +761,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 }
 .hl-card:last-child { margin-bottom: 0; }
 .hl-card:hover { border-color: var(--accent); }
-.hl-no { flex: 0 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--border); letter-spacing: -.02em; }
+.hl-no { flex: 0 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--muted); letter-spacing: -.02em; }
 .hl-card-primary .hl-no { font-size: 1.7rem; color: var(--accent); }
 .hl-card-compact { padding: 11px 16px; }
 .hl-card-compact .hl-title { margin-bottom: 0; font-size: .86rem; }
@@ -803,6 +803,7 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
 .mkt-idx-chg { font-size: .8rem; font-weight: 700; margin-top: 3px; }
 .mkt-sub-label { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 4px 0 8px; }
 .mkt-asof { margin: 0; }
+.mkt-asof-inline { position: relative; }
 
 /* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 리서치·뉴스 탭) ──
    태그·날짜를 제목과 한 줄에 나란히 두면 제목 칸이 좁아져 줄바꿈이 잦았다.
@@ -1040,6 +1041,12 @@ a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
   border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
 }
 .gal-remove:hover { color: #d33; border-color: #d33; }
+.pd-example-add {
+  background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent);
+  border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
+}
+.pd-example-add:hover { filter: brightness(1.05); }
+.pd-example-note { margin: -4px 0 14px; }
 
 @media (min-width: 720px) {
   .gal-grid { grid-template-columns: repeat(2, 1fr); }

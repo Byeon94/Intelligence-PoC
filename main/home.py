@@ -28,6 +28,36 @@ _RATIO_ALERT_PP = 1.0
 # ③여신·심사 신규 리드(상속·증여/우리사주) ④AI 선별 리서치 기사(나머지 자리를 채움).
 _MAX_TODAY_KEY = 3
 
+# "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
+# 그대로 앞에서부터 5개 자르면 같은 태그(예: 증권담보/신용공여)가 상위를 독점할 수 있다.
+# 관련도 순서는 유지하되 태그당 이만큼만 담아 주제가 겹치지 않게 한다(부족하면 남은
+# 자리는 순서대로 마저 채움 — 억지로 5건 미만으로 줄이지는 않는다).
+_MAX_TODAY_NEWS = 5
+_MAX_PER_TAG_TODAY_NEWS = 2
+
+
+def _diversify_news(articles: list[dict], limit: int, max_per_tag: int) -> list[dict]:
+    picked: list[dict] = []
+    tag_count: dict[str, int] = {}
+    for a in articles:
+        if len(picked) >= limit:
+            break
+        tag = a.get("tag") or "일반"
+        if tag_count.get(tag, 0) >= max_per_tag:
+            continue
+        picked.append(a)
+        tag_count[tag] = tag_count.get(tag, 0) + 1
+    if len(picked) < limit:
+        picked_urls = {a.get("url") for a in picked}
+        for a in articles:
+            if len(picked) >= limit:
+                break
+            if a.get("url") in picked_urls:
+                continue
+            picked.append(a)
+            picked_urls.add(a.get("url"))
+    return picked
+
 
 def _safe(label: str, fn: Callable[[], T]) -> T | None:
     try:
@@ -148,4 +178,5 @@ def get_home_summary() -> dict:
         "market": market,
         "global_market": global_market,
         "today_key": today_key,
+        "today_news": _diversify_news(articles or [], _MAX_TODAY_NEWS, _MAX_PER_TAG_TODAY_NEWS),
     }

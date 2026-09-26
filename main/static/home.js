@@ -68,6 +68,10 @@
   var STATUS_LABEL = { live: "전사 등재", dept: "부서 검증중", soon: "준비중" };
   var STATUS_CLASS = { live: "st-live", dept: "st-dept", soon: "st-soon" };
 
+  // 나의 대시보드에 아직 위젯이 하나도 없을 때 미리 보여주는 예시 2개 — 이 순서 그대로
+  // 노출한다(위젯 추가 목록도 WIDGET_CATALOG 순서상 이미 같은 순서로 나온다).
+  var EXAMPLE_WIDGET_IDS = ["sector-map", "credit-equity-glance"];
+
   // "부서 위젯" 배지 — 업무별 화면에 실제로 구현된(=live) 위젯에는 "전사 등재" 옆에
   // 함께 표시해, 원래 부서 업무 화면에서 만들어졌다는 출처를 나타낸다.
   // creditBadge 가 있는 위젯(예: 특정 부서 담당자가 직접 만든 위젯)은 "부서 위젯" 대신
@@ -104,6 +108,22 @@
 
   // ── 미니 값 표시(내 위젯 전용) — 위젯마다 가벼운 실데이터를 카드 안에 바로 보여준다 ──
   function jo(v) { return v == null ? "-" : (Math.round(v * 10) / 10) + "조"; }
+  // 재무요약 표: 무조건 조 단위로 맞추면 조 미만 규모 기업은 "0.0조"처럼 실제 크기가
+  // 사라져 버린다 — 1조 이상이면 조(0.1조 단위), 미만이면 억(1억 단위)으로 자동 전환한다.
+  function finWon(v) {
+    if (v == null) return "-";
+    var abs = Math.abs(v);
+    if (abs >= 1e12) return jo(v / 1e12);
+    return Math.round(v / 1e8).toLocaleString("ko-KR") + "억";
+  }
+  // 실적분석 차트의 축 단위 — 표와 같은 이유로, 여러 계열 중 최댓값 기준으로 조/억 중 고른다.
+  function finChartUnit(seriesList) {
+    var max = 0;
+    seriesList.forEach(function (arr) {
+      (arr || []).forEach(function (v) { if (v != null) max = Math.max(max, Math.abs(v)); });
+    });
+    return max >= 1e12 ? { div: 1e12, label: "조원" } : { div: 1e8, label: "억원" };
+  }
   function asOfLine(asOf) {
     return asOf ? '<div class="gal-mini-asof">' + esc(asOf) + ' 기준</div>' : "";
   }
@@ -318,7 +338,6 @@
   }
   function fmtWon(v) { return v == null ? "-" : Number(v).toLocaleString("ko-KR"); }
   function pctFmt(v) { return v == null ? "-" : Number(v).toFixed(1) + "%"; }
-  function joWon(v) { return v == null ? "-" : jo(v / 1e12); }
   function finTableHTML(labels, rows) {
     return '<table class="gal-mini-table gm-ca-fin"><thead><tr><th>구분</th>' +
       labels.map(function (y) { return "<th>" + esc(y) + "</th>"; }).join("") + "</tr></thead><tbody>" +
@@ -372,15 +391,16 @@
       if (fin && fin.annual && fin.annual.labels && fin.annual.labels.length) {
         var a = fin.annual;
         html += miniSubtitle("재무요약 (연간)") + finTableHTML(a.labels, [
-          { label: "매출액", values: a.revenue, fmt: joWon },
-          { label: "영업이익", values: a.operating_income, fmt: joWon },
-          { label: "순이익", values: a.net_income, fmt: joWon },
+          { label: "매출액", values: a.revenue, fmt: finWon },
+          { label: "영업이익", values: a.operating_income, fmt: finWon },
+          { label: "순이익", values: a.net_income, fmt: finWon },
           { label: "부채비율", values: a.debt_ratio, fmt: pctFmt },
           { label: "ROE", values: a.roe, fmt: pctFmt }
         ]);
+        var caChartUnit1 = finChartUnit([a.revenue, a.operating_income]);
         html += miniSubtitle("실적분석") +
           '<div class="gm-ca-charts">' +
-            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">매출액·영업이익(조원)</div>' +
+            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">매출액·영업이익(' + caChartUnit1.label + ')</div>' +
               '<div class="gal-mini-chart" id="' + resultEl.id + '-chart1"></div></div>' +
             '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">부채비율(%)</div>' +
               '<div class="gal-mini-chart" id="' + resultEl.id + '-chart2"></div></div>' +
@@ -395,8 +415,8 @@
           window.Charts.line(c1, {
             labels: fin.annual.labels,
             series: [
-              { name: "매출액", values: (fin.annual.revenue || []).map(function (v) { return v / 1e12; }), varName: "--c1" },
-              { name: "영업이익", values: (fin.annual.operating_income || []).map(function (v) { return v / 1e12; }), varName: "--c2" }
+              { name: "매출액", values: (fin.annual.revenue || []).map(function (v) { return v == null ? null : v / caChartUnit1.div; }), varName: "--c1" },
+              { name: "영업이익", values: (fin.annual.operating_income || []).map(function (v) { return v == null ? null : v / caChartUnit1.div; }), varName: "--c2" }
             ]
           });
         }
@@ -527,14 +547,24 @@
     }
   }
 
+  // 나의 대시보드 미니 카드 전용 액션 버튼 — 평소엔 "✕ 그만보기"(제거)지만, 아직 위젯을
+  // 하나도 안 담았을 때 보여주는 예시 카드(opts.example)에서는 실제로는 안 담겨 있으므로
+  // "그만보기"가 아니라 "+ 나의 대시보드에 추가"를 보여준다(누르면 진짜로 담아 예시를 대체).
+  function miniActionButtonHTML(w, opts) {
+    if (opts && opts.example) {
+      return '<button type="button" class="pd-example-add" data-id="' + w.id + '">+ 나의 대시보드에 추가</button>';
+    }
+    return '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>';
+  }
+
   // ── 카드(전사 위젯 / 내 위젯 공용) ──
   // opts.mini: 내 위젯 전용 — 있으면 실데이터 미리보기 영역을 넣고 "내 위젯에 추가" 토글 대신
   // "그만보기"(제거) 버튼을 보여준다. 제거해도 전사 위젯에서는 다시 "+ 내 위젯에 추가"로 보인다.
   function galCardHTML(w, opts) {
     opts = opts || {};
     if (opts.mini && w.id === "credit-analysis") return creditAnalysisCardHTML(w);
-    if (opts.mini && w.id === "credit-equity-glance") return creditGlanceCardHTML(w);
-    if (opts.mini && w.id === "sector-map") return sectorMapCardHTML(w);
+    if (opts.mini && w.id === "credit-equity-glance") return creditGlanceCardHTML(w, opts);
+    if (opts.mini && w.id === "sector-map") return sectorMapCardHTML(w, opts);
     var mine = getMyWidgetIds().indexOf(w.id) >= 0;
     var miniHTML = (opts.mini && MINI_LOADERS[w.id])
       ? '<div class="gal-mini" id="mini-' + w.id + '"><span class="page-note">불러오는 중…</span></div>'
@@ -603,7 +633,7 @@
 
   // "한눈에 보는 기업분석 정보"(내 위젯 전용) — 종목 검색 1번으로 기초정보 + 최근 공시를
   // 한 카드 안에서 같이 보여준다(기업분석/공시 위젯을 따로 추가할 필요 없음).
-  function creditGlanceCardHTML(w) {
+  function creditGlanceCardHTML(w, opts) {
     return (
       '<div class="gal-card gal-card-glance">' +
         '<div class="gal-top">' +
@@ -623,7 +653,7 @@
           '<span class="page-note">불러오는 중…</span></div></div>' +
         '<div class="gal-actions">' +
           '<button type="button" class="dart-btn gal-open" data-work="' + w.tab + '">자세히 보기 →</button>' +
-          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
+          miniActionButtonHTML(w, opts) +
         "</div>" +
       "</div>"
     );
@@ -668,18 +698,20 @@
       if (fin && fin.annual && fin.annual.labels && fin.annual.labels.length) {
         var a = fin.annual;
         html += miniSubtitle("재무요약 (연간)") + finTableHTML(a.labels, [
-          { label: "매출액", values: a.revenue, fmt: joWon },
-          { label: "영업이익", values: a.operating_income, fmt: joWon },
-          { label: "순이익", values: a.net_income, fmt: joWon },
-          { label: "자산총계", values: a.assets, fmt: joWon },
-          { label: "부채총계", values: a.liabilities, fmt: joWon },
-          { label: "자본총계", values: a.equity, fmt: joWon }
+          { label: "매출액", values: a.revenue, fmt: finWon },
+          { label: "영업이익", values: a.operating_income, fmt: finWon },
+          { label: "순이익", values: a.net_income, fmt: finWon },
+          { label: "자산총계", values: a.assets, fmt: finWon },
+          { label: "부채총계", values: a.liabilities, fmt: finWon },
+          { label: "자본총계", values: a.equity, fmt: finWon }
         ]);
+        var glanceChartUnit1 = finChartUnit([a.revenue, a.operating_income, a.net_income]);
+        var glanceChartUnit2 = finChartUnit([a.liabilities, a.equity]);
         html += miniSubtitle("실적분석") +
           '<div class="gm-ca-charts">' +
-            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">매출액·영업이익·순이익(조원)</div>' +
+            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">매출액·영업이익·순이익(' + glanceChartUnit1.label + ')</div>' +
               '<div class="gal-mini-chart" id="' + resultEl.id + '-chart1"></div></div>' +
-            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">자산·부채·자본(조원)</div>' +
+            '<div class="gm-ca-chart-box"><div class="gm-ca-chart-label">자산·부채·자본(' + glanceChartUnit2.label + ')</div>' +
               '<div class="gal-mini-chart" id="' + resultEl.id + '-chart2"></div></div>' +
           "</div>";
       }
@@ -715,9 +747,9 @@
           window.Charts.line(c1, {
             labels: L,
             series: [
-              { name: "매출액", values: (fin.annual.revenue || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c1" },
-              { name: "영업이익", values: (fin.annual.operating_income || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c2" },
-              { name: "순이익", values: (fin.annual.net_income || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c5" }
+              { name: "매출액", values: (fin.annual.revenue || []).map(function (v) { return v == null ? null : v / glanceChartUnit1.div; }), varName: "--c1" },
+              { name: "영업이익", values: (fin.annual.operating_income || []).map(function (v) { return v == null ? null : v / glanceChartUnit1.div; }), varName: "--c2" },
+              { name: "순이익", values: (fin.annual.net_income || []).map(function (v) { return v == null ? null : v / glanceChartUnit1.div; }), varName: "--c5" }
             ]
           });
         }
@@ -726,8 +758,8 @@
           window.Charts.stackBar(c2, {
             labels: L,
             series: [
-              { name: "부채", values: (fin.annual.liabilities || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c2" },
-              { name: "자본", values: (fin.annual.equity || []).map(function (v) { return v == null ? null : v / 1e12; }), varName: "--c3" }
+              { name: "부채", values: (fin.annual.liabilities || []).map(function (v) { return v == null ? null : v / glanceChartUnit2.div; }), varName: "--c2" },
+              { name: "자본", values: (fin.annual.equity || []).map(function (v) { return v == null ? null : v / glanceChartUnit2.div; }), varName: "--c3" }
             ]
           });
         }
@@ -782,7 +814,7 @@
   // 렌더 함수 자체는 sector/static/sector.js 가 window.SectorWidget 으로 공개한 것을 그대로 쓴다
   // (독립 페이지 /sector 와 중복 구현하지 않기 위함). 시가총액 트리맵 맵은 모바일에서
   // 레이아웃이 깨져 기능을 제거했다.
-  function sectorMapCardHTML(w) {
+  function sectorMapCardHTML(w, opts) {
     var id = "mini-" + w.id;
     return (
       '<div class="gal-card gal-card-sector">' +
@@ -801,7 +833,7 @@
           '<div id="' + id + '-vc-detail"><span class="page-note">불러오는 중…</span></div>' +
         "</div>" +
         '<div class="gal-actions">' +
-          '<button type="button" class="gal-remove" data-id="' + w.id + '">✕ 그만보기</button>' +
+          miniActionButtonHTML(w, opts) +
         "</div>" +
       "</div>"
     );
@@ -914,6 +946,29 @@
     });
   }
 
+  // 아직 위젯을 하나도 담지 않았을 때, 실제로 담긴 것처럼 실데이터를 바로 보여주는
+  // 예시 2개(EXAMPLE_WIDGET_IDS)를 렌더한다. myWidgetIds에는 담지 않으므로 위젯 추가
+  // 목록에서는 여전히 "+ 추가"로 보이고, 여기서 "+ 나의 대시보드에 추가"를 누르면
+  // 그제서야 실제로 담겨 renderPersonal()이 일반 표시(잡 네비 포함)로 다시 그린다.
+  function renderPersonalExamples(box) {
+    var items = EXAMPLE_WIDGET_IDS.map(function (id) {
+      return WIDGET_CATALOG.filter(function (w) { return w.id === id; })[0];
+    }).filter(Boolean);
+    box.innerHTML =
+      '<div class="page-note pd-example-note">아직 담은 위젯이 없어 예시로 먼저 보여드립니다 — ' +
+        '마음에 들면 아래에서 바로 "+ 나의 대시보드에 추가"를 눌러보세요.</div>' +
+      items.map(function (w) { return galCardHTML(w, { mini: true, example: true }); }).join("");
+    bindGalleryCardEvents(box);
+    box.querySelectorAll(".pd-example-add").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        toggleMyWidget(btn.dataset.id);
+        renderPersonal();
+      });
+    });
+    if (items.some(function (w) { return w.id === "credit-equity-glance"; })) initCreditGlanceSearch();
+    if (items.some(function (w) { return w.id === "sector-map"; })) initSectorMapWidget();
+  }
+
   function renderPersonal() {
     var box = document.getElementById("personal-grid");
     if (!box) return;
@@ -922,10 +977,7 @@
     if (!items.length) {
       personalActiveId = null;
       document.getElementById("personal-jump-nav").innerHTML = "";
-      // 상단 헤더에 이미 "+ 위젯 추가" 버튼이 있어, 여기서는 문구만 안내하고
-      // 별도 버튼(예전엔 "위젯 추가하러 가기 →")은 중복이라 없앴다.
-      // 위 block-head 소개 문구("+ 위젯 추가"를 눌러...)와 중복이라 별도 안내 없이 빈 채로 둔다.
-      box.innerHTML = "";
+      renderPersonalExamples(box);
       return;
     }
     // 이전에 선택했던 위젯이 아직 있으면 유지, 없으면(처음이거나 방금 제거됐으면) 첫 위젯으로.
@@ -1204,9 +1256,39 @@
     var asofBits = [];
     if (m && m.source === "live") asofBits.push(esc(fmtDate(m.as_of)) + " 기준 코스피·코스닥(공공데이터포털)");
     if (gm && gm.source === "live") asofBits.push("실시간 해외·환율(Yahoo Finance, 참고용)");
-    if (asofBits.length) html += '<div class="page-note mkt-asof">' + asofBits.join(" · ") + "</div>";
+    if (asofBits.length) {
+      html += '<div class="page-note mkt-asof"><span class="mkt-asof-inline">' + asofBits.join(" · ") +
+        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율은 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다." ' +
+          'aria-label="기준일 안내">!</button></span></div>';
+    }
 
     box.innerHTML = html;
+    bindAsofInfo(box);
+  }
+
+  // "!" 기준일 안내 아이콘 — 자본시장 탭(capital.js)과 같은 UX(클릭 시 작은 팝업)를
+  // 쓰지만, 이 박스는 페이지 로드 후 fetch로 늦게 채워지므로 그때마다 새로 바인딩한다.
+  var asofInfoDocBound = false;
+  function closeAsofPopups() {
+    document.querySelectorAll(".asof-popup").forEach(function (p) { p.remove(); });
+  }
+  function bindAsofInfo(scope) {
+    scope.querySelectorAll(".asof-info").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        var already = btn.parentElement.querySelector(".asof-popup");
+        closeAsofPopups();
+        if (already) return; // 같은 버튼 다시 누르면 닫기만
+        var pop = document.createElement("div");
+        pop.className = "asof-popup";
+        pop.textContent = btn.dataset.msg || "";
+        btn.parentElement.appendChild(pop);
+      });
+    });
+    if (!asofInfoDocBound) {
+      asofInfoDocBound = true;
+      document.addEventListener("click", closeAsofPopups);
+    }
   }
 
   // ── 오늘의 브리핑: 주요뉴스(AI 선별 상위 6건, 전체는 리서치·뉴스 탭에서) ──
@@ -1226,9 +1308,9 @@
   function renderBriefNews(d) {
     var box = document.getElementById("brief-news");
     if (!box) return;
-    var arts = (d.research && d.research.articles) || [];
+    var arts = d.today_news || [];
     box.innerHTML = arts.length
-      ? arts.slice(0, 5).map(briefNewsRowHTML).join("")
+      ? arts.map(briefNewsRowHTML).join("")
       : '<div class="page-note">' + esc((d.research && d.research.briefing_note) || "오늘 선별된 뉴스가 없습니다.") + "</div>";
   }
 
@@ -1296,30 +1378,34 @@
       renderHighlights(d);
       renderMarket(d);
       renderBriefNews(d);
-      obResize(); // 데이터가 늦게 들어오면 "불러오는 중" 자리(짧음) 기준으로 잡혔던
-                  // 스포트라이트 박스가 실제 콘텐츠(김) 크기에 안 맞을 수 있어 다시 잰다.
+      obStart(); // 브리핑 데이터가 실제 렌더된 뒤에 시작해야 스포트라이트 박스가
+                 // "불러오는 중" 자리(짧음)가 아니라 실제 콘텐츠 크기에 맞는다.
     }).catch(function (e) {
       ["brief-highlights", "brief-market", "brief-news"].forEach(function (id) {
         var box = document.getElementById(id);
         if (box) box.innerHTML = '<div class="chart-error">' + esc(e.message) + "</div>";
       });
       briefingLoaded = false; // 재방문 시 재시도
-      obResize();
+      obStart(); // 브리핑 로딩이 실패해도 온보딩 자체는 계속 보여준다.
     });
   }
 
   window.HomeDashboard = {
     enterHome: function () { ensureBriefing(); },
     enterGallery: function () { renderGallery(); },
-    enterPersonal: function () { renderPersonal(); }
+    enterPersonal: function () { renderPersonal(); },
+    // 온보딩은 보통 홈 화면의 브리핑 로딩 완료 시점에 시작되지만(obStart 참고), 첫 진입
+    // 화면이 홈이 아닌 경우(예: 북마크한 #capital 링크로 접속)를 위한 안전장치로 노출한다.
+    obStart: obStart
   };
 
   // ── 온보딩 투어 — 오늘의 브리핑의 "오늘의 핵심/시장 한눈에/오늘의 주요뉴스" 3개
-  // 영역 + 사이드바의 "나의 대시보드"만 소개한다(환영 화면 + 완료 화면 포함 총
-  // 6스텝). 세션 여부와 무관하게 웹페이지를 열 때마다 매번 보여준다(로그인이 없는
-  // PoC라 "이 사람이 처음 왔는지"를 판단할 방법이 없어, 저장해뒀다 건너뛰는 대신
-  // 매번 짧게 보여주는 쪽을 택함). 사이드바는 데스크톱에선 세로, 모바일에선 상단
-  // 가로 바로 바뀌므로, 스포트라이트·말풍선 위치는 매번 실제 렌더된 좌표
+  // 영역을 소개한 뒤, 사이드바 버튼만 가리키는 대신 실제로 나의 대시보드·자본시장
+  // 화면으로 이동해(step.nav) 위젯 추가·부서 화면을 직접 보여주며 설명한다(환영 화면
+  // + 완료 화면 포함 총 7스텝). 세션 여부와 무관하게 웹페이지를 열 때마다 매번
+  // 보여준다(로그인이 없는 PoC라 "이 사람이 처음 왔는지"를 판단할 방법이 없어, 저장해뒀다
+  // 건너뛰는 대신 매번 짧게 보여주는 쪽을 택함). 사이드바는 데스크톱에선 세로, 모바일에선
+  // 상단 가로 바로 바뀌므로, 스포트라이트·말풍선 위치는 매번 실제 렌더된 좌표
   // (getBoundingClientRect)를 기준으로 계산하고, 화면 밖에 있을 수 있는 대상은
   // 먼저 scrollIntoView로 보이게 한다. ──
   var OB_STEPS = [
@@ -1333,12 +1419,12 @@
     { type: "spot", sel: "#brief-news-block",
       title: "오늘의 주요뉴스",
       body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 리서치·뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
-    { type: "spot", sel: '.side-btn[data-cat="personal"]',
-      title: "나의 대시보드",
-      body: '"+ 위젯 추가"를 눌러 내가 관심 있는 정보만 모아 나만의 화면을 만들 수 있습니다.' },
-    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
+    { type: "spot", nav: "personal", sel: "#personal-add-widget-btn",
+      title: "나의 대시보드 — 위젯 추가",
+      body: "지금처럼 처음엔 예시 위젯 2개를 먼저 보여드려요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 담아 나만의 화면을 만들 수 있습니다." },
+    { type: "spot", nav: "capital", sel: "#capital-root",
       title: "업무별 메뉴(부서 위젯)",
-      body: "자본시장·여신·심사·정책·규제·리서치·뉴스처럼 부서별 상세 화면은 여기서 확인하세요." },
+      body: "지금 보시는 자본시장처럼, 사이드바에서 여신·심사·정책·규제·리서치·뉴스로 이동해 부서별 상세 화면을 확인할 수 있습니다." },
     { type: "done" }
   ];
   var obIndex = 0;
@@ -1441,6 +1527,9 @@
     if (!backdrop || !spot || !tip) return;
 
     if (step.type === "spot") {
+      // 이 스텝이 다른 업무 화면을 소개하는 스텝이면(나의 대시보드/업무별 메뉴), 사이드바
+      // 버튼만 가리키는 대신 실제로 그 화면으로 이동해서 설명한다.
+      if (step.nav) goWork(step.nav);
       var rect;
       if (step.selRange) {
         var a = document.querySelector(step.selRange[0]), b = document.querySelector(step.selRange[1]);
@@ -1459,6 +1548,9 @@
       tip.className = "ob-tooltip";
       tip.innerHTML = obSpotHTML(step);
       obPosition(rect);
+      // 방금 이동한 화면은 데이터가 비동기로 늦게 채워질 수 있어(예: 자본시장 차트),
+      // 크기가 자리잡은 뒤 스포트라이트를 한 번 더 재본다.
+      if (step.nav) setTimeout(obResize, 600);
     } else {
       spot.hidden = true;
       backdrop.hidden = false;
@@ -1487,6 +1579,12 @@
   }
   window.addEventListener("resize", obResize);
 
-  // 사이드바 레이아웃이 자리잡은 뒤 좌표를 재야 스포트라이트 위치가 어긋나지 않는다.
-  setTimeout(function () { obIndex = 0; obRenderStep(); }, 400);
+  var obStarted = false;
+  function obStart() {
+    if (obStarted) return;
+    obStarted = true;
+    // 브리핑 데이터 로딩이 끝난(성공/실패 모두) 시점에 호출된다. 사이드바 레이아웃이
+    // 자리잡은 뒤 좌표를 재야 스포트라이트 위치가 어긋나지 않으므로 약간의 지연을 둔다.
+    setTimeout(function () { obIndex = 0; obRenderStep(); }, 400);
+  }
 })();
