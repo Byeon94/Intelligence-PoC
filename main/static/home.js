@@ -1479,10 +1479,10 @@
     { type: "spot", nav: "personal", sel: "#personal-add-widget-btn",
       title: "나의 대시보드 — 위젯 추가",
       body: "지금처럼 기본 위젯 2개를 미리 담아드렸어요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 더 담아 나만의 화면을 만들 수 있습니다." },
-    // 실제로 자본시장 화면까지 들어갔다 나오면(모바일에서는 사이드바가 2행이라 화면이
-    // 아래로 길어져) 스포트라이트 위치가 어색해진다는 피드백에 따라, 페이지 이동 없이
-    // 사이드바의 부서 메뉴 자체를 가리키는 방식으로 되돌린다.
-    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
+    // 배경 화면이 "나의 대시보드"로 남아 있는 게 어색하다는 피드백 — 자본시장 탭으로
+    // 실제 이동해(nav) 그 화면을 배경으로 두고, 사이드바의 부서 메뉴 4개를 가리킨다.
+    { type: "spot", nav: "capital",
+      selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
       title: "업무별 메뉴(부서 위젯)",
       body: "자본시장·여신·정책·규제·뉴스처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다." },
     { type: "done" }
@@ -1617,14 +1617,17 @@
       a.scrollIntoView({ block: "center", behavior: "auto" });
       rect = obUnionRect(a, b);
     } else {
-      // 내용이 길어 화면보다 큰 블록(시장 한눈에·오늘의 시장 브리핑 등)은 전체를
-      // scrollIntoView(block:"center")하면 블록 중간 어딘가에서 뚝 걸쳐 보이고, 그
-      // 전체 높이를 스포트라이트로 잡으면 말풍선 위치도 애매해진다 — titleSel이 있으면
-      // 블록 전체 대신 그 제목(.block-head)만 기준으로 스크롤·스포트라이트·말풍선
-      // 위치를 잡는다(제목 기준으로 상단에 딱 붙어 보이도록).
-      var el = document.querySelector(step.titleSel || step.sel);
+      var el = document.querySelector(step.sel);
       if (!el) { obNext(); return; }
-      el.scrollIntoView({ block: "center", behavior: "auto" });
+      // 내용이 길어 화면보다 큰 블록(시장 한눈에·오늘의 시장 브리핑 등)은 스포트라이트는
+      // 여전히 블록 전체를 감싸 보여주되(el 기준 rect), scrollIntoView(block:"center")로
+      // 블록 전체를 중앙 정렬하면 블록 중간 어딘가만 화면에 걸쳐 보이고 정작 제목은
+      // 화면 밖으로 밀려났다 — titleSel이 있으면 제목(.block-head)을 화면 위쪽에
+      // 오도록 스크롤하고(block:"start"), 스포트라이트 박스는 그대로 전체 블록 rect를
+      // 써서(아래는 뷰포트 밖으로 넘어가면 obPosition이 알아서 잘라 보여준다) "전체는
+      // 강조하되 제목이 보이게" 두 요구를 함께 만족시킨다.
+      var scrollEl = (step.titleSel && document.querySelector(step.titleSel)) || el;
+      scrollEl.scrollIntoView({ block: scrollEl === el ? "center" : "start", behavior: "auto" });
       rect = el.getBoundingClientRect();
     }
     backdrop.hidden = true;
@@ -1705,7 +1708,7 @@
       if (!a || !b) return;
       rect = obUnionRect(a, b);
     } else {
-      var el = document.querySelector(step.titleSel || step.sel);
+      var el = document.querySelector(step.sel);
       if (!el) return;
       rect = el.getBoundingClientRect();
     }

@@ -135,6 +135,11 @@ def _credit_leads_alert() -> dict | None:
     }
 
 
+# "오늘의 시장 브리핑" 카드(main/static/home.js BRIEFING_CATS)와 같은 아이콘 — "왜
+# 중요한가?"에서도 같은 카테고리를 같은 아이콘으로 표시해 한눈에 구분되게 한다.
+_CATEGORY_ICON = {"주식": "📊", "채권": "💵", "환율": "💱", "장전": "🌙"}
+
+
 def _first_sentence(text: str) -> str:
     for sep in ("다.", "요.", "함.", "임."):
         idx = text.find(sep)
@@ -151,7 +156,10 @@ def _market_briefing_key(briefing: dict | None) -> dict | None:
     headline = (briefing or {}).get("summary") or sections.get("주식")
     if not headline:
         return None
-    rest = [f"{k}: {_first_sentence(sections[k])}" for k in CATEGORIES if sections.get(k)]
+    rest = [
+        f"{_CATEGORY_ICON.get(k, '')} {k}: {_first_sentence(sections[k])}"
+        for k in CATEGORIES if sections.get(k)
+    ]
     return {"kind": "market", "title": headline, "detail": "\n".join(rest) if rest else None}
 
 
