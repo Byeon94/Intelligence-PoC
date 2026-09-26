@@ -1394,18 +1394,12 @@
     { type: "spot", nav: "personal", sel: "#personal-add-widget-btn",
       title: "나의 대시보드 — 위젯 추가",
       body: "지금처럼 기본 위젯 2개를 미리 담아드렸어요. \"+ 위젯 추가\"를 누르면 내가 자주 보는 정보만 골라 더 담아 나만의 화면을 만들 수 있습니다." },
-    { type: "spot", nav: "capital", sel: "#capital-root",
-      // 자본시장 화면은 진입 시 유동성 요약을 비동기로 불러온다 — 그 응답이 채워질 때까지
-      // 기다렸다가 스포트라이트를 보여줘야, 아직 다 안 그려진 화면을 가리켰다가 데이터가
-      // 도착하면서 박스가 커지는 "깜빡임"이 생기지 않는다.
-      navReady: function () {
-        var dateEl = document.getElementById("liq-asof-date");
-        var trendEl = document.getElementById("liq-trend");
-        return !!(dateEl && dateEl.textContent) &&
-          !!(trendEl && !trendEl.querySelector(".chart-loading"));
-      },
+    // 실제로 자본시장 화면까지 들어갔다 나오면(모바일에서는 사이드바가 2행이라 화면이
+    // 아래로 길어져) 스포트라이트 위치가 어색해진다는 피드백에 따라, 페이지 이동 없이
+    // 사이드바의 부서 메뉴 자체를 가리키는 방식으로 되돌린다.
+    { type: "spot", selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="credit"]'],
       title: "업무별 메뉴(부서 위젯)",
-      body: "지금 보시는 자본시장처럼, 사이드바에서 여신·정책·규제·리서치·뉴스로 이동해 부서별 상세 화면을 확인할 수 있습니다." },
+      body: "자본시장·여신처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다(정책·규제, 리서치·뉴스도 마찬가지입니다)." },
     { type: "done" }
   ];
   var obIndex = 0;
