@@ -3,7 +3,8 @@
 DART 는 재무제표·공시·기업개황 조회에 corp_code 를 요구한다.
 `corpCode.xml`(zip, 압축 해제 시 ~20MB·10만+ 항목)을 하루 1회만 받아
 스트리밍 파싱하고, 결과 맵을 Supabase(하루치)에 저장해 워커 재시작·다중 워커에서 재사용한다.
-DART_API_KEY 없으면 빈 맵.
+DART_API_KEY 가 없거나 다운로드·파싱에 실패하면 빈 맵 — 빈 결과는 main.cache.ttl_cache 가
+60초만 보관하므로(저장소에도 안 남김) 일시 장애가 12시간 고정되지 않는다.
 """
 from __future__ import annotations
 
@@ -15,7 +16,7 @@ import zipfile
 
 import requests
 
-from capital._cache import ttl_cache
+from main.cache import ttl_cache
 from main.config import get_settings
 
 from . import store

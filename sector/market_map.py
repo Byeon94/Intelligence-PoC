@@ -2,12 +2,12 @@
 
 credit.equity.listed_snapshot()(data.go.kr 「금융위원회_주식시세정보」 전 종목 실시간
 스냅샷) 전체를, sector.classify.get_cached_classification()이 미리 분류해 저장해둔
-{종목코드: 업종명}(Gemini, 배치 전용)에 따라 업종별로 묶어 시가총액을 합산한다.
+{종목코드: 업종명}(Gemini, 수동 실행으로 갱신)에 따라 업종별로 묶어 시가총액을 합산한다.
 분류가 없는 종목(신규 상장 등)은 "기타"로 묶는다.
 """
 from __future__ import annotations
 
-from capital._cache import ttl_cache
+from main.cache import ttl_cache
 from credit.equity import listed_snapshot, listed_snapshot_as_of
 
 from .classify import get_cached_classification
@@ -63,6 +63,7 @@ def get_sector_map() -> dict:
         "total_market_cap": total,
         "as_of": as_of,
         "classified": bool(classification),
-        "source": "live" if sectors else "sample",
+        # 시세 스냅샷을 못 받았으면 빈 맵 — 샘플 데이터는 따로 없으므로 "unavailable"
+        "source": "live" if sectors else "unavailable",
         "note": _NOTE,
     }

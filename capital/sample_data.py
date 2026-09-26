@@ -1,17 +1,18 @@
-"""API 키가 없거나 호출이 실패했을 때 쓰는 샘플(mock) 데이터.
+"""자본시장 탭 샘플(mock) 데이터 — data.go.kr 키가 없거나 호출이 실패했을 때 폴백.
 
-값은 2024~2025년 공개 통계의 대략적 수준을 참고한 합성치이며,
-화면 레이아웃과 추이 차트를 그대로 확인하기 위한 용도다.
-실데이터가 연결되면 응답의 source 필드가 "live"로 바뀐다.
+값은 공개 통계의 대략적 수준을 참고한 합성치로, 화면 레이아웃과 추이 차트를 확인하기
+위한 용도다. 응답의 source 는 "sample"(실데이터는 "live").
 """
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import timedelta
+
+from main.utils import today_kst
 
 
 def month_labels(n: int) -> list[str]:
-    today = date.today()
+    today = today_kst()
     y, m = today.year, today.month
     out: list[str] = []
     for _ in range(n):
@@ -60,6 +61,7 @@ def liquidity_summary() -> dict:
     return {
         "as_of": _last_business_day_iso(),
         "unit": "조원",
+        "change_basis": "month",   # 월별 합성 시계열 마지막 2개 비교 → 화면 "전월 대비"
         "items": {
             "investor_deposits": {"value": dep[-1], "change": round(dep[-1] - dep[-2], 2)},
             "credit_balance": {"value": cr[-1], "change": round(cr[-1] - cr[-2], 2)},
@@ -118,7 +120,7 @@ CMA_MIX = [
 
 def cma_summary() -> dict:
     total = round(liquidity_summary()["items"]["cma_balance"]["value"], 1)
-    by_type = {m["type"]: round(total * m["share"] / 100, 1) for m in CMA_MIX}
+    share = {m["type"]: m["share"] for m in CMA_MIX}
     from .cma_rates import top_rp_rate  # 지연 import (순환 방지)
 
     top = top_rp_rate()
@@ -127,9 +129,10 @@ def cma_summary() -> dict:
         "unit": "조원",
         "items": {
             "total": {"value": total},
-            "rp": {"value": by_type["RP형"], "share": 47.5},
-            "note": {"value": by_type["발행어음형"], "share": 20.5},
-            "rp_top_rate": {"value": top["rate"], "company": top["company"], "unit": "%"},
+            "rp": {"value": round(total * share["RP형"] / 100, 1), "share": share["RP형"]},
+            "note": {"value": round(total * share["발행어음형"] / 100, 1), "share": share["발행어음형"]},
+            "rp_top_rate": {"value": top["rate"], "company": top["company"], "unit": "%",
+                            "source": top["source"]},
         },
         "source": "sample",
     }
@@ -145,7 +148,7 @@ def cma_mix() -> dict:
 
 
 def _last_business_day_iso() -> str:
-    d = date.today()
+    d = today_kst()
     while d.weekday() >= 5:  # 토(5)·일(6)
-        d = date.fromordinal(d.toordinal() - 1)
+        d -= timedelta(days=1)
     return d.isoformat()

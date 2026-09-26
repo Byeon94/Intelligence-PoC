@@ -13,20 +13,24 @@
   - 업종·PER·PBR : 네이버 금융 종목 페이지 (참고용)
   - PSR : 시가총액 ÷ 최근 연간 매출액(DART)
 
-키가 없거나 호출이 실패하면 해당 항목은 비우고, 시세 자체가 실패하면 sample 로 폴백.
+부가 항목(DART·네이버·PSR)은 실패하면 비워 둔다. 시세 자체가 실패하면 샘플이 준비된
+종목(sample_data.has)만 source="sample" 로 폴백하고, 그 외 종목은 예외를 올린다 — 임의
+종목에 지어낸 숫자를 실데이터처럼 보여주지 않기 위함. 상장종목 스냅샷에 없는 코드는
+is_listed() 로 라우트에서 404 처리한다. 종목코드는 영숫자 6자리(예: 0009K0)도 허용.
 """
 from __future__ import annotations
 
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import timedelta
 
 import requests
 
-from capital._cache import ttl_cache
+from main.cache import ttl_cache
 from capital._datago import DataGoError, get_json, pick, to_float
 from main.config import get_settings
+from main.utils import today_kst, ymd_to_iso
 
 from . import sample_data, store
 from .corp_map import corp_code
@@ -37,16 +41,12 @@ _PRICE_SVC, _PRICE_OP = "GetStockSecuritiesInfoService", "getStockPriceInfo"
 _NAVER_URL = "https://finance.naver.com/item/main.naver"
 
 
-def _fmt_date(yyyymmdd: str | None) -> str:
-    s = str(yyyymmdd or "")
-    return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) == 8 else s
-
-
 def _daily_rows(code: str, days: int) -> list[dict]:
+    today = today_kst()
     rows = get_json(_PRICE_SVC, _PRICE_OP, {
         "likeSrtnCd": code,
-        "beginBasDt": (date.today() - timedelta(days=days)).strftime("%Y%m%d"),
-        "endBasDt": date.today().strftime("%Y%m%d"),
+        "beginBasDt": (today - timedelta(days=days)).strftime("%Y%m%d"),
+        "endBasDt": today.strftime("%Y%m%d"),
     })
     rows = [r for r in rows if str(pick(r, "srtnCd", "SRTN_CD")) == code]
     rows.sort(key=lambda r: str(pick(r, "basDt", "BAS_DT")))
@@ -56,7 +56,7 @@ def _daily_rows(code: str, days: int) -> list[dict]:
 
 
 def _range(rows: list[dict], win_days: int) -> dict | None:
-    cutoff = (date.today() - timedelta(days=win_days)).strftime("%Y%m%d")
+    cutoff = (today_kst() - timedelta(days=win_days)).strftime("%Y%m%d")
     sub = [r for r in rows if str(pick(r, "basDt", "BAS_DT")) >= cutoff] or rows
     lows = [v for v in (to_float(pick(r, "lopr", "LOPR")) for r in sub) if v]
     highs = [v for v in (to_float(pick(r, "hipr", "HIPR")) for r in sub) if v]
@@ -124,14 +124,16 @@ def _naver_snapshot(code: str) -> dict:
 
 
 @ttl_cache(60 * 30)
-def _listed_snapshot() -> tuple[str | None, list[dict]]:
+def _listed_snapshot() -> dict:
     """최근 거래일 전체 상장종목 1스냅샷 (검색 부분일치 + 시가총액 순위 + 업종 맵용).
 
     data.go.kr 의 likeItmsNm 은 접두어 매칭이라 '하이닉스' 같은 중간어가 안 걸린다.
     그래서 한 거래일 전체(코스피+코스닥 ≈ 2,900건)를 받아 파이썬에서 처리한다.
+    반환: {"as_of", "items", "source"} — 실패 시 source="none"(ttl_cache 가 60초만 보관).
     """
+    today = today_kst()
     for back in range(3, 12):
-        d = (date.today() - timedelta(days=back)).strftime("%Y%m%d")
+        d = (today - timedelta(days=back)).strftime("%Y%m%d")
         try:
             rows = get_json(_PRICE_SVC, _PRICE_OP, {"basDt": d})
         except DataGoError:
@@ -150,19 +152,27 @@ def _listed_snapshot() -> tuple[str | None, list[dict]]:
                 "change_pct": to_float(pick(r, "fltRt", "FLT_RT")),
             }
         if out:
-            return _fmt_date(d), list(out.values())
+            return {"as_of": ymd_to_iso(d), "items": list(out.values()), "source": "live"}
     logger.info("종목 스냅샷 조회 실패")
-    return None, []
+    return {"as_of": None, "items": [], "source": "none"}
 
 
 def listed_snapshot() -> list[dict]:
-    """`_listed_snapshot()`의 공개 래퍼 (leads.py, sector 패키지 등에서 재사용)."""
-    return _listed_snapshot()[1]
+    """`_listed_snapshot()`의 공개 래퍼 (leads.py, sector 패키지 등에서 재사용). 실패 시 []."""
+    return _listed_snapshot()["items"]
 
 
 def listed_snapshot_as_of() -> str | None:
     """전 종목 스냅샷의 기준일(YYYY-MM-DD) — 업종 맵·밸류체인의 종가 기준일 표시용."""
-    return _listed_snapshot()[0]
+    return _listed_snapshot()["as_of"]
+
+
+def is_listed(code: str) -> bool | None:
+    """상장종목 스냅샷에 있는 코드인지. 스냅샷 자체를 못 불러왔으면 판단 불가(None)."""
+    items = listed_snapshot()
+    if not items:
+        return None
+    return any(s["code"] == code for s in items)
 
 
 def _market_cap_rank(code: str, market: str | None) -> dict:
@@ -210,6 +220,8 @@ def get_stock_basics(code: str) -> dict:
         try:
             rows = f_rows.result()
         except (DataGoError, ValueError, TypeError) as exc:
+            if not sample_data.has(code):
+                raise
             logger.info("기초정보 폴백(sample) %s: %s", code, exc)
             return sample_data.basics(code)
         comp = f_comp.result() or {}
@@ -229,7 +241,7 @@ def get_stock_basics(code: str) -> dict:
         "name": pick(last, "itmsNm", "ITMS_NM"),
         "market": market,
         "sector": nav.get("sector"),
-        "as_of": _fmt_date(pick(last, "basDt", "BAS_DT")),
+        "as_of": ymd_to_iso(pick(last, "basDt", "BAS_DT")),
         "close": g("clpr", "CLPR"),
         "change": g("vs", "VS"),
         "change_pct": g("fltRt", "FLT_RT"),
@@ -254,7 +266,7 @@ def get_stock_basics(code: str) -> dict:
             "w10": _range(rows, 70),
         },
         "price_series": {
-            "labels": [_fmt_date(pick(r, "basDt", "BAS_DT")) for r in rows[-120:]],
+            "labels": [ymd_to_iso(pick(r, "basDt", "BAS_DT")) for r in rows[-120:]],
             "values": [to_float(pick(r, "clpr", "CLPR")) for r in rows[-120:]],
         },
         "source": "live",
@@ -265,13 +277,14 @@ def get_stock_basics(code: str) -> dict:
 
 @ttl_cache(300)
 def search_stocks(q: str) -> list[dict]:
-    """종목명(부분일치) 또는 종목코드(접두어) 검색."""
+    """종목명(부분일치) 또는 종목코드(접두어, 영숫자 코드 포함) 검색."""
     q = q.strip()
     if len(q) < 2:
         return []
     pool = listed_snapshot()
-    if q.isdigit():
-        hits = [s for s in pool if s["code"].startswith(q)]
+    if re.fullmatch(r"\d[0-9A-Za-z]{0,5}", q):
+        qu = q.upper()
+        hits = [s for s in pool if s["code"].startswith(qu)]
     else:
         low = q.lower()
         hits = [s for s in pool if low in (s["name"] or "").lower()]

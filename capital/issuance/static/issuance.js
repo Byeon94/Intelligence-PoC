@@ -2,14 +2,9 @@
 (function () {
   "use strict";
 
+  var esc = window.KSFC.esc, safeUrl = window.KSFC.safeUrl;
   var TYPE_VAR = { "수요예측": "--c1", "청약": "--c3", "상장": "--c2", "유상증자": "--c4" };
   var DOW = ["일", "월", "화", "수", "목", "금", "토"];
-
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
 
   function renderCalendar(d) {
     var box = document.getElementById("iss-calendar");
@@ -33,7 +28,7 @@
     for (var i = 0; i < startDow; i++) cells.push('<div class="cal-day cal-empty"></div>');
     for (var day = 1; day <= daysInMonth; day++) {
       var evs = (byDay[day] || []).map(function (e) {
-        return '<a class="cal-ev" href="' + esc(e.url) + '" target="_blank" rel="noopener" ' +
+        return '<a class="cal-ev" href="' + esc(safeUrl(e.url)) + '" target="_blank" rel="noopener" ' +
           'style="border-left-color:var(' + (TYPE_VAR[e.type] || "--muted") + ')" ' +
           'title="' + esc(e.company + " · " + e.type + (e.detail ? " · " + e.detail : "")) + '">' +
           esc(e.company) + " <span class=\"ce-t\">" + esc(e.type) + "</span></a>";
@@ -61,6 +56,7 @@
     if (!box) return;
     var when = d.briefing_at || d.generated_at || "";
     var bullets = (d.briefing || []).filter(Boolean).slice(0, 3);
+    box.classList.remove("brief-collapsed");   // 다시 그릴 때 접힘 상태 초기화
     if (!bullets.length) {
       box.innerHTML = '<div class="brief-note">' + esc(d.briefing_note || "브리핑을 사용할 수 없습니다.") + "</div>";
       return;
@@ -72,18 +68,19 @@
       "</div>" +
       '<ol class="brief-list">' +
         bullets.map(function (b, i) {
-          return '<li><span class="bl-no">' + ["①", "②", "③"][i] + "</span><span class=\"bl-tx\">" + esc(b) + "</span></li>";
+          return '<li><span class="bl-no">' + window.KSFC.CIRCLED[i] + "</span><span class=\"bl-tx\">" + esc(b) + "</span></li>";
         }).join("") +
       "</ol>" +
       '<div class="brief-meta">📌 38커뮤니케이션 공모일정 + 금융감독원 DART 유상증자 공시 기반, AI 자동 생성.</div>';
+    // 모바일에서 아래 캘린더가 바로 보이도록 첫 불릿만 보이고 나머지는 "더보기"로 펼친다
+    window.KSFC.bindBriefMore(box, bullets.length - 1);
   }
 
-
-  // AI 브리핑은 새벽 배치(/internal/warmup)에서만 생성한다 — 화면에는 재생성 버튼을
-  // 두지 않는다(사용자가 직접 Gemini 호출을 트리거하지 못하게).
+  // AI 브리핑은 보통 새벽 배치(/internal/warmup)가 만들어 둔다. 화면에는 재생성 버튼을
+  // 두지 않는다(사용자가 원할 때마다 Gemini 호출을 트리거하지 못하게) — 배치 전 첫 조회면
+  // 서버가 한 번 생성할 수 있지만 중복 호출·시도 상한은 서버에서 관리한다.
   function fetchDigest() {
-    fetch("/api/issuance/digest")
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; }); })
+    window.KSFC.get("/api/issuance/digest")
       .then(function (d) {
         var mo = document.getElementById("iss-month");
         if (mo) mo.textContent = "— " + (d.month_label || "");

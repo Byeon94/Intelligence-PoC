@@ -1,0 +1,6 @@
+/* 자본시장 탭 전용 스타일(공용 토큰·차트·KPI는 main/static/style.css). */
+
+/* 데스크톱에서 추이 차트가 과도하게 커져 눈금·글씨가 벌어지는 것 방지 */
+@media (min-width: 720px) {
+  #capital-root .chart-wrap { max-width: 520px; }
+}

@@ -4,20 +4,20 @@
 최근 5거래일 누적 등락률·52주 최고/최저 대비 위치까지 텍스트로 정리해 Gemini에 넘기고,
 Gemini는 그 수치 안에서만 근거를 찾아 문장으로 풀어쓴다(새 수치를 지어내지 않음).
 
-main/app.py 의 새벽 배치(/internal/warmup)가 전영업일 마감 수치를 기준으로 하루 1회
-생성해 스냅샷으로 캐시한다(policy/briefing.py, research/curate.py와 같은
-read-modify-write 패턴). 배치가 아직 못 돌았다면 첫 방문자 요청 때 그때그때 생성한다.
+main/app.py 의 새벽 배치(/internal/warmup, 00:01)가 만들고 07:00 아침 배치가 미국 장 마감 후 다시
+생성해 market_briefing_snapshots 에 저장한다. 배치가 아직 못 돌았다면 첫 요청(홈) 때
+생성한다 — table_lock 으로 동시 요청이 Gemini를 중복 호출하지 않고, 시도 횟수는
+try_ai 가 스냅샷당 상한(settings.ai_retries_per_snapshot) 안에서 관리한다.
 """
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
+from main.daily_snapshot import AI_CAPPED, AI_FAILED, AI_NO_KEY, parse_json_obj, table_lock, try_ai
 from main.config import get_settings
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, save_snapshot
+from main.utils import stamp, today_iso
 from research.sources import search_news
 
 from .market_snapshot import (
@@ -39,7 +39,6 @@ _RELATED_QUERIES = {
     "환율": "원달러 환율",
     "장전": "뉴욕증시 마감",
 }
-KST = ZoneInfo("Asia/Seoul")
 
 CATEGORIES = ["주식", "채권", "환율", "장전"]
 
@@ -62,10 +61,6 @@ _SYSTEM_PROMPT = (
     '- 반드시 JSON으로만 답해: {"주식": "...", "채권": "...", "환율": "...", '
     '"장전": "...", "요약": "..."}'
 )
-
-
-def _today() -> str:
-    return datetime.now(KST).date().isoformat()
 
 
 def _fmt_pct(v: float | None) -> str:
@@ -151,14 +146,7 @@ def _build_prompt(market: dict | None, gm: dict | None, mh: dict | None, gh: dic
 
 
 def _parse(text: str) -> dict:
-    t = text.strip()
-    if t.startswith("```"):
-        t = t.strip("`")
-        t = t[4:] if t[:4].lower() == "json" else t
-    a, b = t.find("{"), t.rfind("}")
-    if a < 0 or b < 0:
-        raise ValueError("JSON 응답 없음")
-    obj = json.loads(t[a : b + 1])
+    obj = parse_json_obj(text)
     sections = {k: obj[k] for k in CATEGORIES if obj.get(k)}
     summary = (obj.get("요약") or "").strip() or None
     return {"sections": sections, "summary": summary}
@@ -198,59 +186,60 @@ def _related_articles(sections: dict) -> dict:
     return out
 
 
-def _maybe_generate(payload: dict, force: bool = False) -> dict:
-    s = get_settings()
-    has = bool(payload.get("sections"))
-    cap = s.policy_max_gemini_calls_per_day
-
-    if has and not force:
-        return payload
-    if not s.gemini_api_keys:
-        if not has:
-            payload["note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다."
-        return payload
-    if payload.get("gemini_attempts", 0) >= cap:
-        if not has:
-            payload["note"] = f"AI 재시도 한도({cap}회)에 도달했습니다. 잠시 후 다시 시도해주세요."
-        return payload
-
-    payload["gemini_attempts"] = payload.get("gemini_attempts", 0) + 1
+def _fill(payload: dict) -> None:
+    """try_ai 콜백 — 시장 데이터를 모아 브리핑을 만들고, 전부 성공했을 때만 payload 에 대입."""
     market = get_market_snapshot()
     gm = get_global_market_snapshot()
     mh = get_market_history_1y()
     gh = get_global_market_history_1y()
-    try:
-        result = _generate(market, gm, mh, gh)
-        payload["sections"] = result["sections"]
-        payload["summary"] = result["summary"]
-        payload["related_articles"] = _related_articles(result["sections"])
-        payload["note"] = None
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("시장 브리핑 생성 실패: %s", exc)
-        if not has:
-            payload["note"] = "브리핑에 쓸 시장 데이터를 아직 불러오지 못했습니다."
-    return payload
+    result = _generate(market, gm, mh, gh)
+    if result is None:
+        raise ValueError("브리핑에 쓸 라이브 시장 데이터 없음")
+    related = _related_articles(result["sections"])
+    payload.update(
+        sections=result["sections"], summary=result["summary"],
+        related_articles=related, note=None, generated_at=stamp(),
+    )
+
+
+def _maybe_generate(payload: dict, force: bool = False) -> None:
+    has = bool(payload.get("sections"))
+    if has and not force:
+        return
+    status = try_ai(payload, _fill, "시장 브리핑")
+    if has:
+        return   # 재생성 실패여도 기존 브리핑을 그대로 보여준다
+    if status == AI_NO_KEY:
+        payload["note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다."
+    elif status == AI_CAPPED:
+        cap = get_settings().ai_retries_per_snapshot
+        payload["note"] = f"AI 재시도 한도({cap}회)에 도달했습니다. 잠시 후 다시 시도해주세요."
+    elif status == AI_FAILED:
+        payload["note"] = "브리핑에 쓸 시장 데이터를 아직 불러오지 못했습니다."
 
 
 def get_market_briefing(force: bool = False) -> dict:
-    today = _today()
-    snap = get_snapshot(_TABLE, today)
-    if snap is not None:
-        before = (snap.get("sections"), snap.get("gemini_attempts", 0))
-        snap = _maybe_generate(snap, force=force)
-        if (snap.get("sections"), snap.get("gemini_attempts", 0)) != before:
+    """force=True(07:00 아침 배치)면 브리핑을 다시 생성한다 — 00:01 배치 시점엔 미국 장이
+    아직 열려 있어 '장전' 수치가 마감값이 아니기 때문. 재생성이 실패하면 기존 브리핑을 유지한다."""
+    today = today_iso()
+    with table_lock(_TABLE):
+        snap = get_snapshot(_TABLE, today)
+        if snap is None:
+            snap = {
+                "date": today,
+                "generated_at": stamp(),
+                "sections": None,
+                "summary": None,
+                "related_articles": None,
+                "note": None,
+                "gemini_attempts": 0,
+            }
+            cached = False
+            before = None   # 새 스냅샷은 무조건 저장
+        else:
+            cached = not force
+            before = (snap.get("sections"), snap.get("gemini_attempts", 0), snap.get("note"))
+        _maybe_generate(snap, force=force)
+        if (snap.get("sections"), snap.get("gemini_attempts", 0), snap.get("note")) != before:
             save_snapshot(_TABLE, today, snap)
-        return {**snap, "cached": not force}
-
-    payload = {
-        "date": today,
-        "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
-        "sections": None,
-        "summary": None,
-        "related_articles": None,
-        "note": None,
-        "gemini_attempts": 0,
-    }
-    payload = _maybe_generate(payload)
-    save_snapshot(_TABLE, today, payload)
-    return {**payload, "cached": False}
+    return {**snap, "cached": cached}

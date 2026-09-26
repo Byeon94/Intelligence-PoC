@@ -214,10 +214,6 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .intro-list { list-style: none; padding: 0; font-size: .85rem; }
 .intro-list li { padding: 7px 2px; border-bottom: 1px solid var(--border2); }
 .intro-list li:last-child { border-bottom: none; }
-.soon-tag {
-  display: inline-block; font-size: .68rem; font-weight: 700; color: var(--muted);
-  border: 1px solid var(--border); border-radius: 20px; padding: 1px 8px; vertical-align: middle;
-}
 .api-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
 .api-table th, .api-table td {
   text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border2); vertical-align: top;
@@ -229,7 +225,6 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .placeholder-card { text-align: center; padding: 56px 20px; }
 .placeholder-emoji { font-size: 2.4rem; margin-bottom: 6px; }
 .placeholder-card h2 { font-size: 1.15rem; margin-bottom: 6px; }
-.placeholder-card .soon-tag { margin-top: 12px; }
 
 /* ── 하위 탭 ── */
 .subtabs {
@@ -301,15 +296,9 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .chart-loading, .chart-error { color: var(--muted); font-size: .82rem; padding: 24px 4px; text-align: center; }
 .chart-error { color: var(--down); }
 
-/* 데스크톱에서 추이 차트가 과도하게 커져 눈금·글씨가 벌어지는 것 방지 */
-@media (min-width: 720px) {
-  #capital-root .chart-wrap { max-width: 520px; }
-}
 
 .gridline { stroke: var(--border2); stroke-width: 1; }
 .axis-label { fill: var(--muted); font-size: 9px; }
-.bar-a { fill: var(--c1); }
-.bar-b { fill: var(--c2); }
 
 /* ── 도넛 ── */
 .donut-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
@@ -323,11 +312,6 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .donut-legend .dl .dl-val { font-weight: 700; }
 .donut-legend .dl .dl-bal { color: var(--muted); font-size: .74rem; min-width: 62px; text-align: right; }
 
-/* ── 증권대차 탭 ── */
-.lend-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 14px; box-shadow: var(--shadow); overflow-x: auto;
-}
 
 /* ── 표 ── */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
@@ -351,7 +335,7 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .rate-table .rank { color: var(--muted); font-size: .74rem; }
 .rate-table .dash { color: var(--muted); }
 
-/* ── 정책·규제 ── */
+/* ── 정책·규제 / 뉴스 상단 요약 줄 ── */
 .pol-summary {
   font-size: .8rem; color: var(--muted); line-height: 1.6;
   background: var(--card2); border: 1px solid var(--border);
@@ -368,13 +352,6 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .brief-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .brief-card .brief-label { font-size: .82rem; font-weight: 800; color: var(--accent); }
 .brief-when { font-size: .72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
-.brief-regen {
-  background: var(--card); border: 1px solid var(--border); color: var(--fg);
-  border-radius: 8px; padding: 4px 10px; font-size: .74rem; font-weight: 700; cursor: pointer;
-  white-space: nowrap;
-}
-.brief-regen:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-.brief-regen:disabled { opacity: .55; cursor: default; }
 
 .brief-list { list-style: none; margin: 0; padding: 0; }
 .brief-list li { display: flex; gap: 9px; padding: 8px 0; font-size: .88rem; line-height: 1.62; }
@@ -398,157 +375,15 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 .brief-more-btn:hover { border-color: var(--accent); }
 
-#pol-groups { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
-.pol-group {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
-  box-shadow: var(--shadow);
-}
-.pg-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+/* 공용 라벨 배지(정책 기관명·여신 리드 구분 등) */
 .pg-badge {
   font-size: .68rem; font-weight: 800; color: var(--accent); background: var(--accent-bg);
   border: 1px solid var(--border); border-radius: 5px; padding: 2px 7px;
 }
 /* IPO 리드는 유상증자(기본 파란색)와 구분되게 빨간색으로 */
 .pg-badge.badge-ipo { color: var(--down); background: rgba(220,38,38,.08); border-color: var(--down); }
-.pg-name { font-size: .84rem; font-weight: 700; }
-.pol-item {
-  display: block; text-decoration: none; color: inherit;
-  padding: 9px 0; border-top: 1px solid var(--border2);
-}
-.pol-item:first-of-type { border-top: none; }
-.pol-item:hover .pi-title { color: var(--accent); }
-.pi-top { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
-.pi-date { font-size: .72rem; color: var(--muted); }
-.pi-dept {
-  font-size: .68rem; color: var(--muted); border: 1px solid var(--border2);
-  border-radius: 4px; padding: 0 5px; max-width: 55%; overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap;
-}
-.pi-title { font-size: .84rem; font-weight: 600; line-height: 1.45; }
 
-@media (max-width: 640px) {
-  #pol-groups { grid-template-columns: 1fr; }
-}
-
-/* ── 발행시장 캘린더 ── */
-.cal-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
-.cal-legend .cl-item { display: flex; align-items: center; gap: 6px; font-size: .76rem; color: var(--muted); }
-.cal-legend .cl-item i { width: 10px; height: 10px; border-radius: 3px; }
-
-.cal-grid {
-  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 10px; box-shadow: var(--shadow); overflow-x: auto;
-}
-.cal-dow { text-align: center; font-size: .72rem; font-weight: 700; color: var(--muted); padding: 4px 0; }
-.cal-dow.cal-sun { color: var(--down); }
-.cal-dow.cal-sat { color: var(--accent); }
-.cal-day {
-  min-height: 78px; border: 1px solid var(--border2); border-radius: 8px;
-  padding: 4px 5px; background: var(--card2); display: flex; flex-direction: column; gap: 3px;
-}
-.cal-day.cal-empty { background: transparent; border-color: transparent; }
-.cal-num { font-size: .72rem; color: var(--muted); }
-.cal-day.cal-sun .cal-num { color: var(--down); }
-.cal-day.cal-sat .cal-num { color: var(--accent); }
-.cal-ev {
-  display: block; font-size: .68rem; line-height: 1.3; color: var(--fg);
-  background: var(--card); border: 1px solid var(--border2); border-left: 3px solid var(--muted);
-  border-radius: 4px; padding: 2px 4px; text-decoration: none;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.cal-ev:hover { border-color: var(--accent); }
-.cal-ev .ce-t { color: var(--muted); font-size: .62rem; }
-
-@media (max-width: 640px) {
-  .cal-grid { padding: 6px; gap: 2px; }
-  .cal-day { min-height: 58px; padding: 3px; }
-  .cal-ev { font-size: .6rem; }
-  .cal-ev .ce-t { display: none; }
-}
-
-/* ── 뉴스 피드 ── 키워드 칩을 탭처럼 써서, 누른 태그의 기사만 그리드로
-   보여준다(기본은 "전체" — 모든 태그 그룹을 순서대로, 각 그룹 안은 그리드). 예전엔
-   태그 그룹을 전부 세로로 쌓아 칩을 누르면 그 위치로 스크롤만 했는데, 그러면 아래
-   태그를 보려고 계속 스크롤해야 했다. */
-.ni-keyword-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.ni-kw-chip {
-  display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
-  font-size: .78rem; font-weight: 700; color: var(--accent);
-  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 999px;
-  padding: 5px 12px; cursor: pointer;
-}
-.ni-kw-chip:hover { border-color: var(--accent); }
-.ni-kw-chip.active { color: #fff; background: var(--accent); border-color: var(--accent); }
-.ni-kw-chip.active .ni-kw-chip-n { color: rgba(255,255,255,.85); }
-.ni-kw-chip-n { font-size: .7rem; color: var(--muted); }
-#rs-feed { display: flex; flex-direction: column; gap: 20px; }
-.ni-group-head {
-  display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
-  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
-}
-.ni-group-tag { font-size: .9rem; font-weight: 800; color: var(--fg); }
-.ni-group-count { font-size: .74rem; color: var(--muted); }
-.ni-group-items {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
-}
-.news-item {
-  display: flex; gap: 12px; text-decoration: none; color: inherit;
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
-  box-shadow: var(--shadow);
-}
-.news-item:hover { border-color: var(--accent); }
-.news-item:hover .ni-title { color: var(--accent); }
-.ni-rank {
-  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px;
-  background: var(--accent-bg); color: var(--accent); font-size: .78rem; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-}
-.ni-body { flex: 1; min-width: 0; }
-.ni-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.ni-date { font-size: .7rem; color: var(--muted); }
-.ni-title { font-size: .88rem; font-weight: 600; line-height: 1.45; }
-.ni-reason { font-size: .78rem; color: var(--muted); margin-top: 4px; line-height: 1.55; }
-
-/* ── 여신 > 기업분석 ── */
-.eq-search { position: relative; display: flex; gap: 8px; margin-bottom: 14px; }
-.eq-search input {
-  flex: 1; min-width: 0; padding: 10px 12px; font-size: .9rem; color: var(--fg);
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-}
-.eq-search > button {
-  padding: 0 16px; font-size: .85rem; font-weight: 700; color: #fff; cursor: pointer;
-  background: var(--accent); border: none; border-radius: 10px; white-space: nowrap;
-}
-.eq-suggest {
-  position: absolute; top: 46px; left: 0; right: 0; z-index: 20;
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-  box-shadow: var(--shadow); overflow-y: auto; max-height: 320px;
-}
-.eq-sug {
-  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
-  padding: 10px 12px; background: none; border: none; cursor: pointer; color: var(--fg);
-  border-bottom: 1px solid var(--border2); font-size: .86rem;
-}
-.eq-sug:last-child { border-bottom: none; }
-.eq-sug:hover { background: var(--accent-bg); }
-.eq-sug-mkt { margin-left: auto; font-size: .7rem; color: var(--muted); }
-
-.eq-current { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 14px; }
-.eq-current .eq-name { font-size: 1.1rem; font-weight: 800; }
-.eq-current .eq-code { color: var(--muted); font-size: .8rem; }
-.eq-tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.eq-mkt {
-  font-size: .68rem; font-weight: 700; color: var(--accent);
-  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 7px;
-}
-.eq-sector {
-  font-size: .7rem; font-weight: 600; color: var(--fg);
-  background: var(--card2); border: 1px solid var(--border2); border-radius: 5px; padding: 1px 7px;
-}
-.eq-meta { font-size: .72rem; color: var(--muted); }
-.eq-empty { color: var(--muted); font-size: .85rem; padding: 40px 4px; text-align: center; }
-
+/* ── 기준일 안내(!) 팝업 · 등락 색 ── */
 .asof-info {
   display: inline-flex; align-items: center; justify-content: center;
   width: 15px; height: 15px; margin-left: 5px; padding: 0; vertical-align: middle;
@@ -565,61 +400,7 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .k-up { color: var(--stock-up); font-weight: 700; }
 .k-dn { color: var(--stock-down); font-weight: 700; }
 
-/* 기초정보 KPI: 금액·주식수가 길어서 종가/시총/거래대금/거래량/상장주식수만 조금 작게 */
-#eq-kpis .k-value { font-size: 1.2rem; }
-@media (min-width: 720px) { #eq-kpis .k-value { font-size: 1.35rem; } }
-
-/* 주요 지표 (PER·PBR·PSR) */
-.val-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-.val-box {
-  display: flex; flex-direction: column; gap: 3px; padding: 10px 12px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-}
-.val-k { font-size: .7rem; font-weight: 700; color: var(--muted); }
-.val-v { font-size: 1.15rem; font-weight: 800; }
-
-/* 재무요약 표 — 분기 컬럼 + 연도 컬럼 */
-.fin-table th.yr, .fin-table td.yr { background: var(--card2); }
-.fin-table th.yr-start, .fin-table td.yr-start { border-left: 2px solid var(--border); }
-
-/* 좌측 '구분' 열 고정 — 가로 스크롤 시 값이 겹쳐 보이지 않게 불투명 배경 + z-index */
-.fin-table th:first-child, .fin-table td:first-child {
-  background: var(--card); z-index: 1;
-}
-.fin-table thead th { z-index: 2; }
-.fin-table thead th:first-child { z-index: 3; background: var(--card2); }
-
-/* 손익 / 재무상태 그룹 색 구분 + ROE 강조 (틴트는 고정열 제외한 셀에만) */
-.fin-table tbody td:first-child { border-left: 3px solid transparent; }
-.fin-table tr.g-pl  td:not(.yr):not(:first-child) { background: rgba(47, 111, 237, .07); }
-.fin-table tr.g-bs  td:not(.yr):not(:first-child) { background: rgba(18, 161, 80, .08); }
-.fin-table tr.g-pl  td.yr { background: rgba(47, 111, 237, .06); }
-.fin-table tr.g-bs  td.yr { background: rgba(18, 161, 80, .07); }
-.fin-table tr.g-pl  td:first-child { border-left-color: var(--c1); }
-.fin-table tr.g-bs  td:first-child { border-left-color: var(--c3); }
-.fin-table tr.g-bs.g-start td { border-top: 2px solid var(--border); }
-.fin-table tr.g-roe td { font-weight: 700; border-top: 2px solid var(--border); }
-.fin-table tr.g-roe td:not(:first-child) { background: rgba(220, 38, 38, .09); }
-.fin-table tr.g-roe td:first-child { color: var(--down); border-left-color: var(--down); }
-
-/* 실적분석 차트 그리드 */
-.perf-grid { display: grid; gap: 14px; }
-.perf-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 12px 14px; overflow: hidden;
-}
-.perf-card h4 { font-size: .82rem; font-weight: 700; margin-bottom: 6px; }
-.perf-card .chart-wrap {
-  border: none; padding: 0; background: none;
-  max-width: 460px; margin: 0 auto;
-}
-/* 라벨이 카드 밖으로 튀지 않도록: 크게 확대되는 데스크톱에서 폰트·오버플로 억제 */
-.perf-card .chart-wrap svg { overflow: hidden; }
-.perf-card .axis-label { font-size: 9px; }
-.perf-card .chart-legend { font-size: .72rem; }
-
-/* 공시 목록 (DART) */
-.fil-head { flex-wrap: wrap; gap: 8px 12px; }
+/* ── 주요 버튼 ── */
 .dart-btn {
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   padding: 7px 14px; border-radius: 999px;
@@ -629,65 +410,8 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 .dart-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .dart-btn:active { transform: translateY(0); filter: brightness(.96); }
-.dart-btn-ico { font-size: .9em; opacity: .9; }
-.fil-meta { font-size: .72rem; color: var(--muted); margin: 4px 0 12px; }
-.fil-hint { margin-left: 4px; }
 
-.fil-list {
-  display: flex; flex-direction: column;
-  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
-}
-.fil-row {
-  display: grid; grid-template-columns: 92px 1fr auto 14px; align-items: center; gap: 10px;
-  padding: 11px 14px; border-bottom: 1px solid var(--border2);
-  color: var(--fg); text-decoration: none; font-size: .84rem;
-}
-.fil-row:last-child { border-bottom: none; }
-.fil-row:hover { background: var(--accent-bg); }
-.fil-date { color: var(--muted); font-size: .74rem; white-space: nowrap; }
-.fil-title { font-weight: 600; line-height: 1.4; }
-.fil-tag {
-  font-size: .62rem; font-weight: 700; color: var(--muted); white-space: nowrap;
-  border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; vertical-align: 1px;
-}
-.fil-filer {
-  color: var(--muted); font-size: .74rem; white-space: nowrap;
-  max-width: 130px; overflow: hidden; text-overflow: ellipsis;
-}
-.fil-go { color: var(--muted); font-size: .8rem; }
-@media (max-width: 560px) {
-  .fil-row { grid-template-columns: 1fr auto; row-gap: 2px; }
-  .fil-date { grid-column: 1; grid-row: 1; }
-  .fil-filer { grid-column: 2; grid-row: 1; text-align: right; max-width: 45vw; }
-  .fil-title { grid-column: 1 / -1; grid-row: 2; }
-  .fil-go { display: none; }
-}
-
-/* 여신 메인: 담보대출·우리사주 리드 레이더 */
-.lead-row {
-  display: block; text-decoration: none; color: inherit;
-  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-  border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
-}
-.lead-row:hover { background: var(--accent-bg); }
-.lead-row-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-.lead-title { font-weight: 700; font-size: .86rem; }
-.lead-date { font-size: .72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
-.lead-note { font-size: .8rem; color: var(--muted); line-height: 1.5; }
-.leads-scope-note { margin-top: 4px; }
-.esop-monthly {
-  display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px;
-  border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--card2);
-}
-.esop-month-row { display: flex; justify-content: space-between; font-size: .82rem; }
-.esop-month-label { font-weight: 700; }
-.esop-month-count { color: var(--muted); }
-
-.lead-sub-head {
-  font-size: .88rem; font-weight: 800; color: var(--fg); margin: 20px 0 8px;
-  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
-}
-.lead-sub-head:first-of-type { margin-top: 8px; }
+/* 더보기 버튼(여신 리드 목록, /sector 업종 순위 공용) */
 .lead-more-btn {
   display: block; width: 100%; margin: 2px 0 16px; padding: 9px; border-radius: 10px;
   border: 1px dashed var(--border); background: var(--card2); color: var(--muted);
@@ -695,502 +419,24 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 .lead-more-btn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
 
-/* 여신 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
-.credit #leads-subtabs { margin-bottom: 20px; }
-.credit .kpi-grid { gap: 14px; margin-bottom: 24px; }
-/* 카드 수가 많아(4개) 기본 크기로는 과하게 커 보여서 여신 탭에서만 살짝 축소 */
-.credit .kpi { padding: 10px 12px; }
-.credit .kpi .k-label { font-size: .7rem; margin-bottom: 4px; }
-.credit .kpi .k-value { font-size: 1.15rem; }
-.credit .kpi .k-sub, .credit .kpi .k-delta { font-size: .7rem; margin-top: 3px; }
-.credit .leads-asof { margin-bottom: 14px; }
-.credit .block { margin-bottom: 30px; }
-.credit .block-head { margin-bottom: 14px; }
-.credit .lead-row { margin-bottom: 14px; padding: 14px 16px; }
-.credit .lead-row-head { margin-bottom: 8px; }
-.credit .brief-card { margin-bottom: 14px; }
-.credit .brief-card:last-child { margin-bottom: 0; }
-.credit .brief-list li { padding: 5px 0; line-height: 1.45; }
-.credit .brief-head { margin-bottom: 8px; }
-
-/* 리포트: 컨센서스 요약 카드 — 값 글씨 축소 */
-#eq-rpt-kpis .k-value { font-size: 1.05rem; }
-@media (min-width: 720px) { #eq-rpt-kpis .k-value { font-size: 1.15rem; } }
-#eq-rpt-basis { margin-top: 10px; }
-/* 헤더의 긴 집계 문구가 h3 를 밀지 않게 (모바일에서 다음 줄로) */
-#eq-rpt-con-block .block-head { flex-wrap: wrap; gap: 2px 10px; }
-#eq-rpt-asof { white-space: normal; }
-
-/* 증권사 리포트 목록 */
-.rpt-list {
-  display: flex; flex-direction: column;
-  border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
-}
-.rpt-row {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  padding: 11px 14px; border-bottom: 1px solid var(--border2); font-size: .84rem;
-}
-.rpt-row:last-child { border-bottom: none; }
-.rpt-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.rpt-date { color: var(--muted); font-size: .72rem; }
-.rpt-title { font-weight: 600; line-height: 1.4; color: var(--fg); text-decoration: none; }
-a.rpt-title:hover { color: var(--accent); text-decoration: underline; }
-.rpt-meta { color: var(--muted); font-size: .74rem; }
-.rpt-side {
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap;
-}
-.rpt-tp { font-weight: 800; font-size: .9rem; }
-.rpt-op {
-  font-size: .66rem; font-weight: 700; color: var(--accent);
-  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px;
-}
-.chg { font-size: .68rem; font-weight: 700; }
-.chg.up { color: var(--up); }
-.chg.down { color: var(--down); }
-.chg.flat { color: var(--muted); }
-.chg.new { color: var(--c5); }
-@media (max-width: 560px) {
-  .rpt-row { flex-direction: column; gap: 6px; }
-  .rpt-side { align-self: flex-start; }
-}
-
-.range-list { display: grid; gap: 14px; }
-.range-row {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
-}
-.range-top { display: flex; align-items: center; gap: 8px; font-size: .78rem; margin-bottom: 9px; }
-.range-k { font-weight: 700; }
-.range-lo { color: var(--accent); }
-.range-hi { color: var(--down); margin-left: auto; }
-.range-bar {
-  position: relative; height: 6px; border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--c2), var(--down));
-}
-.range-bar i {
-  position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
-  background: var(--fg); border: 2px solid var(--card); transform: translate(-50%, -50%);
-}
-.range-cur { font-size: .72rem; color: var(--muted); margin-top: 7px; text-align: center; }
-
 /* ── 데스크톱 ── */
 @media (min-width: 720px) {
   .kpi-grid { grid-template-columns: repeat(4, 1fr); }
   .kpi .k-value { font-size: 1.7rem; }
   .intro-card h2 { font-size: 1.35rem; }
-  .range-list { grid-template-columns: repeat(3, 1fr); }
-  .perf-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (min-width: 900px) {
   .donut-wrap .donut-svg { flex-basis: 180px; max-width: 180px; }
 }
 
-/* ── 홈 대시보드 ── */
-.home-root .block { margin-bottom: 14px; }
-.home-brief-more { margin-top: 10px; padding: 6px 13px; font-size: .74rem; }
-.home-empty-widgets { text-align: center; padding: 20px 10px; }
-.home-empty-widgets .dart-btn { margin-top: 10px; }
-
-/* ── 오늘의 브리핑: 인사말 ── */
-.brief-greet { margin-bottom: 18px; }
-.brief-eyebrow {
-  font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--accent); margin-bottom: 6px;
-}
-.brief-greet h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; letter-spacing: -.01em; }
-.brief-greet-time { display: block; color: var(--muted); font-size: .74rem; margin-top: 8px; }
-
-/* ── 오늘의 브리핑 / 시장 한눈에: 데스크톱에서는 나란히, 좁은 화면에서는 세로로 쌓인다.
-   "오늘의 핵심"이 더 넓게(1.6fr), "시장 한눈에"는 옆에서 보조하는 폭(1fr)으로. ── */
-.brief-main-grid { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; margin-bottom: 22px; }
-@media (min-width: 900px) {
-  .brief-main-grid { grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); }
-}
-.brief-main-grid .block { margin-bottom: 0; }
-.brief-block-sub { margin: -4px 0 12px; }
-
-/* ── 오늘의 핵심: AI가 먼저 걸러준 최대 3건만(뉴스 feed처럼 보이지 않도록). .hl-card
-   는 kind에 따라 <a>(정책·뉴스, 외부 링크) 또는 .hl-card-btn(<div data-work>, 알림 —
-   클릭 시 해당 화면으로 이동)로 렌더된다. rank 1(.hl-card-primary)은 크게 + "왜
-   중요한가?" 박스를, 2·3(.hl-card-compact)은 작게 + 한 줄 이유만 보여줘 hierarchy를
-   만든다. ── */
-.hl-card {
-  display: flex; gap: 12px; width: 100%; text-align: left; text-decoration: none; color: inherit;
-  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
-  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
-  font: inherit; cursor: pointer;
-}
-.hl-card:last-child { margin-bottom: 0; }
-.hl-card:hover { border-color: var(--accent); }
-.hl-no { flex: 0 0 auto; font-size: 1.3rem; font-weight: 800; color: var(--muted); letter-spacing: -.02em; }
-.hl-card-primary .hl-no { font-size: 1.7rem; color: var(--accent); }
-.hl-card-compact { padding: 11px 16px; }
-.hl-card-compact .hl-title { margin-bottom: 0; font-size: .86rem; }
-.hl-body { flex: 1; min-width: 0; }
-.hl-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.hl-cat {
-  font-size: .7rem; font-weight: 700; color: var(--accent);
-  background: var(--accent-bg); border-radius: 5px; padding: 2px 8px;
-}
-.hl-badge {
-  font-size: .64rem; font-weight: 800; color: #fff; background: var(--down);
-  border-radius: 5px; padding: 2px 7px; letter-spacing: .02em;
-}
-.hl-date { margin-left: auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
-.hl-title { font-size: 1rem; font-weight: 700; line-height: 1.45; margin-bottom: 8px; }
-.hl-reason {
-  font-size: .8rem; color: var(--fg); line-height: 1.55; background: var(--accent-bg);
-  border-radius: 8px; padding: 8px 10px;
-  /* 시장 브리핑 카드는 주식/채권/환율/장전을 한 줄씩(개행 포함) 넘겨준다 — 한 문단으로
-     길게 붙어 보이지 않도록 실제 줄바꿈을 그대로 살린다(다른 카드의 reason은 원래도
-     한 줄짜리 텍스트라 영향 없음). */
-  white-space: pre-line;
-}
-.hl-reason-label {
-  display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
-}
-.hl-reason-sm { font-size: .76rem; color: var(--muted); margin-top: 3px; line-height: 1.5; }
-
-/* 모바일 화면에서는 1번 카드(.hl-card-primary)의 큰 순번·제목·"왜 중요한가?" 박스가
-   유독 커 보인다는 피드백에 따라, 오늘의 핵심 전체를 한 단계씩 줄인다. */
-@media (max-width: 880px) {
-  .hl-card { gap: 10px; padding: 11px 13px; }
-  .hl-no { font-size: 1.05rem; }
-  .hl-card-primary .hl-no { font-size: 1.35rem; }
-  .hl-card-compact { padding: 9px 13px; }
-  .hl-title { font-size: .92rem; }
-  .hl-card-compact .hl-title { font-size: .82rem; }
-  .hl-reason { font-size: .76rem; padding: 7px 9px; }
-}
-
-/* ── 오늘의 시장 한눈에 ── 국내(코스피·코스닥)·해외(다우·나스닥·S&P500) 지수를 탭
-   전환 없이 한 그리드에 같이 보여주고, 환율은 그 아래 별도 줄로 붙인다. */
-.mkt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-/* 카드가 3개 이상이라 좁은 화면에선 2열로 접었다가 넓어지면 3열로 */
-.mkt-grid-3 { grid-template-columns: repeat(2, 1fr); }
-.mkt-grid-3 .mkt-idx-value { font-size: 1.05rem; }
-@media (min-width: 480px) {
-  .mkt-grid-3 { grid-template-columns: repeat(3, 1fr); }
-}
-.mkt-idx {
-  background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
-}
-.mkt-idx-name { font-size: .74rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
-.mkt-idx-value { font-size: 1.3rem; font-weight: 800; letter-spacing: -.01em; }
-.mkt-idx-chg { font-size: .8rem; font-weight: 700; margin-top: 3px; }
-.mkt-idx-spark { height: 22px; margin-top: 6px; }
-.mkt-idx-spark svg, .sparkline-svg { width: 100%; height: 100%; display: block; }
-.mkt-sub-label { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 4px 0 8px; }
-.mkt-asof { margin: -4px 0 12px; }
-.mkt-asof-inline { position: relative; }
-
-/* ── 오늘의 시장 브리핑 — AI가 주식/채권/환율/장전 4개 카테고리로 하루 1회 요약 ── */
-.mb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media (max-width: 520px) { .mb-grid { grid-template-columns: 1fr; } }
-.mb-item {
-  background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
-  /* 그리드 아이템의 기본 min-width는 auto(내용 기준)라, 안의 .mb-item-link가
-     white-space:nowrap 한 줄 텍스트라 그 실제 폭만큼 트랙이 늘어나 모바일에서
-     화면 밖으로 옆으로 밀려나 보였다 — 0으로 낮춰 grid-template-columns의 1fr대로
-     줄어들 수 있게 한다(overflow:hidden 말줄임이 실제로 동작하려면 필요). */
-  min-width: 0;
-}
-.mb-item-head { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-.mb-item-icon { font-size: .9rem; }
-.mb-item-label { font-size: .78rem; font-weight: 800; color: var(--muted); }
-.mb-item-text { font-size: .86rem; line-height: 1.5; }
-/* 카테고리별 "관련 기사" 1건 — 카드 하단에 한 줄로, 길면 말줄임(카드 높이를 늘리지
-   않기 위함. 전체 제목은 타이틀 툴팁으로). */
-.mb-item-link {
-  display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border2);
-  font-size: .76rem; font-weight: 600; color: var(--muted); text-decoration: none;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.mb-item-link:hover { color: var(--accent); }
-
-/* ── 오늘의 주요뉴스(오늘의 브리핑 화면 전용 — 전체 목록은 뉴스 탭) ──
-   태그·날짜를 제목과 한 줄에 나란히 두면 제목 칸이 좁아져 줄바꿈이 잦았다.
-   태그+날짜를 위 메타줄로 분리해 제목이 카드 전체 너비를 쓰게 한다. */
-.brief-news-item {
-  display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit;
-  padding: 10px 4px; border-bottom: 1px solid var(--border2);
-}
-.brief-news-item:last-child { border-bottom: none; }
-.brief-news-item:hover .bni-title { color: var(--accent); }
-.bni-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.bni-tag {
-  flex: 0 0 auto; font-size: .68rem; font-weight: 700; color: var(--accent);
-  background: var(--accent-bg); border-radius: 5px; padding: 2px 7px;
-}
-.bni-title { font-size: .86rem; font-weight: 600; line-height: 1.4; }
-.bni-date { flex: 0 0 auto; font-size: .72rem; color: var(--muted); white-space: nowrap; }
-
-/* ── 전사 갤러리 / 홈의 "내가 고른 위젯" 공용 카드 그리드 ── */
-.gallery-back-btn { margin-bottom: 12px; }
-.gallery-intro { margin: -6px 0 14px; }
-/* "나의 대시보드" 제목 + "+ 위젯 추가"/"AI가 추천하기" 버튼이 좁은 화면에서 줄바꿈되게 */
-.gallery-root .block-head { flex-wrap: wrap; gap: 6px 10px; }
-.pd-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-/* 나의 대시보드에 위젯을 여러 개 담았을 때, 제목 칩을 눌러 해당 카드로 바로 스크롤 */
-.pd-jump-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.pd-jump-chip {
-  display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
-  font-size: .8rem; font-weight: 700; color: var(--fg); font-family: inherit;
-  background: var(--card2); border: 1px solid var(--border); border-radius: 999px;
-  padding: 7px 14px; cursor: pointer;
-}
-.pd-jump-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-.pd-jump-chip.active { color: #fff; background: var(--accent); border-color: var(--accent); }
-
-/* ── 위젯 추가 / AI가 추천하기 모달(오른쪽에서 열리는 시트) ── */
-.wa-modal { position: fixed; inset: 0; z-index: 100; }
-.wa-backdrop { position: absolute; inset: 0; background: rgba(15,20,32,.5); }
-.wa-sheet {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 100%; max-width: 480px;
-  background: var(--bg); box-shadow: -8px 0 24px rgba(16,24,40,.18);
-  display: flex; flex-direction: column; padding: 18px; overflow-y: auto;
-}
-@media (min-width: 640px) {
-  .wa-sheet { top: 5vh; bottom: 5vh; right: 5vw; border-radius: 16px; max-height: 90vh; }
-}
-.wa-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
-.wa-head h3 { font-size: 1.05rem; }
-.wa-close {
-  background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer;
-  width: 32px; height: 32px; border-radius: 8px; flex: 0 0 auto;
-}
-.wa-close:hover { background: var(--card2); color: var(--fg); }
-.wa-search {
-  width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
-  background: var(--card2); color: var(--fg); font-size: .86rem; margin-bottom: 14px;
-}
-.wa-body { flex: 1; overflow-y: auto; }
-.wa-group { margin-bottom: 18px; }
-.wa-group:last-child { margin-bottom: 0; }
-.wa-group-title { font-size: .82rem; font-weight: 800; color: var(--muted); margin-bottom: 8px; }
-
-.ai-role-options { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-.ai-role-opt {
-  display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; font-weight: 600;
-  border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; cursor: pointer;
-}
-.ai-role-opt:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
-.ai-result-list { list-style: none; padding: 0; margin: 10px 0 16px; display: flex; flex-direction: column; gap: 8px; }
-.ai-result-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px 8px 12px;
-}
-.ai-result-name { font-size: .86rem; font-weight: 600; }
-.ai-result-add { flex: 0 0 auto; }
-.gal-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
-/* "나의 대시보드"는 위젯을 한 번에 하나씩만 보여주며 .gal-card를 이 anchor로 한 번 더
-   감싸는데, .gal-grid의 실제 그리드 아이템은 .gal-card가 아니라 이 anchor다.
-   - min-width:0이 없으면(그리드 아이템 기본값 min-width:auto) 표·밸류체인처럼 내용이
-     넓은 위젯(업종별 시가총액 순위 등)이 anchor를 콘텐츠 너비만큼 넓혀 페이지 전체가
-     가로로 밀려 보이는 문제가 있었다.
-   - grid-column:1/-1이 없으면(데스크톱처럼 그리드가 2~3열일 때) anchor가 한 칸에만
-     자동 배치돼, 안의 .gal-card-sector 등에 걸린 grid-column:1/-1은 그리드 아이템이
-     아닌 자손이라 적용되지 않고 위젯이 한 칸 너비로 좁게 보이는 문제가 있었다 —
-     "나의 대시보드"는 항상 anchor 하나만 보이므로 always 전체 폭을 쓰게 한다. */
-.pd-widget-anchor { min-width: 0; grid-column: 1 / -1; }
-.gal-card {
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: 15px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px;
-  min-width: 0; /* 그리드/플렉스 아이템 기본값(min-width:auto)이 내부 긴 텍스트만큼
-                   카드를 넓혀 모바일에서 가로 스크롤(=화면이 축소되어 보임)을 만드는 문제 방지 */
-}
-.gal-top { display: flex; align-items: center; justify-content: space-between; }
-.gal-emoji { font-size: 1.4rem; }
-.gal-badges { display: flex; align-items: center; gap: 6px; }
+/* ── 위젯 상태 배지(나의 대시보드 카드 · /sector 페이지 공용) ──
+   "전사 등재"(st-live) + 출처 배지(st-deptw 부서 위젯 / st-credit 제작 담당자). */
 .gal-status {
   font-size: .62rem; font-weight: 800; border-radius: 20px; padding: 2px 9px; border: 1px solid var(--border);
   white-space: nowrap;
 }
 .gal-status.st-live { color: var(--up); border-color: var(--up); }
-.gal-status.st-dept { color: var(--c2); border-color: var(--c2); }
-.gal-status.st-soon { color: var(--muted); }
 /* 부서 위젯 — "전사 등재" 옆에 함께 붙는 출처 배지, 연한 빨강으로 눈에 띄게 */
 .gal-status.st-deptw { color: var(--down); border-color: var(--down); background: rgba(220,38,38,.08); }
 /* 제작 부서/담당자 표기(예: IT부 제작) — 부서 위젯 배지 대신 파란색으로 출처를 밝힌다 */
 .gal-status.st-credit { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
-.gal-title { font-weight: 800; font-size: .95rem; }
-.gal-desc { font-size: .8rem; color: var(--muted); line-height: 1.5; flex: 1; }
-/* 내 위젯 카드 안 실데이터 미리보기 */
-.gal-mini { margin-top: 0; padding-top: 6px; border-top: 1px solid var(--border2); }
-.gal-mini-row { display: flex; gap: 14px; flex-wrap: wrap; }
-.gal-mini-item { display: flex; flex-direction: column; gap: 2px; }
-.gal-mini-item .gmi-label { font-size: .68rem; color: var(--muted); }
-.gal-mini-item .gmi-value { font-size: .95rem; font-weight: 800; }
-/* 총 건수 옆 세부 분류 괄호 — 총 건수만큼 강조할 필요가 없어 작고 가는 글씨로 낮춘다 */
-.gmi-value-sub { font-size: .72rem; font-weight: 500; color: var(--muted); }
-.gal-mini-bullets { list-style: none; padding: 0; margin: 0; font-size: .78rem; }
-.gal-mini-bullets li { padding: 2px 0; line-height: 1.42; }
-.gal-mini-bullets li::before { content: "· "; color: var(--accent); font-weight: 800; }
-.gal-mini-note { font-size: .78rem; color: var(--muted); }
-.gal-mini-stock { font-size: .82rem; font-weight: 800; margin-bottom: 6px; }
-.gal-mini-subtitle {
-  font-size: .8rem; font-weight: 800; color: var(--fg);
-  margin: 16px 0 6px; padding-top: 12px; border-top: 1px solid var(--border2);
-}
-.gal-mini-subtitle:first-child { margin-top: 0; padding-top: 0; border-top: none; }
-.gal-mini-table { width: 100%; border-collapse: collapse; font-size: .72rem; margin-top: 2px; }
-.gal-mini-table th, .gal-mini-table td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--border2); }
-.gal-mini-table th { color: var(--muted); font-weight: 700; }
-.gal-mini-table td:not(:first-child), .gal-mini-table th:not(:first-child) { text-align: right; }
-.gal-mini-week { list-style: none; padding: 0; margin: 0; font-size: .74rem; }
-.gal-mini-week li { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
-.gal-mini-week .gmw-date { color: var(--muted); flex: 0 0 40px; font-variant-numeric: tabular-nums; }
-.gal-mini-week .gmw-type {
-  flex: 0 0 auto; font-size: .64rem; font-weight: 800; color: var(--accent);
-  background: var(--accent-bg); border-radius: 5px; padding: 1px 6px;
-}
-.gal-mini-week .gmw-company { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 내 위젯 안 기업분석 검색(부서 위젯과 독립) — 카드 전체를 넓게 써서 기초정보·재무요약·
-   실적분석을 부서 위젯처럼 보여준다. */
-.gal-card-ca, .gal-card-glance { grid-column: 1 / -1; }
-.gm-ca-topsearch {
-  background: var(--accent-bg); border: 1px solid var(--accent); border-radius: 10px;
-  padding: 10px 12px; margin-bottom: 12px;
-}
-.gm-ca-topsearch-label { font-size: .7rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
-.gm-ca-search { margin-bottom: 0; }
-.gm-ca-search input { font-size: .88rem; padding: 9px 11px; background: var(--card); }
-.gm-ca-search .eq-suggest { top: 42px; max-height: 260px; }
-.gm-ca-stockhead { font-size: 1.02rem; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
-.gm-ca-range { margin: 8px 0 2px; }
-.gm-ca-range-labels { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); margin-bottom: 4px; }
-.gm-ca-range-mid { color: var(--muted); }
-.gm-ca-range-bar { position: relative; height: 6px; border-radius: 4px; background: var(--border2); }
-.gm-ca-range-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0; background: var(--accent-bg); border-radius: 4px; }
-.gm-ca-range-dot {
-  position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%;
-  background: var(--accent); border: 2px solid var(--card); transform: translate(-50%, -50%);
-}
-.gm-ca-fin th, .gm-ca-fin td { text-align: right; }
-.gm-ca-fin th:first-child, .gm-ca-fin td:first-child { text-align: left; }
-.gm-ca-charts { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 2px; }
-.gm-ca-chart-label { font-size: .7rem; color: var(--muted); margin-bottom: 4px; }
-@media (min-width: 720px) {
-  .gm-ca-charts { grid-template-columns: 1fr 1fr; }
-}
-/* 공시(내 위젯) 최신 5건 */
-.gal-mini-filings { list-style: none; padding: 0; margin: 0; font-size: .78rem; }
-.gal-mini-filings li + li { margin-top: 6px; }
-.gal-mini-filings a { display: flex; gap: 8px; color: var(--fg); text-decoration: none; }
-.gal-mini-filings a:hover { color: var(--accent); }
-.gal-mini-filings .gmf-date { color: var(--muted); flex: 0 0 76px; font-variant-numeric: tabular-nums; }
-.gal-mini-filings .gmf-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 리포트/기사(내 위젯) 최신 5건 — 카드형 리스트로 시각적 구분을 준다 */
-.gal-mini-reports {
-  list-style: none; padding: 0; margin: 0; font-size: .76rem;
-  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-  background: var(--card);
-}
-.gal-mini-reports li { border-bottom: 1px solid var(--border2); }
-.gal-mini-reports li:last-child { border-bottom: none; }
-.gal-mini-reports a {
-  display: flex; gap: 8px; align-items: flex-start; color: var(--fg); text-decoration: none;
-  padding: 8px 10px;
-}
-.gal-mini-reports a:hover { background: var(--accent-bg); color: var(--accent); }
-.gal-mini-reports .gmr-no {
-  flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent-bg); color: var(--accent); font-weight: 800; font-size: .68rem;
-  display: flex; align-items: center; justify-content: center; margin-top: 1px;
-}
-.gal-mini-reports a:hover .gmr-no { background: var(--card); }
-.gal-mini-reports .gmr-date { color: var(--muted); flex: 0 0 68px; font-variant-numeric: tabular-nums; padding-top: 1px; }
-.gal-mini-reports .gmr-broker {
-  flex: 0 0 auto; color: var(--accent); background: var(--accent-bg); border: 1px solid var(--border);
-  border-radius: 5px; padding: 1px 6px; font-size: .68rem; font-weight: 700; margin-top: 1px;
-  max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.gal-mini-reports a:hover .gmr-broker { background: var(--card); }
-/* 제목은 줄바꿈으로 전체 표시(예전엔 ...로 잘렸음) */
-.gal-mini-reports .gmr-title { flex: 1; min-width: 0; white-space: normal; word-break: break-word; line-height: 1.4; font-weight: 600; }
-.gal-mini-reports .gmr-target { flex: 0 0 auto; font-weight: 700; font-variant-numeric: tabular-nums; }
-.gal-mini-reports .gmr-chg { flex: 0 0 auto; font-weight: 800; width: 16px; text-align: center; }
-.gal-mini-reports .gmr-chg.up { color: var(--stock-up); }
-.gal-mini-reports .gmr-chg.down { color: var(--stock-down); }
-.gal-mini-reports .gmr-chg.new { color: var(--accent); }
-.gal-mini-reports .gmr-chg.flat { color: var(--muted); }
-.gal-mini-asof { text-align: right; font-size: .66rem; color: var(--muted); margin-bottom: 4px; }
-
-/* "오늘의 증권사 리포트"·"오늘의 IT·정보보호 뉴스" 위젯만 — 다른 위젯과 같은 .gal-mini-*
-   클래스를 쓰지만 글씨가 너무 작아 잘 안 보인다는 피드백이라, 이 두 위젯 안에서만
-   본문·불릿 글씨를 키운다(다른 위젯의 같은 클래스는 그대로 둠). */
-#mini-market-reports .gal-mini-bullets,
-#mini-it-news .gal-mini-bullets,
-#mini-market-reports .gal-mini-reports,
-#mini-it-news .gal-mini-reports { font-size: .88rem; }
-#mini-market-reports .gal-mini-note,
-#mini-it-news .gal-mini-note { font-size: .86rem; }
-#mini-market-reports .gmr-broker,
-#mini-it-news .gmr-broker,
-#mini-market-reports .gmr-date,
-#mini-it-news .gmr-date { font-size: .74rem; }
-.gal-mini-chart { margin-top: 8px; }
-.gal-mini-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.gal-mini-chart .chart-legend { margin-top: 6px; gap: 8px; }
-.gal-mini-chart .chart-legend .lg { font-size: .66rem; }
-.gal-mini-chart .axis-label { font-size: 8px; }
-/* CMA 유형별 점유율 도넛 — 좁은 카드에 맞춰 축소 배치 */
-.gal-mini-donut { display: flex; align-items: center; gap: 10px; margin-top: 0; }
-.gal-mini-donut .donut-svg { flex: 0 0 76px; max-width: 76px; }
-.gal-mini-donut .donut-center-v { font-size: 15px; }
-.gal-mini-donut .donut-center-l { font-size: 7px; }
-.gal-mini-donut .donut-legend { min-width: 0; flex: 1; gap: 3px; }
-.gal-mini-donut .donut-legend .dl { font-size: .68rem; gap: 5px; }
-.gal-mini-donut .donut-legend .dl-bal { display: none; }
-/* AI 브리핑 — 눈에 띄게 별도 박스로 구분 */
-.gal-mini-ai { margin-top: 9px; padding: 8px 10px; background: var(--accent-bg); border-radius: 8px; }
-.gal-mini-ai-label { font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
-.gal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-.gal-actions .dart-btn { padding: 6px 12px; font-size: .74rem; }
-.gal-toggle {
-  background: var(--accent-bg); border: 1px solid var(--accent); color: var(--accent);
-  border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
-}
-.gal-toggle:hover { filter: brightness(1.05); }
-.gal-toggle.active { color: #fff; border-color: var(--accent); background: var(--accent); }
-.gal-remove {
-  background: none; border: 1px solid var(--border); color: var(--muted);
-  border-radius: 999px; padding: 6px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
-}
-.gal-remove:hover { color: #d33; border-color: #d33; }
-
-@media (min-width: 720px) {
-  .gal-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 1000px) {
-  .gal-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-/* ── 온보딩 투어(첫 방문 시 1회) ── */
-.ob-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(9,12,22,.62); }
-.ob-spot {
-  position: fixed; z-index: 200; border-radius: 12px; pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(9,12,22,.62);
-  border: 2px solid var(--accent);
-  transition: top .22s ease, left .22s ease, width .22s ease, height .22s ease;
-}
-.ob-tooltip {
-  position: fixed; z-index: 201; background: var(--card); color: var(--fg);
-  border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.28);
-  padding: 18px; width: 300px; max-width: calc(100vw - 32px);
-  /* 센터 모달(welcome/done)은 transform:translate(-50%,-50%)로 화면 정중앙에 고정되는데,
-     내용 높이가 뷰포트보다 크면(짧은 화면) 위·아래가 화면 밖으로 밀려 잘려 보였다 —
-     세로도 뷰포트 안으로 제한하고 넘치면 팝업 안에서만 스크롤되게 한다. */
-  max-height: calc(100vh - 32px); overflow-y: auto;
-}
-.ob-tooltip.ob-centered {
-  top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 340px; max-width: calc(100vw - 32px); text-align: center; padding: 28px 24px;
-}
-.ob-tooltip-step { font-size: .72rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
-.ob-tooltip h3 { font-size: 1.05rem; margin-bottom: 8px; }
-.ob-tooltip p { font-size: .84rem; color: var(--muted); line-height: 1.55; margin-bottom: 16px; }
-.ob-tooltip-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.ob-tooltip.ob-centered .ob-tooltip-actions { flex-direction: column-reverse; }
-.ob-skip {
-  background: none; border: none; color: var(--muted); font-size: .78rem; font-weight: 600; cursor: pointer;
-}
-.ob-skip:hover { color: var(--fg); }

@@ -1,51 +1,32 @@
-"""여신 탭 메인 화면 — 증권담보대출 수요 레이더 / 우리사주 금융 수요 (실데이터).
-
-대상(증권담보대출 리드, _scan_universe): 시가총액 기준 코스피 상위 200종목 + 코스닥
-상위 100종목(equity.listed_snapshot 기준). 처음엔 상위 30종목만, 그다음 코스피만으로
-좁혀봤더니 상속·증여 이벤트 자체가 원래 드물어 리드가 거의 안 잡혀 코스피·코스닥
-전체(~2,500종목)로 확대했었는데, 종목 수만큼 DART를 호출하다 보니 수집이 수 분씩
-걸리고 opendart 쪽 남용 방지 차단까지 유발한 적이 있어(2026-09-20) 중대형주 위주로
-다시 좁혔다. 우리사주(유상증자·IPO) 리드는 corp_code 없이 시장 전체를 페이지 단위로
-훑는 방식(_esop_sweep)이라 이 종목 수 제한과 무관하다 — 특히 신규 IPO(공모) 후보는
-아직 코스피·코스닥 어느 시장에도 속하지 않아(listed_snapshot에 없음) 애초에
-_scan_universe 로는 잡을 수도 없는 대상이라, IPO 리드만큼은 처음부터 전 시장(상장
-전 회사 포함) 대상으로 스캔해야 한다. _listed_corp_codes()(우리사주 리드의 IPO/유상증자
-중복 판별용)도 _scan_universe가 아니라 listed_snapshot() 전체를 그대로 쓴다.
+"""여신 탭 메인 화면 — 증권담보대출 수요 레이더 / 우리사주 금융 수요 리드 (DART 실데이터).
 
 데이터 소스 (전부 DART OpenAPI 실데이터, 추정치 없음):
-  - 증권담보대출 수요 리드 : majorstock.json(대량보유 상황보고)의 실제 `report_resn`(보고사유)
-    필드에 '상속'·'증여'가 포함된 건만 잡는다(회사마다 조회해야 하는 API라 종목 수만큼
-    호출한다).
+  - 증권담보대출(상속·증여) 리드 : 시가총액 상위 코스피 200 + 코스닥 100종목
+    (_scan_universe, equity.listed_snapshot 기준)마다 majorstock.json(대량보유 상황보고)을
+    조회해, 실제 `report_resn`(보고사유)에 '상속'·'증여'가 포함된 건만 잡는다.
     지분가치는 (보고서상 보유주식 증감수 × 시세 스냅샷 종가)로 계산한 추정치.
-  - 우리사주 금융 수요 리드 : list.json(공시검색)을 corp_code 없이 시장 전체를 페이지
-    단위로 훑어(주요사항보고 B, 발행공시 C) 두 갈래로 분류한다.
-      · report_nm에 '유상증자'가 포함 → 이미 상장된 회사의 유상증자(코스피·코스닥 등
-        전 시장 대상 — 코스피로만 좁히면 데이터가 왜곡돼 전 시장으로 확대).
-      · report_nm에 '증권신고서(지분증권)'만 포함되고, 그 회사가 현재 상장사 목록에
-        없으면 → 아직 상장 전인 IPO(공모) 건으로 분류(상장사가 같은 서류를 내는 경우는
-        유상증자 계열로 이미 잡히므로 중복 방지 차원에서 제외).
+    한때 코스피·코스닥 전 종목(~2,500개)으로 넓혔다가 DART 호출량 때문에 수집이 수 분씩
+    걸리고 opendart 남용 방지 차단까지 유발해(2026-09-20) 중대형주 300종목으로 좁혔다.
+  - 우리사주 금융 수요 리드 : list.json(공시검색)을 corp_code 없이 시장 전체 주요사항보고(B)·
+    발행공시(C)를 페이지 단위로 훑어(_esop_sweep) 두 갈래로 분류한다.
+      · report_nm 에 '유상증자' → 이미 상장된 회사의 유상증자(위 300종목 대상만).
+      · '증권신고서(지분증권)'만 있고 현재 상장사 목록(listed_snapshot 전체)에 없는 회사 →
+        상장 전 IPO(공모). 신규 IPO 후보는 어느 시장에도 아직 속하지 않아 전 시장을 훑는다.
     (배정 비율·수요예측 금액 등 세부 수치는 공시 원문에만 있어 여기서는 만들어내지 않는다.)
-  - 상속·증여 뉴스 동향(참고용) : DART 신고 의무 기준(5% 대량보유·1%p 변동) 미만이거나
-    아직 공시 전인 건을 보완하려고 네이버 뉴스에서 '오너 지분 상속/증여' 관련 기사를 모아
-    Gemini로 관련 없는 기사(상속세 정책 등)를 걸러낸다(credit/inherit_news.py, 별도 API).
+  - 상속·증여/우리사주 뉴스 동향은 별도 모듈(inherit_news.py·esop_news.py)이다.
 
-해설(note)은 공시에 실제로 찍힌 값(회사명·보고사유·날짜·지분율)만으로 구성한 고정 문구다.
-LLM이 수치를 지어낼 위험을 피하려고 여기서는 Gemini를 호출하지 않는다.
+해설(note)은 공시에 실제로 찍힌 값(회사명·보고사유·날짜·지분율)만으로 만든 고정 문구다 —
+LLM 이 수치를 지어낼 위험을 피하려고 여기서는 Gemini 를 호출하지 않는다.
 
-증권담보대출 리드는 코스피·코스닥 전 종목(~2,500개)마다 majorstock.json을 호출해야 해서
-스레드풀로 병렬 조회해도 수 분이 걸린다. 정책·뉴스 브리핑 등 다른 스냅샷과 동일하게,
-실제 수집(_collect)은 /internal/warmup 배치(하루 1회, GitHub Actions cron)에서만
-force=True 로 수행하고, 일반 웹 요청(get_leads(force=False))은 절대 DART를 직접
-호출하지 않고 이미 저장된 스냅샷만 읽는다(오늘자가 없으면 가장 최근 스냅샷을
-"stale"로, 그마저 없으면 "pending" 상태를 반환). 라이브 요청에서 즉석으로 재수집을
-트리거하던 이전 방식은, 짧은 시간에 캐시가 여러 번 무효화될 때마다 배치 밖에서도
-수천 건씩 DART를 호출하게 돼 opendart.fss.or.kr 쪽 남용 방지 차단을 실제로 유발한
-적이 있어(2026-09-20) 제거했다.
+수집(get_leads(force=True))은 /internal/warmup 배치에서만 한다. 일반 웹 요청은 DART 를 절대
+직접 호출하지 않고 저장된 스냅샷만 읽는다(오늘자가 없으면 가장 최근 스냅샷을 "stale"로,
+그마저 없으면 "pending"). 라이브 요청이 재수집을 트리거하던 예전 방식이 배치 밖에서도
+대량 호출을 일으켜 opendart 차단을 유발한 적이 있어(2026-09-20) 제거했다.
 
-호출 속도 제한: 종목 수가 많다 보니 스레드 동시성만 믿고 짧은 시간에 수천 건을 몰아
-보내면 opendart.fss.or.kr 쪽에서 해당 IP의 연결 자체를 끊어버리는(비공식 남용 방지)
-현상이 실제로 발생했다. 그래서 배치 수집 중에도 전체 요청을 초당 몇 건으로 강제
-제한하는 스로틀을 둔다.
+수집 결과를 믿을 수 없으면(종목 스냅샷·corp_code 매핑 실패, DART 실패율 과다, 공시 스캔 중
+페이지 실패) RuntimeError 로 중단해, 기존 정상 스냅샷을 빈/부분 결과로 덮어쓰지 않는다.
+DART 호출은 전역 스로틀로 초당 약 4건으로 제한한다(스레드 동시성만 믿고 몰아 보내면
+opendart 가 해당 IP 연결을 끊는 현상이 실제로 있었음).
 """
 from __future__ import annotations
 
@@ -54,20 +35,19 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import timedelta
 
 import requests
 
 from capital._datago import to_float
 from main.config import get_settings
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
+from main.utils import now_kst, today_iso, today_kst, ymd_to_iso
 
 from .corp_map import corp_code
 from .equity import listed_snapshot
 
 logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
 
 _MAJORSTOCK_URL = "https://opendart.fss.or.kr/api/majorstock.json"
 _LIST_URL = "https://opendart.fss.or.kr/api/list.json"
@@ -93,12 +73,10 @@ def _throttle() -> None:
 
 
 class _CallHealth:
-    """DART 호출 성공/실패 건수를 스레드 안전하게 센다.
+    """종목별 majorstock 호출 성공/실패 건수를 스레드 안전하게 센다.
 
-    실패율이 너무 높으면(=DART 쪽에서 이 IP를 일시 차단한 상태) _collect() 가 텅 빈
-    결과를 '정상 수집 결과'로 착각해 저장하지 않도록 예외를 던져 막는다. 실제로
-    호출량이 많다 보니(코스피·코스닥 전체 조회) DART가 연결 자체를 끊어버리는 현상이
-    있었고, 그때 빈 리스트를 그대로 저장하면 기존 정상 데이터가 빈 값으로 덮어써진다.
+    실패율이 너무 높으면(=DART 가 이 IP를 일시 차단한 상태) 텅 빈 결과를 '정상 수집'으로
+    착각해 저장하지 않도록 check() 가 예외를 던진다.
     """
 
     def __init__(self) -> None:
@@ -113,11 +91,15 @@ class _CallHealth:
             else:
                 self.fail += 1
 
+    def failing(self) -> bool:
+        """충분히 시도했는데(20건 이상) 실패율이 70%를 넘는지 — 조기 중단 판단용."""
+        total = self.ok + self.fail
+        return total >= 20 and self.fail / total > 0.7
+
     def check(self, label: str) -> None:
         total = self.ok + self.fail
-        # 시도한 호출이 하나라도 있는데 전부 실패 → 표본이 적어도(예: esop 스윕은 유형당
-        # 딱 1번씩만 시도) 명백한 장애 신호. 호출량이 많은 스캔(예: 종목별 majorstock)은
-        # 일부 종목만 실패할 수 있어 표본이 충분할 때(10건 이상)만 70% 기준을 본다.
+        # 시도한 호출이 하나라도 있는데 전부 실패 → 명백한 장애. 일부 종목만 실패할 수
+        # 있으므로 그 외엔 표본이 충분할 때(10건 이상)만 70% 기준을 본다.
         if total > 0 and self.ok == 0:
             raise RuntimeError(
                 f"{label}: DART 호출이 전부 실패했습니다({self.fail}/{total}) — "
@@ -129,15 +111,10 @@ class _CallHealth:
                 "일시적인 API 차단/장애로 보고 이번 수집 결과는 저장하지 않습니다."
             )
 
+
 _INHERIT_RE = re.compile(r"상속|증여")
 _RIGHTS_KEYWORD_RE = re.compile(r"유상증자")
 _EQUITY_REG_RE = re.compile(r"증권신고서\(지분증권\)")
-
-
-def _fmt_date(yyyymmdd: str | None) -> str:
-    s = str(yyyymmdd or "")
-    return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) == 8 else s
-
 
 _KOSPI_TOP_N = 200
 _KOSDAQ_TOP_N = 100
@@ -145,8 +122,7 @@ _KOSDAQ_TOP_N = 100
 
 def _scan_universe() -> list[dict]:
     """증권담보대출(상속·증여) 리드 스캔 대상 — 시가총액 상위 코스피 200·코스닥
-    100종목만(모듈 docstring 참고). 시가총액이 없는(데이터 누락) 종목은 정렬·상위
-    N 선정에서 제외한다."""
+    100종목만(모듈 docstring 참고). 시가총액이 없는(데이터 누락) 종목은 제외한다."""
     snap = listed_snapshot()
     kospi = sorted(
         (s for s in snap if s.get("market") == "KOSPI" and s.get("market_cap")),
@@ -189,35 +165,48 @@ def _majorstock(cc: str, key: str, health: _CallHealth) -> list[dict]:
     return data.get("list") or []
 
 
-def _esop_sweep(key: str, bgn_de: str, health: _CallHealth) -> list[dict]:
+def _list_page(key: str, pblntf_ty: str, bgn_de: str, end_de: str, page: int) -> dict:
+    """list.json 한 페이지. 통신·파싱 실패는 1회만 재시도하고, 그래도 안 되면 예외."""
+    params = {
+        "crtfc_key": key, "pblntf_ty": pblntf_ty, "bgn_de": bgn_de, "end_de": end_de,
+        "page_no": page, "page_count": 100,
+    }
+    for attempt in (1, 2):
+        _throttle()
+        try:
+            return _session.get(_LIST_URL, params=params, timeout=20).json()
+        except (requests.RequestException, ValueError) as exc:
+            if attempt == 2:
+                raise RuntimeError(
+                    f"공시 전체 스캔 실패(pblntf_ty={pblntf_ty}, page={page}): {exc} — "
+                    "부분 결과를 저장하지 않도록 이번 수집을 중단합니다."
+                ) from exc
+            time.sleep(1.0)
+    raise AssertionError("unreachable")
+
+
+def _esop_sweep(key: str, bgn_de: str) -> list[dict]:
     """corp_code 없이 시장 전체 주요사항보고(B)·발행공시(C)를 페이지 단위로 훑는다.
 
     corp_cls 를 지정하지 않는다 — IPO(공모) 후보 회사는 아직 코스피·코스닥 어느
     시장에도 속하지 않아 corp_cls=Y 등으로 좁히면 애초에 조회 대상에서 빠진다.
+    중간 페이지가 실패하면(또는 DART 가 '조회 없음(013)' 외 오류를 주면) 일부만 모은 목록을
+    전체처럼 저장하지 않도록 RuntimeError 를 올린다.
     """
-    end_de = date.today().strftime("%Y%m%d")
+    end_de = today_kst().strftime("%Y%m%d")
     rows: list[dict] = []
     for pblntf_ty in ("B", "C"):
         page = 1
         while page <= 50:  # 안전장치 — 정상 상황에서 60일치가 이 이상 나오진 않는다
-            _throttle()
-            try:
-                resp = _session.get(_LIST_URL, params={
-                    "crtfc_key": key,
-                    "pblntf_ty": pblntf_ty,
-                    "bgn_de": bgn_de,
-                    "end_de": end_de,
-                    "page_no": page,
-                    "page_count": 100,
-                }, timeout=20)
-                data = resp.json()
-            except (requests.RequestException, ValueError) as exc:
-                logger.info("공시 전체 스캔 실패(pblntf_ty=%s, page=%s): %s", pblntf_ty, page, exc)
-                health.record(False)
+            data = _list_page(key, pblntf_ty, bgn_de, end_de, page)
+            status = data.get("status")
+            if status == "013":  # 조회된 데이터 없음
                 break
-            health.record(True)
-            if data.get("status") != "000":
-                break
+            if status != "000":
+                raise RuntimeError(
+                    f"공시 전체 스캔 DART 오류(pblntf_ty={pblntf_ty}, page={page}): "
+                    f"{data.get('message') or status}"
+                )
             rows.extend(data.get("list") or [])
             if page >= int(data.get("total_page") or 1):
                 break
@@ -287,7 +276,7 @@ def _scan_inherit(s: dict, key: str, cutoff: str, health: _CallHealth) -> list[d
             "kind": "inherit",
             "code": code,
             "name": name,
-            "date": _fmt_date(rcept_dt),
+            "date": ymd_to_iso(rcept_dt),
             "reporter": (it.get("repror") or "").strip(),
             "reason": resn,
             "stake_pct": stake_pct,
@@ -334,45 +323,45 @@ def _collateral_monthly_summary(collateral: list[dict]) -> list[dict]:
     return [{"month": m, "count": counts[m]} for m in sorted(counts, reverse=True)]
 
 
-def _collect() -> dict:
-    key = get_settings().dart_api_key
-    stocks = _scan_universe()
-    now = datetime.now(KST)
-    if not key or not stocks:
-        return {"collateral": [], "esop": [], "esop_monthly": [], "collateral_monthly": [],
-                "universe": len(stocks), "generated_at": now.isoformat()}
+def _daily_counts(*lists: list[dict]) -> dict[str, int]:
+    """날짜별 DART 리드 건수 — 화면 목록은 잘라서 내려주므로 KPI(최근 7일 등)는 이 값으로 센다."""
+    counts: dict[str, int] = {}
+    for items in lists:
+        for it in items:
+            if it.get("date"):
+                counts[it["date"]] = counts.get(it["date"], 0) + 1
+    return counts
 
-    # corp_code 매핑(코스피·코스닥 종목코드 → DART corp_code) 자체가 안 내려오면 모든
-    # 종목이 "매핑 없음"으로 스킵돼 API 콜 자체가 안 나가고, 그러면 실패율 감지도 못 걸려
-    # 빈 결과가 '정상 수집'으로 저장될 수 있다. 그래서 미리 하나만 찍어 확인한다.
-    if not corp_code("005930"):
-        raise RuntimeError("DART corp_code 매핑을 불러오지 못했습니다(삼성전자 조회 실패) — 이번 수집은 건너뜁니다.")
 
-    cutoff = (date.today() - timedelta(days=_LOOKBACK_DAYS)).strftime("%Y%m%d")
-
-    inherit_health = _CallHealth()
-    collateral: list[dict] = []
+def _collect_collateral(stocks: list[dict], key: str, cutoff: str) -> list[dict]:
+    """300종목 majorstock 병렬 조회 → 상속·증여 보고사유 건(최신순). 실패율 과다면 RuntimeError."""
+    health = _CallHealth()
+    out: list[dict] = []
     with ThreadPoolExecutor(max_workers=_MAX_WORKERS) as ex:
-        futures = [ex.submit(_scan_inherit, s, key, cutoff, inherit_health) for s in stocks]
-        for i, f in enumerate(as_completed(futures)):
-            collateral.extend(f.result())
-            # DART가 이 IP를 막은 상태로 보이면(초반 실패율이 이미 높음) 남은 종목을 계속
-            # 순서대로 호출하며 수 분을 낭비하지 않도록 아직 시작 안 한 요청은 취소한다.
-            if i >= 20 and inherit_health.fail / max(1, inherit_health.ok + inherit_health.fail) > 0.7:
+        futures = [ex.submit(_scan_inherit, s, key, cutoff, health) for s in stocks]
+        for f in as_completed(futures):
+            out.extend(f.result())
+            # DART 가 이 IP를 막은 상태로 보이면(초반 실패율이 이미 높음) 남은 종목을 계속
+            # 호출하며 수 분을 낭비하지 않도록 아직 시작 안 한 요청은 취소한다.
+            if health.failing():
                 for pending in futures:
                     pending.cancel()
                 break
-    inherit_health.check("증권담보대출(상속·증여) 스캔")
+    health.check("증권담보대출(상속·증여) 스캔")
+    out.sort(key=lambda x: x["date"], reverse=True)
+    return out
 
-    esop_health = _CallHealth()
+
+def _collect_esop(stocks: list[dict], key: str, cutoff: str) -> list[dict]:
+    """시장 전체 공시 스캔 → 유상증자(300종목 대상)·IPO(상장 전 회사) 리드, 회사별 최신 1건(최신순)."""
     listed_ccs = _listed_corp_codes()
     # 유상증자(이미 상장된 회사 대상)는 증권담보대출 리드와 같은 시가총액 상위
-    # 코스피 200·코스닥 100(=stocks, _scan_universe 결과)으로 좁힌다. IPO(상장 전
-    # 공모)는 애초에 이 목록에 없는 회사들이라 전 시장 그대로 둔다.
+    # 코스피 200·코스닥 100(=stocks)으로 좁힌다. IPO(상장 전 공모)는 애초에 이 목록에
+    # 없는 회사들이라 전 시장 그대로 둔다.
     top_ccs = {cc for s in stocks if (cc := corp_code(s.get("code") or ""))}
     esop: list[dict] = []
     seen_rcept: set[str] = set()
-    for it in _esop_sweep(key, cutoff, esop_health):
+    for it in _esop_sweep(key, cutoff):
         title = (it.get("report_nm") or "").strip()
         is_rights = bool(_RIGHTS_KEYWORD_RE.search(title))
         is_ipo_candidate = not is_rights and bool(_EQUITY_REG_RE.search(title))
@@ -393,22 +382,45 @@ def _collect() -> dict:
             "category": category,
             "code": None,
             "name": name,
-            "date": _fmt_date(it.get("rcept_dt")),
+            "date": ymd_to_iso(it.get("rcept_dt")),
             "title": title,
             "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + rcept_no,
             "note": (_rights_note if category == "rights" else _ipo_note)(name, title),
         })
-
-    esop_health.check("우리사주(유상증자·IPO) 스캔")
     esop = _latest_per_company(esop)
-
-    collateral.sort(key=lambda x: x["date"], reverse=True)
     esop.sort(key=lambda x: x["date"], reverse=True)
+    return esop
+
+
+def _collect() -> dict:
+    key = get_settings().dart_api_key
+    now = now_kst()
+    if not key:
+        return {"collateral": [], "esop": [], "esop_monthly": [], "collateral_monthly": [],
+                "dart_daily": {}, "universe": 0, "generated_at": now.isoformat()}
+
+    # 종목 스냅샷(data.go.kr)이 실패하면 스캔 대상이 0개가 돼 빈 결과가 '정상 수집'으로
+    # 저장된다 — 기존 스냅샷을 덮어쓰지 않도록 중단한다.
+    stocks = _scan_universe()
+    if not stocks:
+        raise RuntimeError("상장종목 스냅샷을 불러오지 못했습니다(스캔 대상 0종목) — 이번 수집은 건너뜁니다.")
+
+    # corp_code 매핑이 안 내려오면 모든 종목이 "매핑 없음"으로 스킵돼 API 콜 자체가 안
+    # 나가고, 실패율 감지도 못 걸린다. 그래서 미리 하나만 찍어 확인한다.
+    if not corp_code("005930"):
+        raise RuntimeError("DART corp_code 매핑을 불러오지 못했습니다(삼성전자 조회 실패) — 이번 수집은 건너뜁니다.")
+
+    cutoff = (today_kst() - timedelta(days=_LOOKBACK_DAYS)).strftime("%Y%m%d")
+    collateral = _collect_collateral(stocks, key, cutoff)
+    esop = _collect_esop(stocks, key, cutoff)
+
     return {
+        # 목록은 화면 표시용으로 자르고, 건수(월별·일별)는 전체 목록 기준으로 센다.
         "collateral": collateral[:30],
         "esop": esop[:60],
         "esop_monthly": _esop_monthly_summary(esop),
         "collateral_monthly": _collateral_monthly_summary(collateral),
+        "dart_daily": _daily_counts(collateral, esop),
         "universe": len(stocks),
         "generated_at": now.isoformat(),
     }
@@ -416,13 +428,14 @@ def _collect() -> dict:
 
 _SCHEMA_V = 7  # v7: 실패율 감지 보정(표본 적어도 전부 실패면 즉시 감지) + 라이브 요청은
                 # 재수집을 트리거하지 않고 배치(warmup)만 수집하도록 변경
+                # (dart_daily 는 v7 에 추가된 선택 필드 — 없으면 화면이 목록으로 센다)
 
 
 def get_leads(force: bool = False) -> dict:
     """force=True 는 /internal/warmup 배치 전용 — 이 값 없이는 절대 DART 를 호출하지 않고
-    이미 저장된 스냅샷만 읽는다(정책·뉴스 등 다른 브리핑과 동일한 '배치 수집 + 스냅샷
-    조회' 방식)."""
-    today = datetime.now(KST).date().isoformat()
+    이미 저장된 스냅샷만 읽는다. 수집이 실패하면 예외를 올리고 스냅샷은 그대로 둔다
+    (이후 일반 요청은 가장 최근 스냅샷을 stale 로 받는다)."""
+    today = today_iso()
     if not force:
         snap = get_snapshot(_TABLE, today)
         if snap is not None and snap.get("v") == _SCHEMA_V:

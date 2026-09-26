@@ -1,0 +1,27 @@
+/* 정책·규제 탭 전용 스타일 — 기관별 보도자료 그룹. (상단 요약 줄·AI 브리핑 카드는 공용 style.css) */
+
+#pol-groups { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+.pol-group {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  box-shadow: var(--shadow);
+}
+.pg-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.pg-name { font-size: .84rem; font-weight: 700; }
+.pol-item {
+  display: block; text-decoration: none; color: inherit;
+  padding: 9px 0; border-top: 1px solid var(--border2);
+}
+.pol-item:first-of-type { border-top: none; }
+.pol-item:hover .pi-title { color: var(--accent); }
+.pi-top { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+.pi-date { font-size: .72rem; color: var(--muted); }
+.pi-dept {
+  font-size: .68rem; color: var(--muted); border: 1px solid var(--border2);
+  border-radius: 4px; padding: 0 5px; max-width: 55%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.pi-title { font-size: .84rem; font-weight: 600; line-height: 1.45; }
+
+@media (max-width: 640px) {
+  #pol-groups { grid-template-columns: 1fr; }
+}

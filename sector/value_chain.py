@@ -5,7 +5,7 @@ VALUE_CHAIN(큐레이션 구성)의 각 단계별 종목코드에 credit.equity.
 """
 from __future__ import annotations
 
-from capital._cache import ttl_cache
+from main.cache import ttl_cache
 from credit.equity import listed_snapshot, listed_snapshot_as_of
 
 from .constituents import VALUE_CHAIN

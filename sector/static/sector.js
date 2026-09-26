@@ -1,20 +1,11 @@
 /* 국내 업종별 순위 및 밸류체인 — 업종 순위표 + 밸류체인 다이어그램.
  * window.SectorWidget 으로 렌더 함수를 공개해, 독립 페이지(/sector)와 홈(main/static/home.js)의
  * "내 위젯" 인라인 카드가 같은 렌더 로직을 공유한다(중복 구현 방지).
- * 시가총액 트리맵 맵은 모바일에서 레이아웃이 깨져 기능을 제거했다. */
+ * 시가총액 트리맵은 모바일에서 레이아웃이 깨져 제거했고, 업종 데이터는 순위표로만 보여준다. */
 (function (global) {
   "use strict";
 
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-  function get(url) {
-    return fetch(url).then(function (r) {
-      return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; });
-    });
-  }
+  var esc = global.KSFC.esc, get = global.KSFC.get;   // common.js(먼저 로드)
   function jo(v) { return v == null ? "-" : (Math.round(v / 1e11) / 10); }
   function chgClass(chg) { return chg == null ? "" : (chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : ""); }
   function chgText(chg) {

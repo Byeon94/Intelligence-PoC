@@ -2,16 +2,25 @@ name: Daily snapshot warmup
 
 on:
   schedule:
-    # 15:01 UTC = 00:01 KST(다음날). GitHub Actions 스케줄은 서버 부하에 따라
-    # 몇 분 정도 지연될 수 있다(PoC 목적상 허용 범위).
+    # 15:01 UTC = 00:01 KST(다음날) — 그날 전체 스냅샷 생성.
     - cron: "1 15 * * *"
-  workflow_dispatch: {}
+    # 22:00 UTC = 07:00 KST — 미국 장 마감 후 시장 브리핑·뉴스류만 재생성(mode=morning).
+    - cron: "0 22 * * *"
+    # GitHub Actions 스케줄은 서버 부하에 따라 몇 분 정도 지연될 수 있다(PoC 목적상 허용 범위).
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily(전체) 또는 morning(시장 브리핑·뉴스만 재생성)"
+        default: daily
+        required: false
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger /internal/warmup
+        env:
+          MODE: ${{ github.event.schedule == '0 22 * * *' && 'morning' || inputs.mode || 'daily' }}
         run: |
           curl -sS --retry 3 --retry-delay 15 --max-time 60 \
-            "https://intelligence-poc.onrender.com/internal/warmup?key=${{ secrets.WARMUP_KEY }}"
+            "https://intelligence-poc.onrender.com/internal/warmup?key=${{ secrets.WARMUP_KEY }}&mode=${MODE}"

@@ -5,24 +5,23 @@ get_leads()(DART 상속·증여·유상증자·IPO 리드)와 get_inherit_news()
 영업 확대를 위해 고려할 점"을 불릿 3개로 요약한다.
 
 두 소스 모두 이미 하루 1회 캐시돼 있어 빠르게 준비되므로, 이 브리핑 자체도 하루 1회만
-생성해 캐시한다(스냅샷 재사용). 입력 데이터에 없는 회사명·금액·수치는 지어내지 않도록
-프롬프트로 제약한다(정책·뉴스 브리핑과 동일한 원칙).
+생성해 캐시한다(스냅샷 재사용). 담보대출·우리사주 브리핑은 각각 따로 시도 상한
+(main.daily_snapshot.try_ai)을 두고 재시도한다. 입력 데이터에 없는 회사명·금액·수치는
+지어내지 않도록 프롬프트로 제약한다(정책·뉴스 브리핑과 동일한 원칙).
 """
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
-from main.config import get_settings
+from main.daily_snapshot import table_lock, try_ai
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, save_snapshot
+from main.utils import today_iso
 
 from .inherit_news import get_inherit_news
 from .leads import get_leads
 
 logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
 
 _TABLE = "credit_lead_briefing_snapshots"
 
@@ -120,61 +119,57 @@ _SCHEMA_V = 2  # v2: 브리핑 2종(담보대출/우리사주) 각각 gemini_att
                 # (research/policy 등 다른 AI 브리핑과 동일한 문제, 2026-09-22 확인).
 
 
-def _maybe_generate(payload: dict, leads: dict, news: list[dict], force: bool = False) -> dict:
-    """브리핑이 비어 있으면(또는 force=True 면) 항목별로 일일 한도 내에서 한 번 더 시도.
+def _try_briefing(payload: dict, kind: str, prompt: str, system: str, label: str, force: bool) -> None:
+    """payload[f"{kind}_briefing"] 이 비어 있으면(또는 force) 그 항목의 시도 상한 안에서 1회 생성.
 
-    담보대출·우리사주 브리핑을 독립적으로 재시도한다(한쪽만 실패했을 때 성공한
-    쪽까지 다시 만들지 않도록).
+    시도 횟수는 payload["gemini_attempts"][kind] 로 항목별로 센다 — try_ai 는 dict 의
+    "gemini_attempts" 정수를 보므로 항목별 임시 dict 를 넘기고 결과를 되돌려 적는다.
     """
-    s = get_settings()
-    cap = s.policy_max_gemini_calls_per_day
+    field = f"{kind}_briefing"
+    if payload.get(field) and not force:
+        return
     attempts = payload.setdefault("gemini_attempts", {"collateral": 0, "esop": 0})
+    sub = {"gemini_attempts": attempts.get(kind, 0)}
 
-    if s.gemini_api_keys and (force or not payload.get("collateral_briefing")) and attempts["collateral"] < cap:
-        attempts["collateral"] += 1
-        try:
-            text = generate_text(
-                _collateral_prompt(leads.get("collateral", []), news),
-                system_instruction=_COLLATERAL_SYSTEM_PROMPT, max_output_tokens=2048,
-                # Gemini 3.x/4.x는 thinking 토큰도 max_output_tokens 예산을 같이 쓰므로,
-                # 1024로는 불릿 마지막 문장이 중간에 잘리는 경우가 있어 다른 "브리핑 3줄"
-                # 태스크(policy/briefing.py 등)와 같은 수준으로 넉넉히 잡는다.
-            )
-            payload["collateral_briefing"] = _bullets_from(text)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("증권담보대출 리드 AI 브리핑 생성 실패(%d/%d회): %s", attempts["collateral"], cap, exc)
+    def _gen(p: dict) -> None:
+        # Gemini 3.x/4.x는 thinking 토큰도 max_output_tokens 예산을 같이 쓰므로,
+        # 1024로는 불릿 마지막 문장이 중간에 잘리는 경우가 있어 다른 "브리핑 3줄"
+        # 태스크(policy/briefing.py 등)와 같은 수준으로 넉넉히 잡는다.
+        bullets = _bullets_from(generate_text(prompt, system_instruction=system, max_output_tokens=2048))
+        if not bullets:
+            raise RuntimeError("빈 응답")
+        p["bullets"] = bullets
 
-    if s.gemini_api_keys and (force or not payload.get("esop_briefing")) and attempts["esop"] < cap:
-        attempts["esop"] += 1
-        try:
-            text = generate_text(
-                _esop_prompt(leads.get("esop", []), leads.get("esop_monthly", [])),
-                system_instruction=_ESOP_SYSTEM_PROMPT, max_output_tokens=2048,
-            )
-            payload["esop_briefing"] = _bullets_from(text)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("우리사주 리드 AI 브리핑 생성 실패(%d/%d회): %s", attempts["esop"], cap, exc)
-
-    return payload
+    try_ai(sub, _gen, label)
+    attempts[kind] = sub["gemini_attempts"]
+    if sub.get("bullets"):
+        payload[field] = sub["bullets"]
 
 
 def get_lead_briefings(force: bool = False) -> dict:
-    today = datetime.now(KST).date().isoformat()
-    snap = get_snapshot(_TABLE, today)
-    if snap is not None and snap.get("v") != _SCHEMA_V:
-        snap = None
-    if snap is None:
-        snap = {"v": _SCHEMA_V, "collateral_briefing": [], "esop_briefing": []}
+    """오늘자 리드 브리핑 스냅샷. force=True(warmup 배치)면 이미 있어도 상한 안에서 다시 만든다."""
+    today = today_iso()
+    with table_lock(_TABLE):
+        snap = get_snapshot(_TABLE, today)
+        if snap is not None and snap.get("v") != _SCHEMA_V:
+            snap = None
+        if snap is None:
+            snap = {"v": _SCHEMA_V, "collateral_briefing": [], "esop_briefing": []}
 
-    leads = get_leads()
-    try:
-        news = get_inherit_news().get("items", [])
-    except Exception:  # noqa: BLE001
-        news = []
+        leads = get_leads()
+        try:
+            news = get_inherit_news().get("items", [])
+        except Exception:  # noqa: BLE001
+            news = []
 
-    before = (snap.get("collateral_briefing"), snap.get("esop_briefing"), dict(snap.get("gemini_attempts") or {}))
-    snap = _maybe_generate(snap, leads, news, force=force)
-    after = (snap.get("collateral_briefing"), snap.get("esop_briefing"), dict(snap.get("gemini_attempts") or {}))
-    if after != before:
-        save_snapshot(_TABLE, today, snap)
+        before = (snap.get("collateral_briefing"), snap.get("esop_briefing"),
+                  dict(snap.get("gemini_attempts") or {}))
+        _try_briefing(snap, "collateral", _collateral_prompt(leads.get("collateral", []), news),
+                      _COLLATERAL_SYSTEM_PROMPT, "증권담보대출 리드 AI 브리핑", force)
+        _try_briefing(snap, "esop", _esop_prompt(leads.get("esop", []), leads.get("esop_monthly", [])),
+                      _ESOP_SYSTEM_PROMPT, "우리사주 리드 AI 브리핑", force)
+        after = (snap.get("collateral_briefing"), snap.get("esop_briefing"),
+                 dict(snap.get("gemini_attempts") or {}))
+        if after != before:
+            save_snapshot(_TABLE, today, snap)
     return snap

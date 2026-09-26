@@ -15,16 +15,15 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from credit.equity import listed_snapshot
 from main.gemini import generate_text
 from main.snapshot_store import latest_snapshot, save_snapshot
+from main.utils import now_kst, today_iso
 
 from .constituents import SECTOR_TAXONOMY
 
 logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
 
 # 다른 snapshot 테이블과 동일하게 snapshot_date(date 타입) 를 키로 쓴다 — "latest" 같은
 # 고정 문자열 키를 쓰면 컬럼이 date 타입일 때 저장이 실패한다. 최신값은 latest_snapshot()
@@ -93,15 +92,21 @@ def get_cached_classification() -> dict[str, str]:
 
 
 def refresh_sector_classification(force: bool = False) -> dict[str, str]:
-    """스냅샷이 없거나 _REFRESH_DAYS 이상 지났을 때만 Gemini로 전 종목을 재분류해 저장한다.
+    """스냅샷이 없거나 _REFRESH_DAYS 이상 지났을 때만(force=True면 무조건) Gemini로 전 종목을
+    재분류해 저장한다.
 
-    호출 비용이 크므로(전 상장종목을 배치로 나눠 순차 Gemini 호출) /internal/warmup
-    배치에서만 호출해야 한다(화면 라우트에서 직접 호출 금지).
+    호출 비용이 커서(전 상장종목을 배치로 나눠 순차 Gemini 호출) 자동으로 부르는 곳이 없다 —
+    화면 라우트·/internal/warmup 어디에서도 호출하지 않는다. 필요할 때 프로젝트 루트에서
+    .env(GEMINI_API_KEY·DATA_GO_KR_API_KEY·SUPABASE_*)를 갖춘 채 수동 실행한다:
+
+        python -c "from sector.classify import refresh_sector_classification; refresh_sector_classification()"
+
+    (재분류 주기와 상관없이 다시 돌리려면 refresh_sector_classification(force=True))
     """
     snap = latest_snapshot(_TABLE)
     if snap and snap.get("classified") and not force:
         generated = _parse_dt(snap.get("generated_at"))
-        if generated and datetime.now(KST) - generated < timedelta(days=_REFRESH_DAYS):
+        if generated and now_kst() - generated < timedelta(days=_REFRESH_DAYS):
             return snap["classified"]
 
     stocks = [s for s in listed_snapshot() if s.get("code") and s.get("name")]
@@ -116,12 +121,12 @@ def refresh_sector_classification(force: bool = False) -> dict[str, str]:
         return (snap or {}).get("classified") or {}
 
     payload = {
-        "generated_at": datetime.now(KST).isoformat(),
+        "generated_at": now_kst().isoformat(),
         "count": len(classified),
         "total_stocks": len(stocks),
         "classified": classified,
     }
-    save_snapshot(_TABLE, datetime.now(KST).date().isoformat(), payload)
+    save_snapshot(_TABLE, today_iso(), payload)
     logger.info("업종 분류 갱신 완료: %d/%d건", len(classified), len(stocks))
     return classified
 

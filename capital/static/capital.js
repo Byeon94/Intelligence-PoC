@@ -2,6 +2,8 @@
 (function () {
   "use strict";
 
+  var esc = window.KSFC.esc, get = window.KSFC.get;
+
   function num(n, d) {
     if (n == null || isNaN(n)) return "-";
     return Number(n).toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -9,47 +11,45 @@
   function srcBadge(source) {
     if (source === "live") return '<span class="src-badge live">● 연결됨</span>';
     if (source === "curated") return '<span class="src-badge sample">● 큐레이션</span>';
+    if (source === "ai_search") return '<span class="src-badge sample">● AI 검색</span>';
     return '<span class="src-badge sample">● 샘플</span>';
   }
-  function deltaHTML(change, unit) {
+  // basis: 서버가 알려주는 비교 기준("day" → 전일 대비, 그 외·미지정 → 전월 대비)
+  function deltaHTML(change, unit, basis) {
+    var label = basis === "day" ? "전일 대비" : "전월 대비";
     if (change == null || isNaN(change) || change === 0)
-      return '<div class="k-delta flat">전월 대비 —</div>';
+      return '<div class="k-delta flat">' + label + ' —</div>';
     var up = change > 0;
     return '<div class="k-delta ' + (up ? "up" : "down") + '">' +
       (up ? "▲ +" : "▼ ") + num(change, Math.abs(change) < 10 ? 2 : 1) + (unit || "") +
-      ' <span style="color:var(--muted);font-weight:600">전월 대비</span></div>';
+      ' <span style="color:var(--muted);font-weight:600">' + label + '</span></div>';
   }
   function kpi(o) {
     return '<div class="kpi">' +
       '<div class="k-label">' + o.label + (o.source ? srcBadge(o.source) : "") + '</div>' +
       '<div class="k-value">' + o.value + (o.unit ? '<span class="k-unit">' + o.unit + '</span>' : "") + '</div>' +
-      (o.sub ? '<div class="k-sub">' + o.sub + '</div>' : "") +
+      (o.sub ? '<div class="k-sub">' + esc(o.sub) + '</div>' : "") +
       (o.delta || "") +
       '</div>';
   }
-  function get(url) {
-    return fetch(url).then(function (r) {
-      return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; });
-    });
-  }
   function loading(id) { var e = document.getElementById(id); if (e) e.innerHTML = '<div class="chart-loading">불러오는 중…</div>'; }
-  function fail(id, msg) { var e = document.getElementById(id); if (e) e.innerHTML = '<div class="chart-error">' + (msg || "데이터를 불러오지 못했습니다") + '</div>'; }
+  function fail(id, msg) { var e = document.getElementById(id); if (e) e.innerHTML = '<div class="chart-error">' + esc(msg || "데이터를 불러오지 못했습니다") + '</div>'; }
 
   /* ── 증시자금 · 유동성 ── */
   function loadLiquiditySummary() {
     loading("liq-kpis");
     get("/api/capital/liquidity/summary").then(function (d) {
-      var it = d.items, u = "조원";
+      var it = d.items, u = "조원", basis = d.change_basis;
       document.getElementById("liq-asof-date").textContent = (d.as_of || "") + " 기준";
       document.getElementById("liq-kpis").innerHTML = [
         kpi({ label: "투자자예탁금", value: num(it.investor_deposits.value, 1), unit: u,
-              delta: deltaHTML(it.investor_deposits.change, ""), source: d.source }),
+              delta: deltaHTML(it.investor_deposits.change, "", basis), source: d.source }),
         kpi({ label: "신용공여 잔고", value: num(it.credit_balance.value, 1), unit: u,
-              delta: deltaHTML(it.credit_balance.change, ""), source: d.source }),
+              delta: deltaHTML(it.credit_balance.change, "", basis), source: d.source }),
         kpi({ label: "CMA 잔고", value: num(it.cma_balance.value, 1), unit: u,
-              delta: deltaHTML(it.cma_balance.change, ""), source: d.source }),
+              delta: deltaHTML(it.cma_balance.change, "", basis), source: d.source }),
         kpi({ label: "신용공여 / 예탁금", value: num(it.credit_deposit_ratio.value, 2), unit: "%",
-              delta: deltaHTML(it.credit_deposit_ratio.change, "%p"), source: d.source })
+              delta: deltaHTML(it.credit_deposit_ratio.change, "%p", basis), source: d.source })
       ].join("");
     }).catch(function (e) { fail("liq-kpis", e.message); });
   }
@@ -113,7 +113,7 @@
         kpi({ label: "발행어음형 잔고", value: num(it.note.value, 1), unit: "조원",
               sub: "점유율 " + num(it.note.share, 1) + "%", source: d.source }),
         kpi({ label: "RP형 최고금리", value: num(it.rp_top_rate.value, 2), unit: "%",
-              sub: (it.rp_top_rate.company || "-"), source: "curated" })
+              sub: (it.rp_top_rate.company || "-"), source: it.rp_top_rate.source })
       ].join("");
     }).catch(function (e) { fail("cma-kpis", e.message); });
   }
@@ -139,7 +139,7 @@
       document.getElementById("cma-rate-note").textContent = d.note || "";
       var rows = d.companies.map(function (c, i) {
         return '<tr class="' + (i === 0 ? "top-row" : "") + '">' +
-          '<td>' + c.company + '</td>' +
+          '<td>' + esc(c.company) + '</td>' +
           '<td>' + num(c.rp_rate, 2) + '%</td>' +
           '<td>' + (c.note_rate != null ? num(c.note_rate, 2) + "%" : '<span class="dash">–</span>') + '</td>' +
           '</tr>';

@@ -1,34 +1,7 @@
-/* 뉴스 탭: AI 뉴스 브리핑(3줄 + 재생성) + AI 선별 뉴스 피드 */
+/* 뉴스 탭: AI 뉴스 브리핑(3줄) + AI 선별 뉴스 피드(태그별) (/api/research/digest) */
 (function () {
   "use strict";
-  var CIRCLED = ["①", "②", "③"];
-
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-
-  // AI 브리핑은 첫 줄만 보여주고 나머지는 "더보기"로 펼친다 — 모바일에서 브리핑이
-  // 화면을 다 차지하면 아래에 뉴스 피드가 있다는 걸 알아채기 어렵기 때문.
-  function bindBriefMore(bodyEl, moreCount) {
-    if (!bodyEl || moreCount < 1) return;
-    bodyEl.classList.add("brief-collapsed");
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "brief-more-btn";
-    function sync() {
-      var collapsed = bodyEl.classList.contains("brief-collapsed");
-      btn.textContent = collapsed ? "더보기 (" + moreCount + "건) ▾" : "접기 ▴";
-      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    }
-    btn.addEventListener("click", function () {
-      bodyEl.classList.toggle("brief-collapsed");
-      sync();
-    });
-    sync();
-    bodyEl.appendChild(btn);
-  }
+  var esc = KSFC.esc, safeUrl = KSFC.safeUrl, CIRCLED = KSFC.CIRCLED;
 
   function renderBrief(d) {
     var box = document.getElementById("rs-brief");
@@ -54,12 +27,12 @@
         '<div class="brief-meta">📌 네이버 뉴스에서 당일 수집한 기사 중 한국증권금융 업무 관련 항목을 AI가 선별·요약합니다.</div>';
     }
     box.innerHTML = head + '<div class="brief-body" id="rs-brief-body">' + body + "</div>";
-    bindBriefMore(document.getElementById("rs-brief-body"), bullets.length - 1);
+    KSFC.bindBriefMore(document.getElementById("rs-brief-body"), bullets.length - 1);
   }
 
   function newsItemHTML(a, rank) {
     return (
-      '<a class="news-item" href="' + esc(a.url) + '" target="_blank" rel="noopener">' +
+      '<a class="news-item" href="' + esc(safeUrl(a.url)) + '" target="_blank" rel="noopener">' +
         '<div class="ni-rank">' + rank + "</div>" +
         '<div class="ni-body">' +
           '<div class="ni-top"><span class="ni-date">' + esc(a.published || "") + "</span></div>" +
@@ -145,9 +118,8 @@
     drawFeed();
   }
 
-  function fetchDigest(refresh) {
-    fetch("/api/research/digest" + (refresh ? "?refresh=1" : ""))
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; }); })
+  function fetchDigest() {
+    KSFC.get("/api/research/digest")
       .then(function (d) {
         var sum = document.getElementById("rs-summary");
         if (sum) {
@@ -168,7 +140,7 @@
   }
 
   var loaded = false;
-  function load() { if (loaded) return; loaded = true; fetchDigest(false); }
+  function load() { if (loaded) return; loaded = true; fetchDigest(); }
   function visible() {
     var p = document.querySelector('.tab-panel[data-panel="research"]');
     return p && !p.hidden;

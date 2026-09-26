@@ -1,12 +1,12 @@
 """DATA_GO_KR_API_KEY / DART_API_KEY 가 없거나 호출이 실패했을 때 쓰는 기업분석 샘플.
 
-값은 2023~2025년 공개 자료의 대략적 수준을 참고한 합성치이며,
-화면 레이아웃·차트를 그대로 확인하기 위한 용도다.
-실데이터가 연결되면 응답의 source 필드가 "live" 로 바뀐다.
+값은 2023~2025년 공개 자료의 대략적 수준을 참고한 합성치이며, 화면 레이아웃·차트를
+확인하기 위한 용도다. 샘플은 _SAMPLES 에 등록된 종목(has())에만 쓰고 응답에 항상
+source="sample" 을 단다 — 임의 종목에 지어낸 숫자를 실데이터처럼 보여주지 않기 위함.
 """
 from __future__ import annotations
 
-from datetime import date
+from main.utils import today_iso, today_kst
 
 _SAMPLES: dict[str, dict] = {
     "005930": {
@@ -28,26 +28,25 @@ _SAMPLES: dict[str, dict] = {
 }
 
 
+def has(code: str) -> bool:
+    """샘플이 준비된 종목인지."""
+    return code in _SAMPLES
+
+
 def _rng(low: float, high: float, cur: float) -> dict:
     pos = round((cur - low) / (high - low) * 100) if high > low else 0
     return {"low": low, "high": high, "current": cur, "pos_pct": max(0, min(100, pos))}
 
 
 def basics(code: str) -> dict:
-    s = _SAMPLES.get(code) or {
-        "name": f"종목 {code}", "market": "KOSPI", "sector": None,
-        "close": 50_000, "change": 0, "change_pct": 0.0,
-        "market_cap": 5_000_000_000_000, "trade_value": 50_000_000_000,
-        "volume": 1_000_000, "shares": 100_000_000,
-        "est_year": None, "settle_month": "12", "rank": 500, "rank_in_market": 350,
-        "per": 11.0, "pbr": 0.9, "lo52": 40_000, "hi52": 62_000,
-    }
+    """샘플 기초정보 — has(code) 인 종목만 호출할 것."""
+    s = _SAMPLES[code]
     cur = s["close"]
     fin = financials(code)
     revenue = next((v for v in reversed(fin["revenue"]) if v), None)
     return {
         "code": code, "name": s["name"], "market": s["market"], "sector": s["sector"],
-        "as_of": date.today().isoformat(),
+        "as_of": today_iso(),
         "close": s["close"], "change": s["change"], "change_pct": s["change_pct"],
         "market_cap": s["market_cap"],
         "market_cap_rank": s["rank"], "market_cap_rank_in_market": s["rank_in_market"],
@@ -69,39 +68,11 @@ def basics(code: str) -> dict:
     }
 
 
-def _fin_ratio(a, b, scale=100.0, nd=1):
-    return [round(x / y * scale, nd) if x is not None and y else None for x, y in zip(a, b)]
-
-
-def _fin_block(labels, rev, opi, ni, assets, liab, eq):
-    return {
-        "labels": labels,
-        "revenue": rev, "operating_income": opi, "net_income": ni,
-        "assets": assets, "liabilities": liab, "equity": eq,
-        "debt_ratio": _fin_ratio(liab, eq),
-        "op_margin": _fin_ratio(opi, rev),
-        "net_margin": _fin_ratio(ni, rev),
-        "roe": _fin_ratio(ni, eq),
-    }
-
-
-def _recent_quarters(n: int = 4) -> list[tuple[int, int]]:
-    today = date.today()
-    y, q = today.year, (today.month - 1) // 3 + 1
-    q -= 1
-    if q == 0:
-        y, q = y - 1, 4
-    out = []
-    for _ in range(n):
-        out.append((y, q))
-        q -= 1
-        if q == 0:
-            y, q = y - 1, 4
-    return list(reversed(out))
-
-
 def financials(code: str) -> dict:
-    y0 = date.today().year - 1
+    """샘플 재무 — has(code) 인 종목만 호출할 것(삼성전자 외는 완만한 성장 곡선 합성치)."""
+    from .financials import block, recent_quarters  # 순환 import 방지(financials 가 이 모듈을 씀)
+
+    y0 = today_kst().year - 1
     ylabels = [str(y0 - 2), str(y0 - 1), str(y0)]
 
     if code == "005930":
@@ -120,10 +91,10 @@ def financials(code: str) -> dict:
         liab = [round(a * 0.44) for a in assets]
         eq = [a - l for a, l in zip(assets, liab)]
 
-    annual = _fin_block(ylabels, rev, opi, ni, assets, liab, eq)
+    annual = block(ylabels, rev, opi, ni, assets, liab, eq)
 
     # 분기: 최신 연도 값을 4등분해 완만한 성장 곡선으로 합성
-    qs = _recent_quarters(4)
+    qs = list(reversed(recent_quarters(4)))
     qr = round(rev[-1] / 4)
     q_rev = [round(qr * (0.90 + 0.07 * i)) for i in range(4)]
     q_opi = [round(v * (opi[-1] / rev[-1] if rev[-1] else 0.1)) for v in q_rev]
@@ -132,7 +103,7 @@ def financials(code: str) -> dict:
     q_liab = [round(assets[-1] * (liab[-1] / assets[-1] if assets[-1] else 0.24) * (0.94 + 0.02 * i))
               for i in range(4)]
     q_eq = [a - l for a, l in zip(q_ass, q_liab)]
-    quarters = _fin_block([f"{y} {q}Q" for y, q in qs], q_rev, q_opi, q_ni, q_ass, q_liab, q_eq)
+    quarters = block([f"{y} {q}Q" for y, q in qs], q_rev, q_opi, q_ni, q_ass, q_liab, q_eq)
 
     return {
         "code": code, "unit": "원", "fiscal_year": str(y0),

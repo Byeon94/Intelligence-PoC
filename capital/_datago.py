@@ -1,19 +1,25 @@
 """공공데이터포털(data.go.kr) 금융위원회 서비스 공통 호출 헬퍼.
 
 - 모든 금융위원회 오픈API는 같은 serviceKey(DATA_GO_KR_API_KEY)를 공유한다.
-- 키가 없거나 호출이 실패하면 호출부에서 샘플 데이터로 폴백한다.
+- 키가 없거나 호출이 실패하면 DataGoError — 호출부에서 샘플/unavailable 로 폴백한다.
+- capital 패키지가 같이 쓰는 서비스별 헬퍼도 여기 둔다:
+  금융투자협회종합통계(KOFIA: 증시자금·CMA·신용공여)와 지수시세(코스피·코스닥 일별).
+  credit/equity.py·credit/leads.py 도 get_json·pick·to_float 를 가져다 쓴다.
 """
 from __future__ import annotations
 
 import time
+from datetime import timedelta
 from typing import Any
 from urllib.parse import unquote
 
 import requests
 
 from main.config import get_settings
+from main.utils import today_kst
 
 BASE = "https://apis.data.go.kr/1160100/service"
+JO = 1_000_000_000_000  # 원 → 조원
 
 _TIMEOUT = 10
 _session = requests.Session()
@@ -96,3 +102,67 @@ def to_float(value: Any) -> float | None:
         return float(str(value).replace(",", "").strip())
     except (TypeError, ValueError):
         return None
+
+
+def ymd(d) -> str:
+    """date → 'YYYYMMDD'(data.go.kr beginBasDt/endBasDt 형식)."""
+    return d.strftime("%Y%m%d")
+
+
+# ── 금융투자협회종합통계(GetKofiaStatisticsInfoService) ─────────────
+KOFIA_SERVICE = "GetKofiaStatisticsInfoService"
+KOFIA_OPS = {
+    "stock_fund": "getSecuritiesMarketTotalCapitalInfo",   # 증시자금(투자자예탁금 등)
+    "cma": "getCMAStatus",                                 # CMA 현황(운용대상×투자자구분)
+    "credit": "getGrantingOfCreditBalanceInfo",            # 신용공여 잔고
+}
+
+
+def date_of(row: dict) -> str | None:
+    """행의 기준일자('YYYYMMDD'). 서비스마다 필드명이 달라 후보를 순서대로 본다."""
+    return pick(row, "basDt", "BAS_DT", "stdDt", "trdDt")
+
+
+def kofia_range_params(months: int) -> dict:
+    """최근 N개월(+여유 45일) 조회 구간 — 월말 값·전월 비교에 필요한 만큼 넉넉히."""
+    today = today_kst()
+    begin = today - timedelta(days=int(months * 31) + 45)
+    return {"beginBasDt": ymd(begin), "endBasDt": ymd(today), "numOfRows": 20000}
+
+
+def kofia_rows(op_key: str, months: int) -> list[dict]:
+    return get_json(KOFIA_SERVICE, KOFIA_OPS[op_key], kofia_range_params(months))
+
+
+# ── 지수시세(GetMarketIndexInfoService) ─────────────────────────────
+INDEX_SERVICE = "GetMarketIndexInfoService"
+INDEX_OP = "getStockMarketIndex"
+
+
+def index_daily(idx_nm: str, days: int, num_rows: int) -> list[dict]:
+    """코스피/코스닥 최근 days일 일별 행 → [{date, close, turnover(원)}] 날짜 오름차순.
+
+    idxNm 은 부분일치라 '코스피 200' 같은 하위지수가 섞여 오므로 이름이 정확히 같은 행만
+    남긴다. close·turnover 는 없으면 None — 필요한 값은 호출부에서 거른다.
+    """
+    today = today_kst()
+    rows = get_json(INDEX_SERVICE, INDEX_OP, {
+        "idxNm": idx_nm,
+        "beginBasDt": ymd(today - timedelta(days=days)),
+        "endBasDt": ymd(today),
+        "numOfRows": num_rows,
+    })
+    out = []
+    for r in rows:
+        if pick(r, "idxNm") not in (idx_nm, None):
+            continue
+        d = pick(r, "basDt", "BAS_DT")
+        if not d:
+            continue
+        out.append({
+            "date": str(d),
+            "close": to_float(pick(r, "clpr", "CLPR")),
+            "turnover": to_float(pick(r, "trPrc", "TR_PRC")),
+        })
+    out.sort(key=lambda x: x["date"])
+    return out

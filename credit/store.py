@@ -4,33 +4,35 @@
       재호출하지 않고 저장본을 돌려준다. (API 호출 수 제한 대응)
 
 계층
-  L1 프로세스 메모리(_mem)         — 워커 재시작 전까지
+  L1 프로세스 메모리(_mem)         — 오늘(KST)자 항목만 보관(날짜가 바뀌면 지난 항목 정리)
   L2 Supabase equity_snapshots    — 워커 공유 + 하루 유지 (schema.sql 참고)
 둘 다 없으면 호출부가 실데이터를 만들어 save_cached() 한다. sample 폴백은 저장하지 않는다.
 """
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from main.supabase_client import get_supabase_client
+from main.utils import today_iso
 
 logger = logging.getLogger(__name__)
 
-_KST = ZoneInfo("Asia/Seoul")
 _TABLE = "equity_snapshots"
 _mem: dict[str, dict] = {}          # "<date>:<code>" → {"basics": {...}, "financials": {...}, ...}
 _warned = False                     # 저장 실패 경고 1회
 _read_warned = False                # 조회 실패 경고 1회
 
 
-def today_kst() -> str:
-    return datetime.now(_KST).strftime("%Y-%m-%d")
-
-
 def _key(date_iso: str, code: str) -> str:
     return f"{date_iso}:{code}"
+
+
+def _remember(date_iso: str, k: str, row: dict) -> None:
+    """L1 에 저장하면서 다른 날짜 항목은 버린다 — 날짜별 키가 끝없이 쌓이지 않도록."""
+    prefix = f"{date_iso}:"
+    for old in [x for x in _mem if not x.startswith(prefix)]:
+        _mem.pop(old, None)
+    _mem[k] = row
 
 
 def _row(date_iso: str, code: str) -> dict:
@@ -51,7 +53,7 @@ def _row(date_iso: str, code: str) -> dict:
             )
             rows = resp.data or []
             if rows:
-                _mem[k] = rows[0]["payload"] or {}
+                _remember(date_iso, k, rows[0]["payload"] or {})
                 return _mem[k]
         except Exception as exc:  # noqa: BLE001
             global _read_warned
@@ -66,15 +68,15 @@ def _row(date_iso: str, code: str) -> dict:
 
 def get_cached(code: str, kind: str) -> dict | None:
     """kind: 'basics' | 'financials'. 오늘자 저장본이 있으면 반환, 없으면 None."""
-    return _row(today_kst(), code).get(kind)
+    return _row(today_iso(), code).get(kind)
 
 
 def save_cached(code: str, kind: str, payload: dict) -> None:
-    date_iso = today_kst()
+    date_iso = today_iso()
     k = _key(date_iso, code)
     row = dict(_mem.get(k) or {})
     row[kind] = payload
-    _mem[k] = row
+    _remember(date_iso, k, row)
     _upsert(date_iso, code, row)
 
 
@@ -83,13 +85,13 @@ _CORPMAP_CODE = "_corpmap"
 
 
 def get_corpmap() -> dict[str, str] | None:
-    return _row(today_kst(), _CORPMAP_CODE).get("map")
+    return _row(today_iso(), _CORPMAP_CODE).get("map")
 
 
 def save_corpmap(mapping: dict[str, str]) -> None:
-    date_iso = today_kst()
+    date_iso = today_iso()
     row = {"map": mapping}
-    _mem[_key(date_iso, _CORPMAP_CODE)] = row
+    _remember(date_iso, _key(date_iso, _CORPMAP_CODE), row)
     _upsert(date_iso, _CORPMAP_CODE, row)
 
 

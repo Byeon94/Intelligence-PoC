@@ -12,39 +12,20 @@
    "오늘 신규 리드"의 기준일·건수·목록은 이 파일에서 계산하지 않고 /api/credit/today-summary
    (credit/today_summary.py) 하나가 정한다 — 홈 대시보드 알림(main/home.py)도 같은 함수를
    쓴다. 예전엔 이 화면(JS)과 홈(Python)이 각자 "오늘"을 따로 계산하다가 화면마다 다른
-   건수가 표시되는 문제가 있었다. */
+   건수가 표시되는 문제가 있었다.
+
+   공용 헬퍼(esc·safeUrl·get·CIRCLED)는 main/static/common.js 의 window.KSFC 를 쓴다. */
 (function () {
   "use strict";
 
-  function get(url) {
-    return fetch(url).then(function (r) {
-      return r.text().then(function (t) {
-        var j = null;
-        if (t) { try { j = JSON.parse(t); } catch (e) { j = null; } }
-        if (j === null) {
-          throw new Error(
-            r.status >= 500 || r.status === 0
-              ? "서버가 응답하지 못했습니다 (" + (r.status || "네트워크") + "). 잠시 후 다시 시도해주세요."
-              : "서버 응답을 해석하지 못했습니다 (" + r.status + ")."
-          );
-        }
-        if (!r.ok) throw new Error(j.error || ("요청 실패 (" + r.status + ")"));
-        return j;
-      });
-    });
-  }
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
+  var K = window.KSFC;
+  var esc = K.esc, get = K.get, CIRCLED = K.CIRCLED;
+  function href(u) { return esc(K.safeUrl(u)); }   // http(s) 외 스킴은 "#"
 
   var leadsState = { data: null };
   var newsState = { items: null };
   var esopNewsState = { items: null };
   var todayState = { data: null };
-  var briefState = { data: null };
-  var CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
   var LIST_LIMIT = 5;
 
   /* ── 목록(더보기) 공통 렌더러: 기본 5개만 보여주고, 더보기를 누르면 전체를 펼친다 ── */
@@ -110,23 +91,35 @@
     var refMonth = t.ref_month;
 
     document.getElementById("leads-asof").textContent =
-      "공시 " + dartRefDate + " · 뉴스 " + newsRefDate + " 기준 (공시는 비영업일이면 자동으로 전 영업일, 뉴스는 조회일 기준)";
+      "공시 " + dartRefDate + " · 뉴스 " + newsRefDate + " 기준 (공시·뉴스 모두 수집된 데이터의 최신 날짜 기준 — 공시는 비영업일이면 전 영업일)";
 
     var newsItems = newsState.items || [];
-    var allDated = (d.collateral || []).concat(d.esop || [])
-      .concat(newsItems.map(function (n) { return { date: n.published }; }))
-      .concat((esopNewsState.items || []).map(function (n) { return { date: n.published }; }));
-    var weekCutoff = new Date(newsRefDate + "T00:00:00");
+    var weekEnd = dartRefDate > newsRefDate ? dartRefDate : newsRefDate;
+    var weekCutoff = new Date(weekEnd + "T00:00:00");
     weekCutoff.setDate(weekCutoff.getDate() - 6);
     var weekCutStr = localISODate(weekCutoff);
+    var inWeek = function (day) { return day >= weekCutStr && day <= weekEnd; };
+
+    // DART 건수는 서버가 전체 목록 기준으로 센 dart_daily / collateral_monthly 를 쓴다
+    // (내려받은 collateral·esop 목록은 표시용으로 잘려 있음). 예전 스냅샷엔 없을 수 있어 목록으로 대체.
+    var dartWeek = 0;
+    if (d.dart_daily) {
+      Object.keys(d.dart_daily).forEach(function (day) { if (inWeek(day)) dartWeek += d.dart_daily[day]; });
+    } else {
+      dartWeek = (d.collateral || []).concat(d.esop || []).filter(function (x) { return inWeek(x.date || ""); }).length;
+    }
+    var newsWeek = newsItems.concat(esopNewsState.items || [])
+      .filter(function (n) { return inWeek(n.published || ""); }).length;
 
     var todayCount = t.count;
-    var weekCount = allDated.filter(function (x) { return x.date >= weekCutStr && x.date <= newsRefDate; }).length;
+    var weekCount = dartWeek + newsWeek;
     renderTodayLeadsList();
 
-    var inMonth = function (x) { return (x.date || "").slice(0, 7) === refMonth; };
     var newsInMonth = function (n) { return (n.published || "").slice(0, 7) === refMonth; };
-    var inheritMonthly = (d.collateral || []).filter(inMonth).length + newsItems.filter(newsInMonth).length;
+    var colMonth = (d.collateral_monthly || []).filter(function (m) { return m.month === refMonth; })[0];
+    var dartMonth = colMonth ? colMonth.count
+      : (d.collateral || []).filter(function (x) { return (x.date || "").slice(0, 7) === refMonth; }).length;
+    var inheritMonthly = dartMonth + newsItems.filter(newsInMonth).length;
     var monthly = (d.esop_monthly || []).filter(function (m) { return m.month === refMonth; })[0] || { rights: 0, ipo: 0 };
 
     document.getElementById("leads-kpis").innerHTML = leadKpiHTML([
@@ -168,7 +161,6 @@
 
   function loadBriefings() {
     get("/api/credit/lead-briefings").then(function (d) {
-      briefState.data = d;
       var colBox = document.getElementById("leads-collateral-brief");
       var esopBox = document.getElementById("leads-esop-brief");
       colBox.innerHTML = briefCardHTML({
@@ -194,7 +186,7 @@
      증권담보대출 상세 탭에서는 종목마다 지분율·가치가 달라 그대로 보여준다). */
   function collateralRowHTML(it, hideNote) {
     return (
-      '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+      '<a class="lead-row" href="' + href(it.url) + '" target="_blank" rel="noopener">' +
         '<div class="lead-row-head">' +
           '<span class="pg-badge">LEAD</span>' +
           '<span class="lead-title">' + esc(it.name) + " — " + esc(it.reporter || it.reason) + "</span>" +
@@ -207,7 +199,7 @@
 
   function newsRowHTML(it) {
     return (
-      '<a class="lead-row" href="' + esc(it.url || "#") + '" target="_blank" rel="noopener">' +
+      '<a class="lead-row" href="' + href(it.url) + '" target="_blank" rel="noopener">' +
         '<div class="lead-row-head">' +
           '<span class="pg-badge">뉴스</span>' +
           '<span class="lead-title">' + esc(it.title) + "</span>" +
@@ -288,7 +280,7 @@
   function esopRowHTML(it) {
     var isIpo = it.category === "ipo";
     return (
-      '<a class="lead-row" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+      '<a class="lead-row" href="' + href(it.url) + '" target="_blank" rel="noopener">' +
         '<div class="lead-row-head">' +
           '<span class="pg-badge' + (isIpo ? " badge-ipo" : "") + '">' + (isIpo ? "IPO" : "유상증자") + "</span>" +
           '<span class="lead-title">' + esc(it.name) + " — " + esc(it.title) + "</span>" +
@@ -335,6 +327,13 @@
       renderTodayLeadsList);
   }
 
+  // 리드 목록 칸들을 비우고, msgHTML 이 있으면 첫 칸(증권담보대출 공시)에 안내를 띄운다.
+  function clearLeadBoxes(msgHTML) {
+    ["leads-inherit-news-list", "leads-esop-disclosures", "leads-esop-news-list", "leads-today-list"]
+      .forEach(function (id) { document.getElementById(id).innerHTML = ""; });
+    document.getElementById("leads-inherit-disclosures").innerHTML = msgHTML || "";
+  }
+
   var leadsLoaded = false;
   function loadLeads() {
     if (leadsLoaded) return;
@@ -344,13 +343,8 @@
       if (d.pending) {
         document.getElementById("leads-kpis").innerHTML = "";
         document.getElementById("leads-asof").textContent = "";
-        document.getElementById("leads-inherit-disclosures").innerHTML =
-          '<div class="page-note">코스피·코스닥 전 종목 데이터를 처음 수집하는 중입니다. 잠시 후 새로고침해주세요.</div>';
-        document.getElementById("leads-inherit-news-list").innerHTML = "";
-        document.getElementById("leads-esop-disclosures").innerHTML = "";
-        document.getElementById("leads-esop-news-list").innerHTML = "";
-        document.getElementById("leads-today-list").innerHTML = "";
         document.getElementById("leads-scope-note").textContent = "";
+        clearLeadBoxes('<div class="page-note">리드 데이터를 처음 수집하는 중입니다(매일 아침 배치 수집). 잠시 후 새로고침해주세요.</div>');
         leadsLoaded = false;             // pending 이면 나중에 다시 불러올 수 있게
         return;
       }
@@ -359,16 +353,12 @@
       renderEsopList();
       document.getElementById("leads-scope-note").textContent =
         "대상 범위: 증권담보대출(상속·증여) 리드는 시가총액 상위 코스피·코스닥 종목(" + (d.universe || 0) + "종목, 코스피 200·코스닥 100) · " +
-        "우리사주 리드는 전 시장(유상증자) + 상장 전 IPO 공모 공시 포함 · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
-        (d.stale ? " · 최신 수집이 진행 중이라 이전 결과를 보여주고 있습니다" : "");
+        "우리사주 리드는 유상증자(같은 상위 종목) + 상장 전 IPO 공모 공시(전 시장) · DART 전자공시 실데이터 기준, 매일 1회 갱신" +
+        // stale = 오늘자 스냅샷이 없음(수집 진행 중이거나 오늘 배치가 실패함)
+        (d.stale ? " · 오늘 수집분이 아직 없어 가장 최근 수집 결과를 보여주고 있습니다" : "");
     }).catch(function (e) {
       leadsLoaded = false;
-      document.getElementById("leads-inherit-disclosures").innerHTML =
-        '<div class="chart-error">' + (e.message || "리드 데이터를 불러오지 못했습니다") + "</div>";
-      document.getElementById("leads-inherit-news-list").innerHTML = "";
-      document.getElementById("leads-esop-disclosures").innerHTML = "";
-      document.getElementById("leads-esop-news-list").innerHTML = "";
-      document.getElementById("leads-today-list").innerHTML = "";
+      clearLeadBoxes('<div class="chart-error">' + esc(e.message || "리드 데이터를 불러오지 못했습니다") + "</div>");
     });
   }
 

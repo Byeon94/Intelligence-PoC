@@ -1,6 +1,9 @@
-/* 의존성 없는 인라인 SVG 차트 (라인 / 스택 바 / 도넛). 모바일 가독성 우선. */
+/* 의존성 없는 인라인 SVG 차트 (라인 / 스택 바 / 도넛 / 스파크라인). 모바일 가독성 우선.
+ * window.Charts 로 공개 — 자본시장 탭(capital.js)과 홈(home.js)이 같이 쓴다.
+ * 범례 등 innerHTML 로 넣는 문자열은 KSFC.esc(common.js, 먼저 로드)로 이스케이프한다. */
 (function (global) {
   "use strict";
+  var esc = global.KSFC.esc;
   var NS = "http://www.w3.org/2000/svg";
   var SERIES_VARS = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6"];
 
@@ -170,7 +173,7 @@
       row.className = "dl";
       row.innerHTML =
         '<i style="background:var(' + SERIES_VARS[i % SERIES_VARS.length] + ')"></i>' +
-        '<span class="dl-name">' + d.type + '</span>' +
+        '<span class="dl-name">' + esc(d.type) + '</span>' +
         '<span class="dl-val">' + d.share.toFixed(1) + '%</span>' +
         (d.balance != null ? '<span class="dl-bal">' + fmt(d.balance) + '조</span>' : '');
       lg.appendChild(row);
@@ -184,7 +187,7 @@
     entries.forEach(function (e) {
       var s = document.createElement("span");
       s.className = "lg";
-      s.innerHTML = '<i style="background:var(' + e.varName + ')"></i>' + e.name;
+      s.innerHTML = '<i style="background:var(' + esc(e.varName) + ')"></i>' + esc(e.name);
       wrap.appendChild(s);
     });
     return wrap;

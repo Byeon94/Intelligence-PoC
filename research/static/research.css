@@ -1,0 +1,51 @@
+/* 뉴스 탭 전용 스타일 — 태그 칩·기사 피드. */
+
+/* ── 뉴스 피드 ── 키워드 칩을 탭처럼 써서, 누른 태그의 기사만 그리드로
+   보여준다(기본은 "전체" — 모든 태그 그룹을 순서대로, 각 그룹 안은 그리드). 예전엔
+   태그 그룹을 전부 세로로 쌓아 칩을 누르면 그 위치로 스크롤만 했는데, 그러면 아래
+   태그를 보려고 계속 스크롤해야 했다. */
+.ni-keyword-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+/* 태그 칩은 사이드바·세부탭 선택색과 같은 남색(#2a3a6b) 톤 — 선택 칩은 꽉 찬 남색,
+   나머지는 옅은 남색 배경. 다크 테마에선 글자가 묻히지 않게 밝은 남색으로 바꾼다. */
+.ni-kw-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
+  font-size: .78rem; font-weight: 700; color: #2a3a6b;
+  background: rgba(42,58,107,.08); border: 1px solid rgba(42,58,107,.18); border-radius: 999px;
+  padding: 5px 12px; cursor: pointer;
+}
+.ni-kw-chip:hover { border-color: rgba(42,58,107,.5); }
+.ni-kw-chip.active { color: #fff; background: #2a3a6b; border-color: #2a3a6b; }
+.ni-kw-chip-n { font-size: .7rem; color: rgba(42,58,107,.62); }
+.ni-kw-chip.active .ni-kw-chip-n { color: rgba(255,255,255,.85); }
+[data-theme="dark"] .ni-kw-chip { color: #b9c6ea; background: rgba(157,180,255,.08); border-color: rgba(157,180,255,.22); }
+[data-theme="dark"] .ni-kw-chip:hover { border-color: rgba(157,180,255,.55); }
+[data-theme="dark"] .ni-kw-chip.active { color: #fff; background: #3a4d87; border-color: #3a4d87; }
+[data-theme="dark"] .ni-kw-chip-n { color: var(--muted); }
+[data-theme="dark"] .ni-kw-chip.active .ni-kw-chip-n { color: rgba(255,255,255,.85); }
+#rs-feed { display: flex; flex-direction: column; gap: 20px; }
+.ni-group-head {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
+}
+.ni-group-tag { font-size: .9rem; font-weight: 800; color: var(--fg); }
+.ni-group-count { font-size: .74rem; color: var(--muted); }
+.ni-group-items {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
+}
+.news-item {
+  display: flex; gap: 12px; text-decoration: none; color: inherit;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  box-shadow: var(--shadow);
+}
+.news-item:hover { border-color: var(--accent); }
+.news-item:hover .ni-title { color: var(--accent); }
+.ni-rank {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px;
+  background: var(--accent-bg); color: var(--accent); font-size: .78rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.ni-body { flex: 1; min-width: 0; }
+.ni-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.ni-date { font-size: .7rem; color: var(--muted); }
+.ni-title { font-size: .88rem; font-weight: 600; line-height: 1.45; }
+.ni-reason { font-size: .78rem; color: var(--muted); margin-top: 4px; line-height: 1.55; }

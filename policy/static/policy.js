@@ -1,34 +1,19 @@
-/* 정책·규제 탭: AI 브리핑(3줄 요약 + 재생성) + 기관별 보도자료 */
+/* 정책·규제 탭: AI 브리핑(3줄 요약) + 금융당국·유관기관별 보도자료 (/api/policy/digest) */
 (function () {
   "use strict";
 
-  var CIRCLED = ["①", "②", "③", "④", "⑤", "⑥"];
+  var esc = KSFC.esc, safeUrl = KSFC.safeUrl, CIRCLED = KSFC.CIRCLED;
 
-  function esc(s) {
-    return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  }
-
-  // AI 브리핑은 첫 줄만 보여주고 나머지는 "더보기"로 펼친다 — 모바일에서 브리핑이
-  // 화면을 다 차지하면 아래에 보도자료 목록이 있다는 걸 알아채기 어렵기 때문.
-  function bindBriefMore(bodyEl, moreCount) {
-    if (!bodyEl || moreCount < 1) return;
-    bodyEl.classList.add("brief-collapsed");
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "brief-more-btn";
-    function sync() {
-      var collapsed = bodyEl.classList.contains("brief-collapsed");
-      btn.textContent = collapsed ? "더보기 (" + moreCount + "건) ▾" : "접기 ▴";
-      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    }
-    btn.addEventListener("click", function () {
-      bodyEl.classList.toggle("brief-collapsed");
-      sync();
-    });
-    sync();
-    bodyEl.appendChild(btn);
+  // 브리핑 텍스트 → 불릿 최대 3개. Gemini 가 서두 문장을 붙이는 경우가 있어 '-', '•', '*' 로
+  // 시작하는 줄을 우선 쓰고, 그런 줄이 하나도 없을 때만 모든 줄을 쓴다.
+  function briefingBullets(text) {
+    var lines = String(text || "").split("\n");
+    var marked = lines.filter(function (l) { return /^\s*[-•*]\s*/.test(l); });
+    return (marked.length ? marked : lines)
+      .map(function (l) { return l.replace(/^\s*[-•*]\s*/, "").trim(); })
+      .map(function (l) { return l.replace(/\s*·?\s*출처[:：].*$/, "").trim(); })
+      .filter(Boolean)
+      .slice(0, 3);
   }
 
   function renderBriefing(d) {
@@ -46,12 +31,7 @@
     if (!d.briefing) {
       body = '<div class="brief-note">' + esc(d.briefing_note || "AI 브리핑을 사용할 수 없습니다.") + "</div>";
     } else {
-      var bullets = d.briefing
-        .split("\n")
-        .map(function (l) { return l.replace(/^\s*[-•*]\s*/, "").trim(); })
-        .map(function (l) { return l.replace(/\s*·?\s*출처[:：].*$/, "").trim(); })
-        .filter(Boolean)
-        .slice(0, 3);
+      var bullets = briefingBullets(d.briefing);
       moreCount = bullets.length - 1;
 
       body ='<ol class="brief-list">' +
@@ -65,7 +45,7 @@
           (d.stale ? " · 이전 자료" : "") + "</div>";
     }
     box.innerHTML = head + '<div class="brief-body" id="pol-brief-body">' + body + "</div>";
-    bindBriefMore(document.getElementById("pol-brief-body"), moreCount);
+    KSFC.bindBriefMore(document.getElementById("pol-brief-body"), moreCount);
   }
 
   var ORG_NAMES = {
@@ -91,7 +71,7 @@
     if (!refOnly.length) { el.innerHTML = ""; return; }
     var names = refOnly.map(function (g) { return esc(g.org_name); }).join("·");
     var links = refOnly.map(function (g) {
-      var url = (g.items[0] || {}).url || "#";
+      var url = safeUrl((g.items[0] || {}).url);
       return '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(g.org_name) + " 보도자료 →</a>";
     }).join(" · ");
     el.innerHTML =
@@ -110,13 +90,13 @@
       var rows = (g.items || []).map(function (it) {
         if (it.link_only) {
           return (
-            '<a class="pol-item pol-link" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+            '<a class="pol-item pol-link" href="' + esc(safeUrl(it.url)) + '" target="_blank" rel="noopener">' +
               '<div class="pi-title">🔗 ' + esc(it.title) + "</div>" +
             "</a>"
           );
         }
         return (
-          '<a class="pol-item" href="' + esc(it.url) + '" target="_blank" rel="noopener">' +
+          '<a class="pol-item" href="' + esc(safeUrl(it.url)) + '" target="_blank" rel="noopener">' +
             '<div class="pi-top"><span class="pi-date">' + esc(it.date || "") + "</span>" +
               (it.dept ? '<span class="pi-dept">' + esc(it.dept) + "</span>" : "") + "</div>" +
             '<div class="pi-title">' + esc(it.title) + "</div>" +
@@ -140,10 +120,8 @@
     }
   }
 
-  function fetchDigest(refresh) {
-    var url = "/api/policy/digest" + (refresh ? "?refresh=1" : "");
-    fetch(url)
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "요청 실패"); return j; }); })
+  function fetchDigest() {
+    KSFC.get("/api/policy/digest")
       .then(function (d) {
         var sum = document.getElementById("pol-summary");
         if (sum) {
@@ -155,8 +133,6 @@
             ' <span class="ps-sep">·</span> ' + esc(d.generated_at || "") + " 수집" +
             (d.stale ? ' <span class="ps-sep">·</span> 이전 자료' : "");
         }
-        var asof = document.getElementById("pol-asof");
-        if (asof) asof.textContent = "";
         renderBriefing(d);
         renderGroups(d);
       })
@@ -188,7 +164,7 @@
     if (loaded) return;
     loaded = true;
     initSubtabs();
-    fetchDigest(false);
+    fetchDigest();
   }
 
   function visible() {

@@ -1,0 +1,38 @@
+/* 자본시장 > 발행시장 캘린더 스타일. */
+
+/* ── 발행시장 캘린더 ── */
+.cal-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+.cal-legend .cl-item { display: flex; align-items: center; gap: 6px; font-size: .76rem; color: var(--muted); }
+.cal-legend .cl-item i { width: 10px; height: 10px; border-radius: 3px; }
+
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px; box-shadow: var(--shadow); overflow-x: auto;
+}
+.cal-dow { text-align: center; font-size: .72rem; font-weight: 700; color: var(--muted); padding: 4px 0; }
+.cal-dow.cal-sun { color: var(--down); }
+.cal-dow.cal-sat { color: var(--accent); }
+.cal-day {
+  min-height: 78px; border: 1px solid var(--border2); border-radius: 8px;
+  padding: 4px 5px; background: var(--card2); display: flex; flex-direction: column; gap: 3px;
+}
+.cal-day.cal-empty { background: transparent; border-color: transparent; }
+.cal-num { font-size: .72rem; color: var(--muted); }
+.cal-day.cal-sun .cal-num { color: var(--down); }
+.cal-day.cal-sat .cal-num { color: var(--accent); }
+.cal-ev {
+  display: block; font-size: .68rem; line-height: 1.3; color: var(--fg);
+  background: var(--card); border: 1px solid var(--border2); border-left: 3px solid var(--muted);
+  border-radius: 4px; padding: 2px 4px; text-decoration: none;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal-ev:hover { border-color: var(--accent); }
+.cal-ev .ce-t { color: var(--muted); font-size: .62rem; }
+
+@media (max-width: 640px) {
+  .cal-grid { padding: 6px; gap: 2px; }
+  .cal-day { min-height: 58px; padding: 3px; }
+  .cal-ev { font-size: .6rem; }
+  .cal-ev .ce-t { display: none; }
+}

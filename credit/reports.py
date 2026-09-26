@@ -5,25 +5,28 @@
   컬럼: 발간일 · 제목 · 목표주가 · 투자의견 · 애널리스트 · 증권사 · PDF(report_idx)
   · 목표주가 '변동'(상향/하향/유지)은 같은 증권사의 직전 목표주가와 비교해 계산.
   · 컨센서스 요약(평균/최저/최고 목표주가, 리포트·증권사 수)은 리스트에서 집계.
-당해 연도 리포트만, 최신 20건.
+당해 연도 리포트만, 최신 20건(1시간 메모리 캐시).
+
+시장 전체 동향은 하루 1회 스냅샷(market_report_snapshots)으로 저장하고, AI 브리핑은
+main.daily_snapshot.try_ai 시도 상한 안에서 만든다(테이블 락으로 중복 수집·호출 방지).
 """
 from __future__ import annotations
 
 import html as _html
 import logging
 import re
-from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import timedelta
 
 import requests
 
-from capital._cache import ttl_cache
+from main.cache import ttl_cache
 from main.config import get_settings
+from main.daily_snapshot import AI_CAPPED, AI_FAILED, table_lock, try_ai
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, save_snapshot
+from main.utils import stamp, today_iso, today_kst
 
 logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
 
 _LIST_URL = "https://consensus.hankyung.com/analysis/list"
 _PDF_BASE = "https://consensus.hankyung.com"
@@ -101,9 +104,10 @@ def _mark_changes(items: list[dict]) -> None:
 
 @ttl_cache(60 * 60)
 def get_reports(code: str, limit: int = 20) -> dict:
-    year = date.today().year
+    today = today_kst()
+    year = today.year
     sdate = f"{year}-01-01"
-    edate = date.today().strftime("%Y-%m-%d")
+    edate = today.isoformat()
 
     items: list[dict] = []
     try:
@@ -213,14 +217,14 @@ def _fetch_market_rows(page: int, date_str: str) -> list[dict]:
 
 def _find_market_reference_date() -> tuple[str, list[dict]]:
     """오늘부터 거슬러 올라가며 리포트가 실제로 있는 첫 날짜(=전영업일)를 찾는다."""
-    d = datetime.now(KST).date()
+    d = today_kst()
     for _ in range(_MARKET_MAX_BACK_DAYS):
         ds = d.isoformat()
         rows = _fetch_market_rows(1, ds)
         if rows:
             return ds, rows
         d -= timedelta(days=1)
-    return datetime.now(KST).date().isoformat(), []
+    return today_iso(), []
 
 
 def _market_briefing(items: list[dict]) -> list[str]:
@@ -240,32 +244,30 @@ def _market_briefing(items: list[dict]) -> list[str]:
 
 
 def _maybe_brief_market(payload: dict, force: bool = False) -> dict:
-    s = get_settings()
+    """브리핑이 없으면(또는 force) 시도 상한 안에서 1회 생성하고, 결과에 맞는 briefing_note 를 단다."""
     has = bool(payload.get("briefing"))
-    cap = s.policy_max_gemini_calls_per_day
     if has and not force:
         return payload
-    if not s.gemini_api_keys:
+    if not get_settings().gemini_api_keys:
         if not has:
             payload["briefing_note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다."
         return payload
     if not payload.get("items"):
         payload["briefing_note"] = "브리핑을 만들 리포트가 없습니다."
         return payload
-    if payload.get("gemini_attempts", 0) >= cap:
+
+    def _brief(p: dict) -> None:
+        bullets = _market_briefing(p["items"])
+        p.update(briefing=bullets, briefing_at=stamp(), briefing_note=None)
+
+    result = try_ai(payload, _brief, "시장 리포트 브리핑")
+    if result == AI_CAPPED:
+        cap = get_settings().ai_retries_per_snapshot
         payload["briefing_note"] = (
             f"AI 재생성 일일 한도({cap}회)에 도달했습니다." + (" 기존 브리핑을 표시합니다." if has else "")
         )
-        return payload
-    payload["gemini_attempts"] = payload.get("gemini_attempts", 0) + 1
-    try:
-        payload["briefing"] = _market_briefing(payload["items"])
-        payload["briefing_at"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-        payload["briefing_note"] = None
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("시장 리포트 브리핑 실패: %s", exc)
-        if not has:
-            payload["briefing_note"] = "AI 브리핑 생성에 실패했습니다."
+    elif result == AI_FAILED and not has:
+        payload["briefing_note"] = "AI 브리핑 생성에 실패했습니다."
     return payload
 
 
@@ -278,7 +280,12 @@ def get_market_report_digest(force: bool = False) -> dict:
     수백 건을 매번 다 실어 나르지 않기 위함). total 은 사이트에서 세는 값과 맞추기 위해
     중복 제거 전 원본 건수다.
     """
-    today = datetime.now(KST).date().isoformat()
+    today = today_iso()
+    with table_lock(_MARKET_TABLE):
+        return _market_digest(today, force)
+
+
+def _market_digest(today: str, force: bool) -> dict:
     snap = get_snapshot(_MARKET_TABLE, today)
     if snap is not None and snap.get("v") != _MARKET_SCHEMA_V:
         snap = None  # 스키마 변경(전체 유형 반영) — 재수집
@@ -301,7 +308,13 @@ def get_market_report_digest(force: bool = False) -> dict:
     capped = False
     if items:
         for page in range(2, _MARKET_MAX_PAGES + 1):
-            batch = _fetch_market_rows(page, ref_date)
+            try:
+                batch = _fetch_market_rows(page, ref_date)
+            except requests.RequestException as exc:
+                # 중간 페이지 실패 — 받은 데까지만 쓰고 total 이 하한값임을 표시한다.
+                logger.info("한경컨센서스 %d페이지 조회 실패: %s", page, exc)
+                capped = True
+                break
             if not batch:
                 break
             items.extend(batch)
@@ -336,7 +349,7 @@ def get_market_report_digest(force: bool = False) -> dict:
         "total": len(items),
         "total_capped": capped,
         "category_counts": category_counts,
-        "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
+        "generated_at": stamp(),
         "briefing": None,
         "briefing_at": None,
         "briefing_note": None,

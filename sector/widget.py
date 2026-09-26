@@ -1,3 +1,4 @@
+"""전사 위젯(업종별 시가총액 순위·밸류체인) 블루프린트 — 독립 페이지(/sector)와 JSON API."""
 from flask import Blueprint, jsonify, render_template
 
 from .market_map import get_sector_map

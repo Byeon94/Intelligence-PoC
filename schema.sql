@@ -103,8 +103,9 @@ create table if not exists market_briefing_snapshots (
     created_at timestamptz not null default now()
 );
 
--- 전사 위젯 > 국내 업종별 시가총액 맵: 전 상장종목 업종 분류(Gemini, 약 30일 주기로만 재분류).
--- 화면은 이 스냅샷만 읽고(get_cached_classification), 실제 재분류는 /internal/warmup 배치에서만.
+-- 나의 대시보드 > 국내 업종별 시가총액 맵: 전 상장종목 업종 분류(Gemini, 약 30일 주기로만 재분류).
+-- 화면은 이 스냅샷만 읽고(get_cached_classification), 재분류는 수동 실행 전용
+-- (sector.classify.refresh_sector_classification — /internal/warmup 배치에는 넣지 않음).
 create table if not exists sector_classification_snapshots (
     snapshot_date date primary key,
     payload jsonb not null,

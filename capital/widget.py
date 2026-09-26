@@ -1,3 +1,4 @@
+"""자본시장 탭 블루프린트 — 탭 템플릿(/capital)과 증시자금·거래대금·CMA JSON API."""
 from flask import Blueprint, jsonify, render_template
 
 from .cma import get_cma_mix, get_cma_rates, get_cma_summary

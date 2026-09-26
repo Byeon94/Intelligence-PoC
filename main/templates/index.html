@@ -6,7 +6,15 @@
 <meta name="theme-color" content="#10162b">
 <meta name="color-scheme" content="light">
 <title>증금 인텔리전스 플랫폼</title>
+<!-- 공용(style.css) → 탭별 CSS. 순서는 분리 전 style.css 안의 순서를 그대로 따른다 -->
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('capital.static', filename='capital.css') }}">
+<link rel="stylesheet" href="{{ url_for('lending.static', filename='lending.css') }}">
+<link rel="stylesheet" href="{{ url_for('policy.static', filename='policy.css') }}">
+<link rel="stylesheet" href="{{ url_for('issuance.static', filename='issuance.css') }}">
+<link rel="stylesheet" href="{{ url_for('research.static', filename='research.css') }}">
+<link rel="stylesheet" href="{{ url_for('credit.static', filename='credit.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
 <link rel="stylesheet" href="{{ url_for('sector.static', filename='sector.css') }}">
 </head>
 <body>
@@ -109,15 +117,17 @@
           </table>
         </div>
 
-        <h3 class="section-label">매일 새벽 자동 수집(배치)</h3>
+        <h3 class="section-label">매일 자동 수집(배치)</h3>
         <p class="page-note">
           매일 <b>00:01 KST</b>에 GitHub Actions가 <code>/internal/warmup</code>을 호출해 위 데이터의 스냅샷을
-          미리 만들어 DB에 저장해둡니다. 화면 접속 시에는 이 스냅샷만 읽으므로 사용자 접속 자체가 외부
+          미리 만들어 DB에 저장해두고, <b>07:00 KST</b>에 미국 장 마감·아침 기사를 반영해 시장 브리핑과
+          뉴스류를 한 번 더 갱신합니다. 화면 접속 시에는 이 스냅샷만 읽으므로 사용자 접속 자체가 외부
           API를 재호출하지 않으며, 원천 장애 시에도 직전 스냅샷을 그대로 보여줍니다.
         </p>
         <ul class="intro-list">
-          <li>🕒 모든 AI 생성(브리핑·뉴스 선별·업종 분류 등)은 이 새벽 배치에서만 수행됩니다 — 비용 통제를
-            위해 화면에는 재생성 버튼이 없고 <b>배치 전용</b>입니다</li>
+          <li>🕒 AI 생성(브리핑·뉴스 선별 등)은 이 새벽 배치에서 수행됩니다 — 비용 통제를
+            위해 화면에는 재생성 버튼이 없고 <b>배치 전용</b>입니다. 업종 분류는 API 사용량을 줄이기 위해
+            배치에 넣지 않고 필요할 때만 수동으로 실행합니다</li>
           <li>🕒 여신 기업분석은 종목별로 <b>당일 첫 조회 결과를 DB에 저장</b>해, 같은 날 같은 종목 재조회 시 외부 API를 재호출하지 않습니다</li>
           <li>🟢 <b>연결됨</b> 배지는 실데이터, <b>샘플·큐레이션</b> 배지는 원천 일시 오류 시 대체 데이터입니다</li>
         </ul>
@@ -175,7 +185,7 @@
 </main>
 </div>
 
-<!-- 온보딩 투어(첫 방문 시 1회) — main/static/home.js 가 채워 넣는다 -->
+<!-- 온보딩 투어(페이지를 열 때마다) — main/static/home/onboarding.js 가 채워 넣는다 -->
 <div class="ob-backdrop" id="ob-backdrop" hidden></div>
 <div class="ob-spot" id="ob-spot" hidden></div>
 <div class="ob-tooltip" id="ob-tooltip" hidden></div>
@@ -228,12 +238,14 @@ document.getElementById('home-link').addEventListener('click', function (e) {
 });
 
 // "+ 위젯 추가"는 이제 별도 화면(전사 위젯 탭) 대신 나의 대시보드 안의 모달로 연다
-// (main/static/home.js 의 openWidgetAddModal). gallery.html 화면 자체는 옛 링크·해시
+// (main/static/home/personal.js 의 openWidgetAddModal). gallery.html 화면 자체는 옛 링크·해시
 // 호환을 위해 남겨두고, 그 안의 "돌아가기" 버튼만 여기서 계속 처리한다.
 document.getElementById('gallery-back-btn').addEventListener('click', function () {
   applyView('personal');
 });
 </script>
+<!-- common.js(window.KSFC 공용 헬퍼)는 아래 화면 스크립트들이 쓰므로 반드시 먼저 로드 -->
+<script src="{{ url_for('static', filename='common.js') }}"></script>
 <script src="{{ url_for('capital.static', filename='charts.js') }}"></script>
 <script src="{{ url_for('issuance.static', filename='issuance.js') }}"></script>
 <script src="{{ url_for('capital.static', filename='capital.js') }}"></script>
@@ -242,6 +254,15 @@ document.getElementById('gallery-back-btn').addEventListener('click', function (
 <script src="{{ url_for('credit.static', filename='credit.js') }}"></script>
 <script src="{{ url_for('lending.static', filename='lending.js') }}"></script>
 <script src="{{ url_for('sector.static', filename='sector.js') }}"></script>
+<!-- 홈·나의 대시보드: home/*.js 가 window.KSFC.home 을 공유하므로 이 순서대로(catalog 먼저) 로드하고,
+     home.js(window.HomeDashboard 연결)는 마지막에 -->
+<script src="{{ url_for('static', filename='home/catalog.js') }}"></script>
+<script src="{{ url_for('static', filename='home/mini.js') }}"></script>
+<script src="{{ url_for('static', filename='home/stock-glance.js') }}"></script>
+<script src="{{ url_for('static', filename='home/sector-card.js') }}"></script>
+<script src="{{ url_for('static', filename='home/personal.js') }}"></script>
+<script src="{{ url_for('static', filename='home/briefing.js') }}"></script>
+<script src="{{ url_for('static', filename='home/onboarding.js') }}"></script>
 <script src="{{ url_for('static', filename='home.js') }}"></script>
 <script>
   // HomeDashboard(home.js) 로드가 끝난 뒤에 초기 화면을 적용해야

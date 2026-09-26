@@ -1,3 +1,4 @@
+"""자본시장 > 발행시장 API 블루프린트(/api/issuance/digest) + issuance.js 정적 파일."""
 from flask import Blueprint, jsonify
 
 from .calendar import get_issuance_digest
@@ -10,8 +11,9 @@ issuance_bp = Blueprint(
 
 @issuance_bp.route("/api/issuance/digest")
 def digest():
-    # AI 브리핑은 /internal/warmup 배치에서만 생성한다 — 쿼리로 재생성을 트리거하지
-    # 못하게 이 라우트는 항상 저장된 스냅샷만 반환한다(credit/leads.py 와 동일한 원칙).
+    # 쿼리로 재생성(force)을 트리거할 수는 없다 — 보통은 새벽 배치(/internal/warmup)가 만든
+    # 스냅샷을 그대로 돌려준다. 배치 전에 온 첫 요청이면 여기서 수집·AI 브리핑을 할 수 있지만
+    # table_lock 으로 동시 요청의 중복 호출이 막히고, 시도 횟수는 스냅샷당 상한을 따른다.
     try:
         return jsonify(get_issuance_digest())
     except Exception:  # noqa: BLE001

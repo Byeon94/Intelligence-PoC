@@ -1,0 +1,51 @@
+/* 여신 탭 전용 스타일 — 증권담보대출·우리사주 리드 레이더. */
+
+/* 여신 메인: 담보대출·우리사주 리드 레이더 */
+.lead-row {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 10px; padding: 11px 14px; margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.lead-row:hover { background: var(--accent-bg); }
+.lead-row-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.lead-title { font-weight: 700; font-size: .86rem; }
+.lead-date { font-size: .72rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.lead-note { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+.leads-scope-note { margin-top: 4px; }
+.esop-monthly {
+  display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px;
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; background: var(--card2);
+}
+.esop-month-row { display: flex; justify-content: space-between; font-size: .82rem; }
+.esop-month-label { font-weight: 700; }
+.esop-month-count { color: var(--muted); }
+
+.lead-sub-head {
+  font-size: .88rem; font-weight: 800; color: var(--fg); margin: 20px 0 8px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--border2);
+}
+.lead-sub-head:first-of-type { margin-top: 8px; }
+
+/* 여신 화면 전체 가독성을 위해 기본보다 여백을 넉넉히 */
+.credit #leads-subtabs { margin-bottom: 20px; }
+.credit .kpi-grid { gap: 14px; margin-bottom: 24px; }
+/* 카드 수가 많아(4개) 기본 크기로는 과하게 커 보여서 여신 탭에서만 살짝 축소 */
+.credit .kpi { padding: 10px 12px; }
+.credit .kpi .k-label { font-size: .7rem; margin-bottom: 4px; }
+.credit .kpi .k-value { font-size: 1.15rem; }
+.credit .kpi .k-sub, .credit .kpi .k-delta { font-size: .7rem; margin-top: 3px; }
+.credit .leads-asof { margin-bottom: 14px; }
+.credit .block { margin-bottom: 30px; }
+.credit .block-head { margin-bottom: 14px; }
+.credit .lead-row { margin-bottom: 14px; padding: 14px 16px; }
+.credit .lead-row-head { margin-bottom: 8px; }
+.credit .brief-card { margin-bottom: 14px; }
+.credit .brief-card:last-child { margin-bottom: 0; }
+.credit .brief-list li { padding: 5px 0; line-height: 1.45; }
+.credit .brief-head { margin-bottom: 8px; }
+
+/* 여신 리드 목록 "더보기"(예전 홈 카드에서 쓰던 이름 그대로) */
+.home-brief-more { margin-top: 10px; padding: 6px 13px; font-size: .74rem; }
+
+/* 리드 레이더 DART 안내 문구 */
+.fil-hint { margin-left: 4px; }

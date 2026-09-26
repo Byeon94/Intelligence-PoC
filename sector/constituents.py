@@ -1,8 +1,8 @@
 """전사 위젯 > 국내 업종별 시가총액 맵·밸류체인.
 
 KRX 업종분류(WICS 등)를 무료로 전 종목 단위로 제공하는 공공 API가 없어, Gemini가
-전 상장종목을 SECTOR_TAXONOMY 중 하나로 분류한다(sector/classify.py, 배치 전용·월 1회
-정도만 갱신). 실제 시세·시가총액은 매번 credit.equity.listed_snapshot()(data.go.kr
+전 상장종목을 SECTOR_TAXONOMY 중 하나로 분류한다(sector/classify.py, 필요할 때
+수동 실행). 실제 시세·시가총액은 매번 credit.equity.listed_snapshot()(data.go.kr
 실시간)에서 채운다. 밸류체인(VALUE_CHAIN)은 4대 산업만 다루는 별개의 큐레이션 구성으로,
 전 종목 분류와 무관하게 그대로 둔다.
 """

@@ -1,9 +1,9 @@
-"""홈 대시보드: 정책·뉴스 통합 브리핑 + 자본시장/여신심사/정책 알림.
+"""홈 "오늘의 브리핑" 요약(/api/home/summary) — 오늘의 핵심·시장 한눈에·시장 브리핑·주요뉴스.
 
-각 탭이 이미 하루 1회 캐시해둔 스냅샷(get_policy_digest/get_research_digest/
-get_leads/get_inherit_news)과 ttl_cache 된 자본시장 유동성 요약을 재사용한다. 그날 첫
-호출이면 해당 스냅샷이 새로 수집될 수 있으나, /internal/warmup 이 매일 아침
-미리 데워두므로 평소엔 캐시만 읽는다.
+각 탭이 이미 하루 1회 캐시해둔 스냅샷(정책·뉴스·시장 브리핑·여신 리드)과 ttl_cache 된
+시장 지수·유동성 요약을 재사용한다(여기서 새 Gemini 호출은 하지 않음). 그날 첫 호출이면
+해당 스냅샷이 새로 수집될 수 있으나, /internal/warmup 이 매일 00:01 KST(+07:00 시장 브리핑·뉴스 재생성)에 미리 데워두므로
+평소엔 캐시만 읽는다.
 """
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ T = TypeVar("T")
 _RATIO_ALERT_PP = 1.0
 
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
-# 나열하지 않는다). 우선순위: ①이상징후(유동성) ②금융당국(금융위원회 등) 보도자료 1건
-# ③여신 신규 리드(상속·증여/우리사주) ④AI 선별 뉴스 기사(나머지 자리를 채움).
+# 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②이상징후(유동성) ③금융당국
+# 보도자료 1건 ④여신 신규 리드(상속·증여/우리사주) ⑤AI 선별 뉴스 기사(나머지 자리를 채움).
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -73,29 +73,35 @@ def _safe(label: str, fn: Callable[[], T]) -> T | None:
         return None
 
 
+# liquidity summary 의 change_basis(있으면) → 알림 문구의 비교 기준.
+_CHANGE_BASIS_LABEL = {"day": "전일 대비", "month": "전월 대비"}
+
+
 def _liquidity_alert() -> dict | None:
+    """신용공여/예탁금 비율 급변 알림. 실데이터(source == "live")일 때만 — 샘플 데이터로
+    "HOT" 알림이 뜨지 않게 한다."""
     summary = _safe("자본시장 유동성", get_liquidity_summary)
-    if not summary:
+    if not summary or summary.get("source") != "live":
         return None
     ratio = (summary.get("items") or {}).get("credit_deposit_ratio") or {}
     change = ratio.get("change") or 0
     if abs(change) < _RATIO_ALERT_PP:
         return None
     direction = "상승" if change > 0 else "하락"
+    basis = _CHANGE_BASIS_LABEL.get(summary.get("change_basis"), "전기 대비")
     return {
         "level": "warn",
         "title": f"신용공여/예탁금 비율 {direction}",
-        "detail": f"{summary.get('as_of', '')} 기준 {ratio.get('value')}% (전기 대비 {change:+.2f}%p)",
+        "detail": f"{summary.get('as_of', '')} 기준 {ratio.get('value')}% ({basis} {change:+.2f}%p)",
         "tab": "capital",
         "sub": "liquidity",
     }
 
 
 def _policy_highlight(policy: dict | None) -> dict | None:
-    """오늘의 브리핑 "꼭 확인하세요" 카드 1건 — 기준일에 실제로 올라온 보도자료 중 첫 건.
-    _policy_org_alerts()와 같은 as_of 필터를 쓰되, "꼭 확인하세요" 카드용으로 제목·기관·
-    날짜·원문 링크를 그대로 돌려준다(지어낸 요약 없음 — 스크랩 대상 자체가 이미 KSFC
-    관련 기관으로 걸러져 있어 "확인이 필요하다"는 문구는 일반적이어도 사실에 부합)."""
+    """오늘의 핵심 카드 1건 — 정책 스냅샷 기준일(as_of)에 실제로 올라온 보도자료 중 첫 건.
+    제목·기관·날짜·원문 링크를 그대로 돌려준다(지어낸 요약 없음 — 스크랩 대상 자체가 이미
+    KSFC 관련 기관으로 걸러져 있어 "확인이 필요하다"는 문구는 일반적이어도 사실에 부합)."""
     if not policy:
         return None
     as_of = policy.get("as_of")
@@ -126,17 +132,20 @@ def _credit_leads_alert() -> dict | None:
     count = summary.get("count") or 0
     if count == 0:
         return None
-    ref_date = max(summary["dart_ref_date"], summary["news_ref_date"])
+    # 공시는 최근 공시일(dart_ref_date), 뉴스는 최근 게재일(news_ref_date) 기준으로 센다 — 둘이
+    # 다르면(주말·공휴일 등) 한 날짜로 뭉뚱그리지 않고 각각 표기한다.
+    dart_ref, news_ref = summary.get("dart_ref_date"), summary.get("news_ref_date")
+    ref_text = f"{news_ref} 기준" if dart_ref == news_ref else f"공시 {dart_ref} · 뉴스 {news_ref} 기준"
     return {
         "level": "info",
         "title": f"여신 신규 공시/뉴스 {count}건",
-        "detail": f"{ref_date} 기준 · 상속·증여/우리사주 관련 신규 공시·뉴스",
+        "detail": f"{ref_text} · 상속·증여/우리사주 관련 신규 공시·뉴스",
         "tab": "credit",
     }
 
 
-# "오늘의 시장 브리핑" 카드(main/static/home.js BRIEFING_CATS)와 같은 아이콘 — "왜
-# 중요한가?"에서도 같은 카테고리를 같은 아이콘으로 표시해 한눈에 구분되게 한다.
+# 시장 브리핑 카테고리 아이콘 — 여기 한 곳에만 두고 summary 의 market_briefing.categories
+# 로 내려보내, 홈 "오늘의 시장 브리핑" 카드와 오늘의 핵심 "왜 중요한가?"가 같은 아이콘을 쓴다.
 _CATEGORY_ICON = {"주식": "📊", "채권": "💵", "환율": "💱", "장전": "🌙"}
 
 
@@ -227,6 +236,7 @@ def get_home_summary() -> dict:
             "note": market_briefing.get("note"),
             "generated_at": market_briefing.get("generated_at"),
             "related_articles": market_briefing.get("related_articles"),
+            "categories": [{"key": k, "icon": _CATEGORY_ICON.get(k, "")} for k in CATEGORIES],
         } if market_briefing else None,
         "today_key": today_key,
         "today_news": _diversify_news(articles or [], _MAX_TODAY_NEWS, _MAX_PER_TAG_TODAY_NEWS),

@@ -65,6 +65,7 @@ function toggleTheme() {
 document.getElementById('theme-btn').textContent =
   themeLabel(document.documentElement.dataset.theme || 'light');
 </script>
+<script src="{{ url_for('static', filename='common.js') }}"></script>
 <script src="{{ url_for('sector.static', filename='sector.js') }}"></script>
 </body>
 </html>

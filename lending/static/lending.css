@@ -1,0 +1,7 @@
+/* 증권대차 탭 전용 스타일. */
+
+/* ── 증권대차 탭 ── */
+.lend-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px; box-shadow: var(--shadow); overflow-x: auto;
+}

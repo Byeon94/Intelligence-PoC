@@ -1,7 +1,11 @@
-"""4개 금융당국 보도자료 목록 스크래퍼.
+"""금융당국 4곳 + 유관기관 4곳 보도자료 목록 스크래퍼(정책·규제 탭, policy.briefing 이 호출).
 
-모두 서버 렌더링 HTML(또는 HTML 조각)이라 requests + BeautifulSoup 로 충분하다.
-각 기관 파서는 독립적으로 try/except 처리되어 한 곳이 실패해도 나머지는 표시된다.
+- 금융당국: 금융위·금감원·한국은행·재정경제부 / 유관기관: 예보·금투협(스크랩),
+  한국거래소·예탁결제원(동적 페이지라 공식 보도자료 페이지 링크 카드만).
+- 모두 서버 렌더링 HTML(또는 HTML 조각)이라 requests + BeautifulSoup 로 충분하다.
+- 각 기관 파서는 독립적으로 try/except 처리되어 한 곳이 실패해도 나머지는 표시된다.
+  실패한 기관은 1회 재시도하고, 그래도 실패하면 failed 목록에 담는다.
+- 링크는 http(s) 만 남긴다(javascript: 등은 항목째 버림). 표시분은 상세 본문(body)도 붙인다.
 
 정규화 항목:
   {org, org_name, badge, title, url, dept, date("YYYY-MM-DD")}
@@ -16,6 +20,8 @@ from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
+
+from main.naver_news import safe_url
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +44,6 @@ AFFILIATE_ORGS = [
     {"org": "KRX", "org_name": "한국거래소", "badge": "거래소"},
     {"org": "KSD", "org_name": "한국예탁결제원", "badge": "예탁원"},
 ]
-ORGS = AUTHORITY_ORGS  # 하위호환
 _META = {o["org"]: o for o in AUTHORITY_ORGS + AFFILIATE_ORGS}
 
 
@@ -47,6 +52,11 @@ def _get(url: str, *, timeout: int = _TIMEOUT, **kw) -> requests.Response:
     resp.raise_for_status()
     resp.encoding = "utf-8"
     return resp
+
+
+def _abs_url(base: str, href: str | None) -> str | None:
+    """상대 링크를 절대 URL 로. http(s) 가 아니면(javascript: 등) None."""
+    return safe_url(urljoin(base, (href or "").strip())) if href else None
 
 
 def _norm_date(text: str) -> str:
@@ -80,7 +90,9 @@ def fetch_fsc() -> list[dict]:
         if not a:
             continue
         title = a.get("title") or a.get_text(strip=True)
-        href = urljoin("https://www.fsc.go.kr", (a.get("href") or "").split("?")[0])
+        href = _abs_url("https://www.fsc.go.kr", (a.get("href") or "").split("?")[0])
+        if not href:
+            continue
         dept = ""
         for span in li.select(".info span"):
             t = span.get_text(strip=True)
@@ -102,10 +114,12 @@ def fetch_fss() -> list[dict]:
         a = tr.select_one("td.title a")
         if not a:
             continue
+        href = _abs_url("https://www.fss.or.kr", a.get("href"))
+        if not href:
+            continue
         tds = tr.find_all("td")
         dept = tds[2].get_text(strip=True) if len(tds) > 2 else ""
         date = _norm_date(tds[3].get_text() if len(tds) > 3 else "")
-        href = urljoin("https://www.fss.or.kr", a.get("href") or "")
         out.append(_item("FSS", a.get_text(strip=True), href, dept, date))
         if len(out) >= _FETCH_N:
             break
@@ -118,17 +132,21 @@ def fetch_bok() -> list[dict]:
            "?menuNo=201263&pageIndex=1&pageUnit=10&targetDepth=3"
            "&depth2=200038&depth3=201263&sort=1")
     soup = BeautifulSoup(_get(url).text, "html.parser")
-    box = soup.select_one("div.bd-line") or soup
+    box = soup.select_one("div.bd-line")
+    if box is None:
+        # 목록 컨테이너가 없으면 페이지 구조가 바뀐 것 — 전체 문서의 ul>li 로 폴백하면
+        # 메뉴·푸터 링크가 보도자료처럼 잡히므로 빈 결과(=실패 기관)로 둔다.
+        return []
     out: list[dict] = []
     for li in box.select("ul > li"):
         a = li.find("a")
-        if not a or not a.get("href"):
+        href = _abs_url("https://www.bok.or.kr", a.get("href")) if a else None
+        if not href:
             continue
         text = li.get_text(" ", strip=True)
         dept_m = re.search(r"담당부서\s*([^\s]+)", text)
-        date = _norm_date(re.search(r"등록일\s*([\d.]+)", text).group(1)
-                          if re.search(r"등록일\s*([\d.]+)", text) else "")
-        href = urljoin("https://www.bok.or.kr", a.get("href"))
+        date_m = re.search(r"등록일\s*([\d.]+)", text)
+        date = _norm_date(date_m.group(1) if date_m else "")
         out.append(_item("BOK", a.get_text(strip=True), href,
                          dept_m.group(1) if dept_m else "", date))
         if len(out) >= _FETCH_N:
@@ -200,7 +218,9 @@ def fetch_kofia() -> list[dict]:
         if not title or title.startswith("[입찰공고]"):
             continue
         date = next((_norm_date(t) for t in tds if _norm_date(t)), "")
-        href = urljoin("https://www.kofia.or.kr/brd/m_17/", (a.get("href") or "").lstrip("./"))
+        href = _abs_url("https://www.kofia.or.kr/brd/m_17/", (a.get("href") or "").lstrip("./"))
+        if not href:
+            continue
         out.append(_item("KOFIA", title, href, "", date))
         if len(out) >= _FETCH_N:
             break
@@ -264,12 +284,12 @@ def _run(fetchers: dict) -> tuple[list[dict], list[str]]:
 
 
 def fetch_all() -> tuple[list[dict], list[str]]:
-    """금융당국 4곳."""
+    """금융당국 4곳(금융위·금감원·한국은행·재정경제부)."""
     return _run(_AUTHORITY_FETCHERS)
 
 
 def fetch_affiliates() -> tuple[list[dict], list[str]]:
-    """유관기관 4곳."""
+    """유관기관 4곳(예보·금투협 스크랩 + 거래소·예탁원 링크 카드)."""
     return _run(_AFFILIATE_FETCHERS)
 
 
@@ -349,7 +369,7 @@ def group_by_org(items: list[dict], per_org: int = _TOP_N,
 
 
 def reference_date(items: list[dict]) -> str:
-    """조회 기준일 = 4개 기관 보도자료 중 가장 최근 날짜.
+    """조회 기준일 = 금융당국 4곳 보도자료 중 가장 최근 날짜.
 
     주말·공휴일엔 해당 기관들이 자료를 내지 않으므로, 최신 날짜가 곧
     '직전 영업일'이 된다(별도 공휴일 달력 불필요).

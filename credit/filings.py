@@ -10,12 +10,13 @@ DART_API_KEY 가 없거나 corp_code 를 못 찾으면 빈 목록 + 안내.
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
+from datetime import timedelta
 
 import requests
 
-from capital._cache import ttl_cache
+from main.cache import ttl_cache
 from main.config import get_settings
+from main.utils import today_kst, ymd_to_iso
 
 from .corp_map import corp_code
 
@@ -31,11 +32,6 @@ _RM = {
 }
 
 
-def _fmt_date(yyyymmdd: str | None) -> str:
-    s = str(yyyymmdd or "")
-    return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) == 8 else s
-
-
 @ttl_cache(60 * 30)
 def get_filings(code: str, months: int = 12, limit: int = 20) -> dict:
     key = get_settings().dart_api_key
@@ -46,12 +42,13 @@ def get_filings(code: str, months: int = 12, limit: int = 20) -> dict:
             "note": "DART 연동이 없어 공시 목록을 불러올 수 없습니다.",
         }
 
+    today = today_kst()
     try:
         resp = requests.get(_URL, params={
             "crtfc_key": key,
             "corp_code": cc,
-            "bgn_de": (date.today() - timedelta(days=months * 31)).strftime("%Y%m%d"),
-            "end_de": date.today().strftime("%Y%m%d"),
+            "bgn_de": (today - timedelta(days=months * 31)).strftime("%Y%m%d"),
+            "end_de": today.strftime("%Y%m%d"),
             "page_no": 1,
             "page_count": min(max(limit, 1), 100),
         }, timeout=15)
@@ -76,7 +73,7 @@ def get_filings(code: str, months: int = 12, limit: int = 20) -> dict:
             continue
         rm = (it.get("rm") or "").strip()
         items.append({
-            "date": _fmt_date(it.get("rcept_dt")),
+            "date": ymd_to_iso(it.get("rcept_dt")),
             "title": (it.get("report_nm") or "").strip(),
             "filer": (it.get("flr_nm") or "").strip(),
             "tag": _RM.get(rm, rm) or None,

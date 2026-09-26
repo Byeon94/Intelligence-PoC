@@ -1,3 +1,4 @@
+"""Supabase 클라이언트(프로세스당 1개 캐시). URL/KEY 미설정이면 None — 생성 실패 처리는 snapshot_store 가 한다."""
 from functools import lru_cache
 
 from supabase import Client, create_client

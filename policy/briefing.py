@@ -1,19 +1,21 @@
 """정책/규제 탭 데이터 조립.
 
-- 보도자료: 금융위·금감원·한국은행·재정경제부 공식 사이트 스크랩 (policy.sources)
-- 스크랩은 **하루 1회만** 수행하고 그날 스냅샷을 DB(policy.store)에 저장한다.
-  같은 날 이후 요청은 저장된 스냅샷을 그대로 돌려준다.
-- AI 브리핑: Gemini. 스냅샷당 1회 생성, POLICY_MAX_GEMINI_CALLS_PER_DAY 로 재시도 상한.
+흐름(테이블 락 안에서 한 번에): 오늘 스냅샷 조회 → 없거나 구버전이면 금융당국 4곳
+(금융위·금감원·한국은행·재정경제부)과 유관기관(예보·금투협 스크랩, 거래소·예탁원은 링크 카드)
+보도자료를 스크랩(policy.sources)하고 표시분의 상세 본문을 붙여 저장(main.snapshot_store)
+→ 브리핑이 없으면 Gemini 로 스냅샷당 시도 상한(POLICY_MAX_GEMINI_CALLS_PER_DAY) 안에서
+1회 생성 → 저장. 같은 날 이후 요청은 저장된 스냅샷을 그대로 돌려준다.
+전 기관 스크랩 실패 시에는 직전 스냅샷(stale)을 주고, 10분간 재스크랩하지 않는다.
 """
 from __future__ import annotations
 
-import logging
-from datetime import datetime
-from zoneinfo import ZoneInfo
+import time
 
 from main.config import get_settings
+from main.daily_snapshot import AI_CAPPED, AI_FAILED, AI_NO_KEY, table_lock, try_ai
 from main.gemini import generate_text
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
+from main.utils import stamp, today_iso
 
 from .sources import (
     AFFILIATE_ORGS,
@@ -27,9 +29,8 @@ from .sources import (
 
 _TABLE = "policy_snapshots"
 _SCHEMA_V = 9  # v9: 스크랩 실패 기관 1회 재시도 추가(오늘자 금융위 누락 재수집)
-
-logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
+_RETRY_AFTER = 600   # 전 기관 스크랩 실패 후 재스크랩까지 대기(초) — 8곳×15초 타임아웃이 요청마다 스레드를 묶지 않게
+_fail_at = 0.0       # 마지막 전체 실패 시각(time.monotonic), 락 안에서만 갱신
 
 _SYSTEM_PROMPT = (
     "너는 한국증권금융(KSFC) 임직원을 위한 정책·규제 브리핑 어시스턴트야.\n"
@@ -42,10 +43,6 @@ _SYSTEM_PROMPT = (
     "한 문장으로 압축. 수식어·부연 설명 없이.\n"
     "- 소제목(#)·구분선(---)·서두·출처 표기 없이 불릿 3개만 출력. 보도자료에 없는 내용은 지어내지 마."
 )
-
-
-def _today() -> str:
-    return datetime.now(KST).date().isoformat()
 
 
 # ── Gemini ────────────────────────────────────────────────────────
@@ -69,93 +66,89 @@ def _generate_briefing(items: list[dict]) -> str:
     )
 
 
-def _maybe_add_briefing(payload: dict, force: bool = False) -> dict:
-    """브리핑이 없으면(또는 force=True 면) 한도 내에서 한 번 생성 시도.
-
-    force 재생성 시 한도 초과·생성 실패면 기존 브리핑은 그대로 둔다.
-    """
-    s = get_settings()
-    has = bool(payload.get("briefing"))
-    cap = s.policy_max_gemini_calls_per_day
-
-    if has and not force:
-        return payload
-    if not s.gemini_api_keys:
-        if not has:
-            payload["briefing_note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다. 현재는 보도자료 목록만 표시합니다."
-        return payload
-    if payload.get("gemini_attempts", 0) >= cap:
-        payload["briefing_note"] = (
-            f"AI 재생성 일일 한도({cap}회)에 도달했습니다. " +
-            ("기존 브리핑을 표시합니다." if has else "목록만 표시합니다.")
-        )
-        return payload
-
-    payload["gemini_attempts"] = payload.get("gemini_attempts", 0) + 1
+def _apply_briefing(payload: dict) -> None:
     groups = list(payload.get("groups", [])) + [
         g for g in payload.get("affiliate_groups", [])
         if g.get("items") and not g["items"][0].get("link_only")
     ]
-    items = [it for g in groups for it in g["items"]]
-    try:
-        payload["briefing"] = _generate_briefing(items)
-        payload["briefing_at"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-        payload["briefing_note"] = None
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("AI 브리핑 생성 실패: %s", exc)
-        if not has:
-            payload["briefing_note"] = "AI 브리핑 생성에 실패했습니다. 목록만 표시합니다."
-    return payload
+    briefing = (_generate_briefing([it for g in groups for it in g["items"]]) or "").strip()
+    if not briefing:
+        raise ValueError("빈 브리핑 응답")
+    payload.update(briefing=briefing, briefing_at=stamp(), briefing_note=None)
+
+
+def _maybe_add_briefing(payload: dict) -> None:
+    """브리핑이 없으면 상한 안에서 1회 생성 시도하고, 결과에 맞는 안내문을 남긴다."""
+    if payload.get("briefing"):
+        return
+    status = try_ai(payload, _apply_briefing, "정책 브리핑")
+    if status == AI_NO_KEY:
+        payload["briefing_note"] = "AI 브리핑은 GEMINI_API_KEY 등록 후 제공됩니다. 현재는 보도자료 목록만 표시합니다."
+    elif status == AI_CAPPED:
+        cap = get_settings().ai_retries_per_snapshot
+        payload["briefing_note"] = f"AI 재생성 일일 한도({cap}회)에 도달했습니다. 목록만 표시합니다."
+    elif status == AI_FAILED:
+        payload["briefing_note"] = "AI 브리핑 생성에 실패했습니다. 목록만 표시합니다."
+
+
+def _stale_or_raise() -> dict:
+    stale = latest_snapshot(_TABLE)
+    if stale:
+        return {**stale, "cached": True, "stale": True}
+    raise RuntimeError("보도자료를 한 곳도 가져오지 못했습니다.")
 
 
 # ── 공개 함수 ─────────────────────────────────────────────────────
-def get_policy_digest(force_briefing: bool = False) -> dict:
-    """force_briefing=True 면(재생성 버튼) 스크랩은 그대로 두고 브리핑만 다시 생성."""
-    today = _today()
+def get_policy_digest() -> dict:
+    global _fail_at
+    with table_lock(_TABLE):
+        today = today_iso()
+        snap = get_snapshot(_TABLE, today)
+        if snap is not None and snap.get("v") != _SCHEMA_V:
+            snap = None  # 구버전 스냅샷 → 새 구조로 다시 수집
+        if snap is not None:
+            # 스크랩은 이미 오늘 완료됨. 브리핑만 없으면 상한 안에서 재시도.
+            before = snap.get("gemini_attempts", 0)
+            _maybe_add_briefing(snap)
+            if snap.get("gemini_attempts", 0) != before:
+                save_snapshot(_TABLE, today, snap)
+            return {**snap, "cached": True}
 
-    snap = get_snapshot(_TABLE, today)
-    if snap is not None and snap.get("v") != _SCHEMA_V:
-        snap = None  # 구버전 스냅샷 → 새 구조로 다시 수집
-    if snap is not None:
-        # 스크랩은 이미 오늘 완료됨. 브리핑만 필요 시(또는 재생성 요청 시) 갱신.
-        before = (snap.get("briefing"), snap.get("gemini_attempts", 0))
-        snap = _maybe_add_briefing(snap, force=force_briefing)
-        if (snap.get("briefing"), snap.get("gemini_attempts", 0)) != before:
-            save_snapshot(_TABLE, today, snap)
-        return {**snap, "cached": not force_briefing}
+        if _fail_at and time.monotonic() - _fail_at < _RETRY_AFTER:
+            return _stale_or_raise()
 
-    # 오늘 첫 요청 → 스크랩 1회 (금융당국 + 유관기관).
-    items, failed = fetch_all()
-    aff_items, aff_failed = fetch_affiliates()
-    if not items and not aff_items:
-        stale = latest_snapshot(_TABLE)
-        if stale:
-            return {**stale, "cached": True, "stale": True}
-        raise RuntimeError("보도자료를 한 곳도 가져오지 못했습니다.")
+        # 오늘 첫 요청 → 스크랩 1회 (금융당국 + 유관기관).
+        items, failed = fetch_all()
+        aff_items, aff_failed = fetch_affiliates()
+        # 거래소·예탁원 링크 카드는 스크랩이 아니므로 성공 판정에서 뺀다.
+        if not items and not any(not it.get("link_only") for it in aff_items):
+            _fail_at = time.monotonic()
+            return _stale_or_raise()
+        _fail_at = 0.0
 
-    as_of = reference_date(items)
-    auth_groups = group_by_org(items)
-    aff_groups = group_by_org(aff_items, order=AFFILIATE_ORGS)
-    # 화면 표시(기관당 상위 3건)에 한해 상세페이지 본문을 병렬 수집 → 브리핑 근거로 사용.
-    attach_bodies(auth_groups + aff_groups)
-    payload = {
-        "v": _SCHEMA_V,
-        "date": today,
-        "as_of": as_of,                        # 조회 기준일(금융당국 기준, 직전 영업일)
-        "press_count": count_on(items, as_of),  # 기준일 금융당국 보도자료 총 건수
-        "affiliate_count": sum(
-            len(g["items"]) for g in aff_groups if not g["items"][0].get("link_only")
-        ),
-        "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
-        "groups": auth_groups,
-        "affiliate_groups": aff_groups,
-        "failed": failed + aff_failed,
-        "briefing": None,
-        "briefing_at": None,
-        "briefing_note": None,
-        "gemini_attempts": 0,
-    }
-    save_snapshot(_TABLE, today, payload)          # 스크랩 결과 먼저 저장 → 오늘 재스크랩 방지
-    payload = _maybe_add_briefing(payload)
-    save_snapshot(_TABLE, today, payload)
-    return {**payload, "cached": False}
+        as_of = reference_date(items)
+        auth_groups = group_by_org(items)
+        aff_groups = group_by_org(aff_items, order=AFFILIATE_ORGS)
+        # 화면 표시(기관당 상위 3건)에 한해 상세페이지 본문을 병렬 수집 → 브리핑 근거로 사용.
+        attach_bodies(auth_groups + aff_groups)
+        payload = {
+            "v": _SCHEMA_V,
+            "date": today,
+            "as_of": as_of,                        # 조회 기준일(금융당국 기준, 직전 영업일)
+            "press_count": count_on(items, as_of),  # 기준일 금융당국 보도자료 총 건수
+            "affiliate_count": sum(
+                len(g["items"]) for g in aff_groups if not g["items"][0].get("link_only")
+            ),
+            "generated_at": stamp(),
+            "groups": auth_groups,
+            "affiliate_groups": aff_groups,
+            "failed": failed + aff_failed,
+            "briefing": None,
+            "briefing_at": None,
+            "briefing_note": None,
+            "gemini_attempts": 0,
+        }
+        save_snapshot(_TABLE, today, payload)          # 스크랩 결과 먼저 저장 → 오늘 재스크랩 방지
+        _maybe_add_briefing(payload)
+        save_snapshot(_TABLE, today, payload)
+        return {**payload, "cached": False}

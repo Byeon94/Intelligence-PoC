@@ -15,13 +15,18 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      # 스냅샷 1건당 AI 재시도 상한(모든 탭 공통 — 이름은 예전 그대로 유지)
       - key: POLICY_MAX_GEMINI_CALLS_PER_DAY
         value: "3"
+      # 앱 전체 하루 Gemini 실호출 상한(비용 통제, 0이면 무제한)
+      - key: GEMINI_MAX_CALLS_PER_DAY
+        value: "30"
+      # Gemini 모델명(비우면 코드 기본값 gemini-3.6-flash)
+      - key: GEMINI_MODEL
+        sync: false
       - key: DATA_GO_KR_API_KEY
         sync: false
       - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_API_KEY_2
         sync: false
       - key: NAVER_CLIENT_ID
         sync: false

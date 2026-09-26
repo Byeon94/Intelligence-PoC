@@ -1,31 +1,33 @@
-"""전사 위젯 > 오늘의 IT·정보보호 뉴스 — AI가 당일 후보 기사에서 상위 건 선별 + 브리핑.
+"""전사 위젯 > 오늘의 IT·정보보호 뉴스 — AI가 당일 후보 기사에서 5건 선별 + 브리핑.
 
-- Naver 뉴스 수집(it_news.sources)은 하루 1회, 스냅샷을 DB에 저장.
-- 큐레이션(Gemini)도 스냅샷당 1회. 재생성 버튼은 저장된 후보 풀로 다시 선별.
+흐름(테이블 락 안에서 한 번에): 오늘 스냅샷 조회 → 없거나 구버전이면 Naver 뉴스 후보 수집
+(it_news.sources) 후 저장 → 선별 결과가 없으면 Gemini 큐레이션을 스냅샷당 시도 상한 안에서
+1회 시도(선별된 기사 중 '...'로 잘린 제목은 원문 og:title 로 보완) → 저장.
+Naver 장애·후보 0건이면 빈 스냅샷을 굳히지 않고 직전 스냅샷(stale)을 돌려준다.
 - IT부 변OO 과장 제작.
 """
 from __future__ import annotations
 
-import html as _html
-import json
-import logging
-import re
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
-import requests
+import time
 
 from main.config import get_settings
+from main.daily_snapshot import (
+    AI_CAPPED, AI_FAILED, AI_NO_KEY, parse_json_obj, table_lock, try_ai,
+)
 from main.gemini import generate_text
+from main.naver_news import NewsFetchError, enrich_title
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
+from main.utils import stamp, today_iso
 
 from .sources import collect_candidates
 
-logger = logging.getLogger(__name__)
-KST = ZoneInfo("Asia/Seoul")
 _TABLE = "it_news_snapshots"
 _N = 5
+_MAX_CANDIDATES = 60    # Gemini 프롬프트에 넣는 후보 수(idx 유효 범위)
 _SCHEMA_V = 4  # v4: 검색 키워드 '차세대'→'금융 차세대', '한국증권금융' 추가(오늘자 재수집)
+_RETRY_AFTER = 600      # 수집 실패 후 재수집까지 대기(초) — 요청마다 Naver 를 두드리지 않게
+_fail_at = 0.0          # 마지막 수집 실패 시각(time.monotonic), 락 안에서만 갱신
+_fail_exc: Exception | None = None  # 그때의 예외(0건이면 None)
 CREDIT = "IT부 변OO 과장 제작"
 
 _SYSTEM_PROMPT = (
@@ -43,151 +45,155 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _today() -> str:
-    return datetime.now(KST).date().isoformat()
-
-
 def _gemini_curate(candidates: list[dict]) -> dict:
     listing = "\n".join(
         f"{i}. [{c['published']}] ({c['keyword']}) {c['title']} — {c['summary'][:120]}"
-        for i, c in enumerate(candidates[:60])
+        for i, c in enumerate(candidates[:_MAX_CANDIDATES])
     )
     contents = f"후보 기사 목록:\n\n{listing}\n\n위에서 {_N}건을 선별해 JSON으로 답해줘."
     text = generate_text(contents, system_instruction=_SYSTEM_PROMPT, max_output_tokens=2048)
-    return _parse(text)
+    return parse_json_obj(text)
 
 
-def _parse(text: str) -> dict:
-    t = text.strip()
-    if t.startswith("```"):
-        t = t.strip("`")
-        t = t[4:] if t[:4].lower() == "json" else t
-    a, b = t.find("{"), t.rfind("}")
-    if a < 0 or b < 0:
-        raise ValueError("JSON 응답 없음")
-    obj = json.loads(t[a : b + 1])
-    if not obj.get("picks"):
-        raise ValueError("picks 없음")
-    return obj
+def _text(v) -> str:
+    return v.strip() if isinstance(v, str) else ""
 
 
-_OG_TITLE_RE = re.compile(
-    r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\'](.*?)["\']', re.I
-)
+def _bullets(raw) -> list[str]:
+    """briefing 응답(보통 문자열 리스트, 가끔 문자열 하나) → 불릿 최대 3개."""
+    if isinstance(raw, str):
+        raw = raw.splitlines()
+    if not isinstance(raw, list):
+        return []
+    return [b for b in (_text(x).strip(" -•*") for x in raw) if b][:3]
 
 
-def _full_title(url: str) -> str | None:
-    """네이버 뉴스 검색 API는 긴 제목을 '...'로 잘라서 준다. 잘린 제목만 원문
-    페이지의 og:title(보통 잘리지 않은 전체 제목)로 보완한다. 실패하면 None."""
-    try:
-        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
-        resp.raise_for_status()
-        m = _OG_TITLE_RE.search(resp.text)
-        if not m:
-            return None
-        title = _html.unescape(m.group(1)).strip()
-        title = re.sub(r"\s*\|\s*[^|]{1,20}$", "", title).strip()  # " | 언론사명" 접미사만 제거(하이픈은 헤드라인 자체에 흔해 건드리지 않음)
-        return title or None
-    except Exception:  # noqa: BLE001 - 원문 페이지 구조는 사이트마다 달라 실패는 흔함
-        return None
+def _apply_curation(payload: dict) -> None:
+    """payload['candidates'] 에 Gemini 큐레이션을 적용해 articles/briefing 채움.
 
-
-def _apply_curation(payload: dict) -> dict:
-    cands = payload.get("candidates") or []
+    idx 는 프롬프트에 보인 범위(0 ~ 후보 수-1)만 인정하고 중복은 버린다.
+    결과를 전부 만든 뒤 마지막에 한 번에 대입한다(실패 시 payload 불변).
+    """
+    cands = (payload.get("candidates") or [])[:_MAX_CANDIDATES]
     result = _gemini_curate(cands)
+    picks = result.get("picks")
+    if not isinstance(picks, list) or not picks:
+        raise ValueError("picks 없음")
 
-    articles = []
-    for p in result.get("picks", [])[:_N]:
-        try:
-            c = cands[int(p["idx"])]
-        except (ValueError, KeyError, IndexError, TypeError):
+    articles: list[dict] = []
+    used: set[int] = set()
+    for p in picks:
+        if len(articles) >= _N:
+            break
+        if not isinstance(p, dict):
             continue
-        title = c["title"]
-        if title.endswith("...") or title.endswith("…"):
-            title = _full_title(c["url"]) or title
+        try:
+            idx = int(p.get("idx"))
+        except (TypeError, ValueError):
+            continue
+        if not 0 <= idx < len(cands) or idx in used:
+            continue
+        used.add(idx)
+        c = enrich_title(cands[idx])   # 검색 API가 '...'로 자른 제목만 원문 제목으로 보완
         articles.append({
-            "title": title,
+            "title": c["title"],
             "url": c["url"],
             "keyword": c.get("keyword", ""),
             "published": c["published"],
-            "reason": (p.get("reason") or "").strip(),
+            "reason": _text(p.get("reason")),
         })
     if not articles:
         raise ValueError("선별 결과 매핑 실패")
 
-    payload["articles"] = articles
-    payload["briefing"] = [b.strip(" -•*") for b in (result.get("briefing") or []) if b.strip()][:3]
-    payload["briefing_at"] = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
-    payload["briefing_note"] = None
-    return payload
+    payload.update(
+        articles=articles,
+        briefing=_bullets(result.get("briefing")),
+        briefing_at=stamp(),
+        briefing_note=None,
+    )
 
 
-def _maybe_curate(payload: dict, force: bool = False) -> dict:
-    s = get_settings()
-    has = bool(payload.get("articles"))
-    cap = s.policy_max_gemini_calls_per_day
-
-    if has and not force:
-        return payload
-    if not s.gemini_api_keys:
-        if not has:
-            payload["briefing_note"] = "AI 선별은 GEMINI_API_KEY 등록 후 제공됩니다."
-        return payload
+def _maybe_curate(payload: dict) -> None:
+    """선별 결과가 없으면 상한 안에서 1회 시도하고, 결과에 맞는 안내문을 남긴다."""
+    if payload.get("articles"):
+        return
     if not payload.get("candidates"):
         payload["briefing_note"] = "오늘 수집된 관련 기사가 없습니다."
-        return payload
-    if payload.get("gemini_attempts", 0) >= cap:
-        payload["briefing_note"] = (
-            f"AI 재생성 일일 한도({cap}회)에 도달했습니다. " +
-            ("기존 선별을 표시합니다." if has else "후보 목록만 표시합니다.")
-        )
-        return payload
-
-    payload["gemini_attempts"] = payload.get("gemini_attempts", 0) + 1
-    try:
-        return _apply_curation(payload)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("IT·정보보호 뉴스 큐레이션 실패: %s", exc)
-        if not has:
-            payload["briefing_note"] = "AI 선별에 실패했습니다. 잠시 후 재생성해주세요."
-        return payload
+        return
+    status = try_ai(payload, _apply_curation, "IT·정보보호 뉴스 큐레이션")
+    if status == AI_NO_KEY:
+        payload["briefing_note"] = "AI 선별은 GEMINI_API_KEY 등록 후 제공됩니다."
+    elif status == AI_CAPPED:
+        cap = get_settings().ai_retries_per_snapshot
+        payload["briefing_note"] = f"AI 재생성 일일 한도({cap}회)에 도달했습니다. 후보 목록만 표시합니다."
+    elif status == AI_FAILED:
+        payload["briefing_note"] = "AI 선별에 실패했습니다. 잠시 후 재생성해주세요."
 
 
-def get_it_news_digest(force: bool = False) -> dict:
-    today = _today()
+def _fallback(today: str, exc: Exception | None) -> dict:
+    """오늘 스냅샷을 만들 수 없을 때: 직전 스냅샷(stale) → 없으면 exc 를 올리거나(장애) 빈 결과(0건)."""
+    stale = latest_snapshot(_TABLE)
+    if stale:
+        return {**stale, "cached": True, "stale": True}
+    if exc is not None:
+        raise exc
+    return {"date": today, "credit": CREDIT, "generated_at": stamp(), "articles": [],
+            "candidate_count": 0, "briefing": None,
+            "briefing_note": "오늘 수집된 관련 기사가 없습니다.", "cached": False}
 
-    snap = get_snapshot(_TABLE, today)
-    if snap is not None and snap.get("v") != _SCHEMA_V:
-        snap = None  # 스키마 변경(5건 선별로 축소) — 재수집
-    if snap is not None:
-        before = (len(snap.get("articles") or []), snap.get("gemini_attempts", 0))
-        snap = _maybe_curate(snap, force=force)
-        if (len(snap.get("articles") or []), snap.get("gemini_attempts", 0)) != before:
-            save_snapshot(_TABLE, today, snap)
-        return {**snap, "cached": not force}
 
-    try:
-        candidates = collect_candidates()
-    except RuntimeError:
-        stale = latest_snapshot(_TABLE)
-        if stale:
-            return {**stale, "cached": True, "stale": True}
-        raise
+def get_it_news_digest(rebuild: bool = False) -> dict:
+    """rebuild=True(07:00 아침 배치)면 오늘 스냅샷이 있어도 후보를 다시 수집해 새로 선별한다
+    — 00:01 배치에는 당일 기사가 거의 없기 때문. 재수집·선별이 실패하면 기존 스냅샷을 그대로 둔다."""
+    global _fail_at, _fail_exc
+    with table_lock(_TABLE):
+        today = today_iso()
+        snap = get_snapshot(_TABLE, today)
+        if snap is not None and snap.get("v") != _SCHEMA_V:
+            snap = None  # 구버전 스냅샷(키워드·구조 변경 전) → 오늘자 재수집
+        if snap is not None and not rebuild:
+            before = snap.get("gemini_attempts", 0)
+            _maybe_curate(snap)
+            if snap.get("gemini_attempts", 0) != before:
+                save_snapshot(_TABLE, today, snap)
+            return {**snap, "cached": True}
 
-    payload = {
-        "v": _SCHEMA_V,
-        "date": today,
-        "credit": CREDIT,
-        "generated_at": datetime.now(KST).strftime("%Y-%m-%d %H:%M"),
-        "candidates": candidates,
-        "candidate_count": len(candidates),
-        "articles": [],
-        "briefing": None,
-        "briefing_at": None,
-        "briefing_note": None,
-        "gemini_attempts": 0,
-    }
-    save_snapshot(_TABLE, today, payload)   # 수집 결과 먼저 저장 → 오늘 재수집 방지
-    payload = _maybe_curate(payload)
-    save_snapshot(_TABLE, today, payload)
-    return {**payload, "cached": False}
+        if snap is None and _fail_at and time.monotonic() - _fail_at < _RETRY_AFTER:
+            return _fallback(today, _fail_exc)
+        try:
+            candidates = collect_candidates()
+            exc = None
+        except NewsFetchError as e:   # 키 미설정·전 키워드 실패
+            candidates, exc = [], e
+        if not candidates and snap is not None:
+            return {**snap, "cached": True}   # 아침 재수집 실패 → 새벽 스냅샷 유지
+        if not candidates:
+            # 빈 스냅샷을 오늘자로 굳히면 이후 기사가 올라와도 하루 종일 비므로 저장하지 않는다.
+            _fail_at, _fail_exc = time.monotonic(), exc
+            return _fallback(today, exc)
+        _fail_at, _fail_exc = 0.0, None
+
+        payload = {
+            "v": _SCHEMA_V,
+            "date": today,
+            "credit": CREDIT,
+            "generated_at": stamp(),
+            "candidates": candidates,
+            "candidate_count": len(candidates),
+            "articles": [],
+            "briefing": None,
+            "briefing_at": None,
+            "briefing_note": None,
+            "gemini_attempts": 0,
+        }
+        if snap is not None:
+            # 아침 재생성: 선별까지 성공했을 때만 교체(실패하면 새벽 결과를 계속 보여준다).
+            _maybe_curate(payload)
+            if payload.get("articles"):
+                save_snapshot(_TABLE, today, payload)
+                return {**payload, "cached": False}
+            return {**snap, "cached": True}
+        save_snapshot(_TABLE, today, payload)   # 수집 결과 먼저 저장 → 오늘 재수집 방지
+        _maybe_curate(payload)
+        save_snapshot(_TABLE, today, payload)
+        return {**payload, "cached": False}
