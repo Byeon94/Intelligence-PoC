@@ -11,7 +11,6 @@ import logging
 from typing import Callable, TypeVar
 
 from capital.briefing import CATEGORIES, get_market_briefing
-from capital.liquidity import get_liquidity_summary
 from capital.market_snapshot import (
     get_global_market_history_1y,
     get_global_market_snapshot,
@@ -27,13 +26,10 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-# 신용공여/예탁금 비율이 전기 대비 이 값(%p) 이상 변하면 홈에 알림 카드 표시.
-_RATIO_ALERT_PP = 1.0
-
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
 # 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②심사·리스크 공시 시그널
-# ③이상징후(유동성) ④금융당국 보도자료 1건 ⑤여신 신규 리드(상속·증여/우리사주)
-# ⑥AI 선별 뉴스 기사(나머지 자리를 채움).
+# ③금융당국 보도자료 1건 ④여신 신규 리드(상속·증여/우리사주) ⑤AI 선별 뉴스 기사(나머지 자리를 채움).
+# (신용공여/예탁금 비율 급변 알림은 2026-09-27 사용자 요청으로 뺐다.)
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -73,31 +69,6 @@ def _safe(label: str, fn: Callable[[], T]) -> T | None:
     except Exception:  # noqa: BLE001
         logger.exception("홈 요약: %s 조회 실패", label)
         return None
-
-
-# liquidity summary 의 change_basis(있으면) → 알림 문구의 비교 기준.
-_CHANGE_BASIS_LABEL = {"day": "전일 대비", "month": "전월 대비"}
-
-
-def _liquidity_alert() -> dict | None:
-    """신용공여/예탁금 비율 급변 알림. 실데이터(source == "live")일 때만 — 샘플 데이터로
-    "HOT" 알림이 뜨지 않게 한다."""
-    summary = _safe("자본시장 유동성", get_liquidity_summary)
-    if not summary or summary.get("source") != "live":
-        return None
-    ratio = (summary.get("items") or {}).get("credit_deposit_ratio") or {}
-    change = ratio.get("change") or 0
-    if abs(change) < _RATIO_ALERT_PP:
-        return None
-    direction = "상승" if change > 0 else "하락"
-    basis = _CHANGE_BASIS_LABEL.get(summary.get("change_basis"), "전기 대비")
-    return {
-        "level": "warn",
-        "title": f"신용공여/예탁금 비율 {direction}",
-        "detail": f"{summary.get('as_of', '')} 기준 {ratio.get('value')}% ({basis} {change:+.2f}%p)",
-        "tab": "capital",
-        "sub": "liquidity",
-    }
 
 
 def _policy_highlight(policy: dict | None) -> dict | None:
@@ -186,7 +157,7 @@ def get_home_summary() -> dict:
     # "오늘의 핵심" — AI가 먼저 걸러준 최대 3건. 뉴스 feed가 아니라 우선순위 목록이라는
     # 인상을 주기 위해, 이미 계산해둔 실데이터 신호를 정해진 순서로 최대 3개까지만 채운다.
     # 1번은 항상 시장 브리핑 요약(있으면), 2번은 심사·리스크 공시 시그널(있으면) — 나머지는
-    # 기존 우선순위(유동성 이상징후 → 금융당국 발표 → 여신 신규 리드 → AI 선별 뉴스 기사)로
+    # 기존 우선순위(금융당국 발표 → 여신 신규 리드 → AI 선별 뉴스 기사)로
     # 남은 자리를 채운다.
     # 뉴스 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
     # 판단해둔 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
@@ -198,9 +169,6 @@ def get_home_summary() -> dict:
     risk_alert = _safe("심사·리스크 공시 시그널", get_home_risk_summary)   # 스냅샷만 읽음
     if risk_alert:
         today_key.append({"kind": "alert", **risk_alert})
-    liquidity_alert = _liquidity_alert()
-    if liquidity_alert:
-        today_key.append({"kind": "alert", **liquidity_alert})
     policy_highlight = _policy_highlight(policy)
     if policy_highlight:
         today_key.append(policy_highlight)

@@ -158,7 +158,7 @@ def _live_summary() -> dict:
             "investor_deposits": {"value": dep, "change": round(dep - dep0, 2)},
             "credit_balance": {"value": cr, "change": round(cr - cr0, 2)},
             "cma_balance": {"value": cm, "change": round(cm - cm0, 2)},
-            # 화면 카드는 예탁금·CMA·신용융자·예탁증권담보융자 4종. credit_balance·ratio 는 홈 위젯·유동성 알림용
+            # 화면 카드는 예탁금·CMA·신용융자·예탁증권담보융자 4종. credit_balance 는 홈 미니 위젯용(ratio 는 참고값)
             "credit_loan": {"value": loan, "change": None if loan is None else round(loan - loan0, 2)},
             "securities_loan": {"value": sec, "change": None if sec is None else round(sec - sec0, 2)},
             "credit_deposit_ratio": {"value": ratio, "change": round(ratio - ratio0, 2), "unit": "%"},
