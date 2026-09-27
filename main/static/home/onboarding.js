@@ -12,7 +12,7 @@
 
   var OB_STEPS = [
     { type: "welcome" },
-    { type: "spot", sel: "#brief-key-block",
+    { type: "spot", sel: "#brief-key-block", titleSel: "#brief-key-block .block-head",
       title: "오늘의 핵심",
       body: "오늘 가장 먼저 확인할 곳입니다. AI가 여러 정보 중 업무에 중요한 변화를 먼저 선별해 보여드립니다." },
     { type: "spot", sel: "#brief-market-block", titleSel: "#brief-market-block .block-head",
@@ -21,7 +21,7 @@
     { type: "spot", sel: "#brief-briefing-block", titleSel: "#brief-briefing-block .block-head",
       title: "오늘의 시장 브리핑",
       body: "매일 새벽 AI가 전영업일 마감 기준 주식·채권·환율·장전(미국시장)을 데이터로 분석해 정리합니다. 관련 기사 링크를 누르면 원문으로 바로 이동합니다." },
-    { type: "spot", sel: "#brief-news-block",
+    { type: "spot", sel: "#brief-news-block", titleSel: "#brief-news-block .block-head",
       title: "오늘의 주요뉴스",
       body: "더 많은 뉴스가 필요하면 여기서 확인하고, \"더보기\"로 뉴스 탭에서 더 깊이 살펴볼 수 있습니다." },
     { type: "spot", nav: "personal", sel: "#personal-add-widget-btn",
