@@ -1,7 +1,10 @@
-"""단기자금 > 원화 — 자금중개사 일일 시황 PDF를 AI로 요약한 "시황 브리프" 2종.
+"""단기자금 > 원화 — 자금중개사 일일 시황 PDF를 AI로 요약한 "시황 브리프".
 
-- KIDB 머니마켓브리프: kidb.com 자금 자료실 게시판 최신 글 → 첨부 PDF(직접 링크)
 - 한국자금중개 시황 브리프: kmbco.com "콜 레포 시장 동향" 목록 최신 행 → 첨부 PDF(POST 다운로드)
+
+(KIDB 머니마켓브리프도 붙였었지만 kidb.com 이 Cloudflare 로 해외·클라우드 IP(Render, Gemini
+URL Context 모두)를 막아 운영에서 동작하지 않아 2026-09-27 제거했다. 출처를 추가할 땐 SOURCES·
+_LATEST·_download_pdf 에 항목을 더하면 된다.)
 
 흐름(출처별 테이블 락 안에서): 목록에서 최신 자료(날짜·링크) 확인(30분 캐시) → 그 자료 날짜의
 스냅샷이 이미 요약돼 있으면 그대로 반환 → 없으면 PDF를 내려받아 Gemini 에 첨부해 요약(try_ai,
@@ -12,8 +15,6 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urljoin
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -28,13 +29,11 @@ logger = logging.getLogger(__name__)
 
 _UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128 Safari/537.36"}
 
-_KIDB_LIST = "https://www.kidb.com/bbs/board.php?bo_table=money"
 _KMB_LIST = "https://www.kmbco.com/kor/trendi/money_trend.do"
 _KMB_DOWNLOAD = "https://www.kmbco.com/common/downloadFile.do"
 
 SOURCES = {   # 키 → (화면 이름, 스냅샷 테이블 — 자료 날짜별 1행). 화면 표시 순서 그대로.
     "kmb": ("한국자금중개 시황 브리프", "funding_kmb_brief_snapshots"),
-    "kidb": ("KIDB 머니마켓브리프", "funding_kidb_brief_snapshots"),
 }
 
 _MAX_BULLETS = 6
@@ -63,24 +62,6 @@ def _get(url: str, **kw) -> requests.Response:
 
 # ── 최신 자료 찾기(목록 페이지) ─────────────────────────────────────────────
 @ttl_cache(60 * 30)
-def _latest_kidb() -> dict:
-    """KIDB 게시판 첫 글 → {"date", "title", "url"(게시글), "pdf_url"}."""
-    soup = BeautifulSoup(_get(_KIDB_LIST).text, "html.parser")
-    for a in soup.select('a[href*="bo_table=money"][href*="wr_id="]'):
-        title = a.get_text(" ", strip=True)
-        m = re.search(r"(\d{4})\.(\d{2})\.(\d{2})", title)
-        if "머니마켓" in title and m:
-            post_url = urljoin(_KIDB_LIST, a["href"])
-            post = BeautifulSoup(_get(post_url).text, "html.parser")
-            link = post.select_one('a[href*="/data/file/money/"][href$=".pdf"]')
-            if not link:
-                raise RuntimeError("KIDB 게시글에서 PDF 첨부를 찾지 못했습니다.")
-            return {"date": "-".join(m.groups()), "title": title, "url": post_url,
-                    "pdf_url": urljoin(post_url, link["href"])}
-    raise RuntimeError("KIDB 목록에서 머니마켓브리프 글을 찾지 못했습니다.")
-
-
-@ttl_cache(60 * 30)
 def _latest_kmb() -> dict:
     """한국자금중개 목록 첫 행 → {"date", "title", "url"(목록), "seq", "t_type"}."""
     soup = BeautifulSoup(_get(_KMB_LIST).text, "html.parser")
@@ -98,18 +79,18 @@ def _latest_kmb() -> dict:
     raise RuntimeError("한국자금중개 목록에서 시장 동향 자료를 찾지 못했습니다.")
 
 
+_LATEST = {"kmb": _latest_kmb}   # 출처 키 → 최신 자료 조회 함수
+
+
 def _latest(key: str) -> dict:
-    return _latest_kidb() if key == "kidb" else _latest_kmb()
+    return _LATEST[key]()
 
 
 def _download_pdf(key: str, meta: dict) -> bytes:
-    if key == "kidb":
-        data = _get(meta["pdf_url"]).content
-    else:
-        resp = requests.post(_KMB_DOWNLOAD, data={"seq": meta["seq"], "t_type": meta["t_type"]},
-                             headers={**_UA, "Referer": _KMB_LIST}, timeout=30)
-        resp.raise_for_status()
-        data = resp.content
+    resp = requests.post(_KMB_DOWNLOAD, data={"seq": meta["seq"], "t_type": meta["t_type"]},
+                         headers={**_UA, "Referer": _KMB_LIST}, timeout=30)
+    resp.raise_for_status()
+    data = resp.content
     if not data.startswith(b"%PDF"):
         raise RuntimeError(f"{SOURCES[key][0]} 첨부가 PDF가 아닙니다.")
     return data
@@ -188,7 +169,7 @@ def get_funding_briefs() -> dict:
 
 
 # 실패 시 화면에 원문 게시판 링크를 대신 보여준다(요약은 못 해도 원문은 바로 볼 수 있게).
-_LIST_URLS = {"kidb": _KIDB_LIST, "kmb": _KMB_LIST}
+_LIST_URLS = {"kmb": _KMB_LIST}
 
 
 def _reason(exc: Exception) -> str:

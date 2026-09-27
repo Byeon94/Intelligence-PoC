@@ -14,7 +14,7 @@ QR로 접속해 모바일에서도 확인할 수 있도록 만든 데모입니�
 | 📈 자본시장 | 증시자금·유동성(예탁금·신용공여·CMA, 거래대금), CMA·단기수신(유형별 비중·증권사 금리), 발행시장(IPO·유상증자 캘린더 + AI 브리핑) |
 | 💵 단기자금 | 원화(콜·KOFR·CD·CP·통안 금리, 기준금리, 스프레드, 3개월 추이, 자금중개사 시황 AI 요약, 관련 뉴스) / 외화(주요 통화 환율, 원/달러 추이, 한·미 정책금리, 관련 뉴스) — ECOS·뉴욕 연준 실데이터 |
 | 🏦 여신 | 증권담보대출·우리사주대출 수요 리드 레이더(DART 공시 + 상속·증여/우리사주 뉴스 AI 판단 + AI 브리핑) |
-| 📜 정책·규제 | 금융당국·유관기관 보도자료 + AI 브리핑 |
+| 📜 정책 | 금융당국·유관기관 보도자료 + AI 브리핑 |
 | 📰 뉴스 | 네이버 뉴스에서 업무 관련 기사 AI 선별·태깅 + 브리핑 |
 
 사이드바에는 없지만 해시로 열리는 화면: `#lending`(증권대차 — 주식·채권 대차 뉴스·리서치),
@@ -62,7 +62,7 @@ credit/              여신 탭 + 기업분석 API(나의 대시보드 위젯이
 
 funding/             단기자금 탭(ecos.py: ECOS 클라이언트, money_market.py: 원화·외화 요약) — funding.html, funding.js, funding.css
 lending/             증권대차 화면(news.py) — lending.html, lending.js, lending.css
-policy/              정책·규제 탭(sources.py, briefing.py) — policy.html, policy.js, policy.css
+policy/              정책 탭(sources.py, briefing.py) — policy.html, policy.js, policy.css
 research/            뉴스 탭(sources.py, curate.py) — research.html, research.js, research.css
 it_news/             IT·정보보호 뉴스(curate.py, sources.py) — 나의 대시보드 위젯용 API만(화면 없음)
 sector/              업종별 시가총액·밸류체인(market_map.py, value_chain.py, classify.py, constituents.py)

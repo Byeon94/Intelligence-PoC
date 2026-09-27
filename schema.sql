@@ -120,13 +120,9 @@ create table if not exists gemini_usage_snapshots (
     created_at timestamptz not null default now()
 );
 
--- 단기자금 > 원화 시황 브리프(funding/briefs.py): 자금중개사 일일 PDF의 AI 요약.
+-- 단기자금 > 원화 시황 브리프(funding/briefs.py): 한국자금중개 일일 PDF의 AI 요약.
 -- snapshot_date = 자료 날짜(오늘이 아님) — 새 자료가 올라왔을 때만 AI 를 부르기 위함.
-create table if not exists funding_kidb_brief_snapshots (
-    snapshot_date date primary key,
-    payload jsonb not null,
-    created_at timestamptz not null default now()
-);
+-- (funding_kidb_brief_snapshots 는 KIDB 제거로 더 이상 쓰지 않는다 — 이미 만들었다면 지워도 된다.)
 create table if not exists funding_kmb_brief_snapshots (
     snapshot_date date primary key,
     payload jsonb not null,

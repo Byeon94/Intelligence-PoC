@@ -23,7 +23,7 @@
   function bpDelta(bp) {
     if (bp == null) return deltaHTML("—", "flat", "전일 대비");
     if (bp === 0) return deltaHTML("0bp", "flat", "전일 대비");
-    return deltaHTML((bp > 0 ? "▲ +" : "▼ ") + bp + "bp", bp > 0 ? "up" : "down", "전일 대비");
+    return deltaHTML((bp > 0 ? "▲" : "▼") + Math.abs(bp) + "bp", bp > 0 ? "up" : "down", "전일 대비");
   }
   function kpi(o) {
     return '<div class="kpi">' +
@@ -83,8 +83,9 @@
       document.getElementById("fx-kpis").innerHTML = d.items.map(function (it) {
         var delta;
         if (it.change == null) delta = deltaHTML("—", "flat", "전일 대비");
-        else delta = deltaHTML((it.change > 0 ? "▲ +" : it.change < 0 ? "▼ " : "") + num(it.change, 2) +
-          " (" + signed(it.change_pct, 2) + "%)", it.change > 0 ? "up" : it.change < 0 ? "down" : "flat", "전일 대비");
+        // 화살표가 방향을 말해주므로 부호는 빼서 짧게("▼24.30 (1.76%)") — 모바일 2열 카드에서 줄바꿈 방지
+        else delta = deltaHTML((it.change > 0 ? "▲" : it.change < 0 ? "▼" : "") + num(Math.abs(it.change), 2) +
+          " (" + num(Math.abs(it.change_pct), 2) + "%)", it.change > 0 ? "up" : it.change < 0 ? "down" : "flat", "전일 대비");
         return kpi({ label: it.label, value: num(it.value, 2), unit: "원", delta: delta });
       }).join("");
 
@@ -111,7 +112,7 @@
     }).catch(function (e) { fail(FX_IDS, e.message); });
   }
 
-  /* ── AI 시황 브리프(원화) — KIDB·한국자금중개 일일 PDF 요약 ── */
+  /* ── AI 시황 브리프(원화) — 한국자금중개 일일 PDF 요약 ── */
   function briefCardHTML(b) {
     if (b.error) {
       return '<div class="fund-brief"><div class="fund-brief-head"><span class="fund-brief-name">📑 ' + esc(b.name) + '</span></div>' +

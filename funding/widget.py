@@ -44,7 +44,7 @@ def fx_summary():
 
 @funding_bp.route("/api/funding/briefs")
 def briefs():
-    """원화 탭 시황 브리프(KIDB·한국자금중개 PDF AI 요약). 새 자료가 있을 때만 AI 를 부른다."""
+    """원화 탭 시황 브리프(한국자금중개 PDF AI 요약). 새 자료가 있을 때만 AI 를 부른다."""
     return _safe(get_funding_briefs, "단기자금 시황 브리프")
 
 

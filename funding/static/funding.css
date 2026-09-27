@@ -10,6 +10,13 @@
 }
 
 .funding .k-delta-label { color: var(--muted); font-weight: 600; }
+/* 모바일 2열 카드: 숫자·변동 글씨를 한 단계 줄여 "▼24.30 (1.76%) 전일 대비"가 한 줄에 들어가게 */
+@media (max-width: 519px) {
+  .funding .kpi { padding: 11px 12px; }
+  .funding .kpi .k-value { font-size: 1.2rem; }
+  .funding .kpi .k-sub { font-size: .68rem; margin-top: 3px; }
+  .funding .kpi .k-delta { font-size: .68rem; margin-top: 3px; white-space: nowrap; }
+}
 .funding .chart-wrap { max-width: 520px; }
 
 .fund-spread-table td:first-child { font-weight: 700; }
