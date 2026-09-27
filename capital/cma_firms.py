@@ -1,4 +1,4 @@
-"""증권사 공식 홈페이지의 CMA 금리 읽기 — 네이버페이 CMA 비교 대상 20개 증권사 중 18곳, 증권사별 전용 파서.
+"""증권사 공식 홈페이지의 CMA 금리 읽기 — 네이버페이 CMA 비교 대상 20개 증권사 중 17곳, 증권사별 전용 파서.
 
 금융투자협회·금감원·공공데이터포털 어디에도 증권사별 CMA 금리를 모아 주는 공개 API 가 없어
 (2026-09-27 조사), 각 증권사가 자기 CMA 안내 페이지에 게시한 금리를 직접 읽는다. 대부분은
@@ -12,7 +12,8 @@
   - url       : 화면에 출처로 보여줄 공식 페이지
 
 조회가 막힌 곳은 뺐다(2026-09-27): 키움(EverSafe 봇 차단), 신영(웹 방화벽 차단),
-케이프(금리 응답 암호화 — 자동 수집을 막는 장치로 보고 풀지 않음).
+케이프(금리 응답 암호화 — 자동 수집을 막는 장치로 보고 풀지 않음),
+메리츠(국내에선 되지만 Render 해외 서버 요청을 HTTP 400 으로 거절 — 사용자 결정으로 제외).
 파서는 사이트 개편 시 깨질 수 있으므로 실패하면 capital.cma_rates 가 직전 확인값(이전값)으로
 대신하고, 그마저 없으면 "확인 불가"로 둔다.
 """
@@ -168,23 +169,6 @@ def fetch_kb() -> dict:
         raise ValueError("KB 응답 파싱 실패")
     return {"rp_rate": _pct(data["cma111"]), "note_rate": _pct(data["cma112"]),
             "as_of": _ymd(data.get("cma100")), "url": page, "product": "자동투자 RP(개인)"}
-
-
-def fetch_meritz() -> dict:
-    """메리츠증권 — RP형 CMA 페이지가 부르는 RPErtSearch.go(RP10000, 1~30일). 발행어음형 CMA 탭은 비활성."""
-    page = "https://home.imeritz.com/meritzcma/CmaRp.do"
-    r = requests.post("https://home.imeritz.com/meritzcma/RPErtSearch.go",
-                      data={"iscd": "RP10000", "aplyDate": today_kst().strftime("%Y.%m.%d")},
-                      headers={**_HDR, "Referer": page, "X-Requested-With": "XMLHttpRequest"}, timeout=_TIMEOUT)
-    r.raise_for_status()
-    j = json.loads(r.text)
-    if str(j.get("sysCode")) != "0":
-        raise ValueError("메리츠 응답 오류")
-    rows = [x for x in (j.get("resultList") or [[]])[0] if x.get("Iscd") == "RP10000"]
-    if not rows:
-        raise ValueError("메리츠 RP10000 없음")
-    return {"rp_rate": float(rows[0]["AplyInrt"]), "note_rate": None,
-            "as_of": _ymd(rows[0].get("InrtAplyDate")), "url": page, "product": "CMA-RP(1~30일)"}
 
 
 def fetch_shinhan() -> dict:
@@ -451,7 +435,7 @@ def fetch_daishin() -> dict:
     return {"rp_rate": _pct(rates[types.index("CMA - RP")]), "note_rate": note, "as_of": None, "url": page, "product": "CMA - RP"}
 
 
-# (증권사명, 파서 또는 None, 파서가 없을 때 보여줄 공식 페이지) — 네이버페이 CMA 비교 20개사 중 신영·케이프 제외 18곳
+# (증권사명, 파서 또는 None, 파서가 없을 때 보여줄 공식 페이지) — 네이버페이 CMA 비교 20개사 중 신영·케이프·메리츠 제외 17곳
 FIRMS: list[tuple[str, Callable[[], dict] | None, str | None]] = [
     ("미래에셋증권", fetch_mirae, None),
     ("미래에셋증권", fetch_mirae_naver, None),   # 네이버 제휴 상품(네이버페이에 보이는 금리)
@@ -459,7 +443,6 @@ FIRMS: list[tuple[str, Callable[[], dict] | None, str | None]] = [
     ("NH투자증권", fetch_nh, None),
     ("삼성증권", fetch_samsung, None),
     ("KB증권", fetch_kb, None),
-    ("메리츠증권", fetch_meritz, None),
     ("신한투자증권", fetch_shinhan, None),
     ("하나증권", fetch_hana, None),
     ("대신증권", fetch_daishin, None),
