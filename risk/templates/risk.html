@@ -1,0 +1,76 @@
+<div class="risk" id="risk-root">
+  <div class="subtabs" id="risk-subtabs" role="tablist">
+    <button class="subtab-btn active" data-sub="signal">리스크 시그널</button>
+    <button class="subtab-btn" data-sub="watch">워치·섹터</button>
+  </div>
+
+  <!-- ── 리스크 시그널: DART 거래소공시 + 급락 종목 + 부정 키워드 기사 ── -->
+  <div class="sub-panel" data-sub="signal">
+    <section class="block">
+      <div class="block-head">
+        <h3>오늘의 리스크 시그널</h3>
+        <span class="asof" id="risk-sig-asof"></span>
+      </div>
+      <div class="kpi-grid risk-kpis" id="risk-sig-kpis"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>담보가치 리스크 공시</h3>
+        <span class="unit-tag" id="risk-sig-range">DART 거래소공시 · 최근 7일</span>
+      </div>
+      <div class="risk-filter" id="risk-sig-filter">
+        <button class="risk-filter-btn active" data-level="">전체</button>
+        <button class="risk-filter-btn" data-level="ALERT">ALERT</button>
+        <button class="risk-filter-btn" data-level="WARN">WARN</button>
+      </div>
+      <div id="risk-sig-list"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>급락 종목</h3>
+        <span class="unit-tag" id="risk-drop-unit">등락률 −8% 이하 · 시가총액 1,000억 원 이상</span>
+      </div>
+      <div class="table-wrap" id="risk-drops"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h3>부정 키워드 기사</h3><span class="asof" id="risk-news-asof"></span></div>
+      <div id="risk-news"></div>
+    </section>
+    <p class="page-note risk-src">출처: 금융감독원 DART 거래소공시(공시 제목 기준 자동 분류, 1시간마다 갱신), 공공데이터포털 금융위원회 주식시세정보(1~2영업일 늦게 반영), 네이버 뉴스. 공시 해설은 분류별 고정 문구이며, 실제 내용은 DART 원문에서 확인해주세요.</p>
+  </div>
+
+  <!-- ── 워치·섹터: 시총 상위 30 워치 유니버스 + KRX 업종지수 + 크레딧 스프레드 ── -->
+  <div class="sub-panel" data-sub="watch" hidden>
+    <section class="block">
+      <div class="block-head">
+        <h3>워치 유니버스</h3>
+        <span class="asof" id="risk-watch-asof"></span>
+      </div>
+      <p class="page-note risk-lead">코스피·코스닥 시가총액 상위 30개 보통주 — 내부 보유·계좌 정보와 무관한 시장 관찰 기준입니다.</p>
+      <div class="table-wrap" id="risk-watch"></div>
+      <p class="page-note risk-rule" id="risk-watch-rule"></p>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>섹터 리스크 히트</h3>
+        <span class="asof" id="risk-sector-asof"></span>
+      </div>
+      <div class="risk-heat" id="risk-sectors"></div>
+      <p class="page-note risk-rule" id="risk-sector-rule"></p>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>크레딧 스프레드</h3>
+        <span class="unit-tag">회사채 3년 − 국고채 3년 · bp</span>
+      </div>
+      <div class="kpi-grid risk-credit-kpis" id="risk-credit-kpis"></div>
+      <div class="chart-wrap" id="risk-credit-trend"></div>
+    </section>
+    <p class="page-note risk-src">출처: 공공데이터포털 금융위원회 주식시세정보·지수시세정보(KRX 코스피 업종지수, 1~2영업일 늦게 반영), 한국은행 경제통계시스템(ECOS) 시장금리(일별), 금융감독원 DART(워치 종목 공시 등급).</p>
+  </div>
+</div>
