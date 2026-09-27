@@ -143,13 +143,16 @@ body {
   /* 좌우 여백 20px(네이버 모바일 참고) — 브랜드·"부서 위젯" 라벨·본문(main)이 같은 선에서 시작 */
   .side-brand { padding: 10px 0 10px 20px; flex: 0 0 auto; order: 1; }
   .side-brand-name { font-size: .84rem; }
-  /* 왼쪽 24px: "PoC" 배지와 "홈" 사이 간격. 대신 1행 버튼 좌우 패딩·오른쪽 여백을 줄여
-     "소개"까지 한 화면에 들어오게 한다(360·375·390·412px 폭에서 확인). */
+  /* 1행 버튼(홈·나의 대시보드·소개)은 오른쪽 정렬 — 오른쪽 여백 20px로 "소개" 끝을 2행
+     "뉴스" 끝과 맞추고, 남는 폭은 전부 "PoC"와 "홈" 사이 간격이 된다(최소 16px).
+     justify-content:flex-end 대신 첫 버튼의 margin-left:auto 를 쓰는 이유: 폭이 모자라
+     넘칠 때 flex-end 는 왼쪽 버튼이 스크롤로도 닿지 않는 곳으로 잘리지만 auto 마진은 0이 된다. */
   .side-row-primary {
     position: relative;
-    display: flex; flex-direction: row; gap: 0; padding: 6px 6px 6px 24px;
+    display: flex; flex-direction: row; gap: 4px; padding: 6px 20px 6px 16px;
     overflow-x: auto; scrollbar-width: none;
   }
+  .side-row-primary .side-btn:first-child { margin-left: auto; }
   .side-row-primary::-webkit-scrollbar { display: none; }
   /* flex-basis를 auto로 두면(내용의 실제 너비 기준) 줄바꿈 여부 판정에 그 실제 너비가
      쓰여 축소 가능 여부와 무관하게 브랜드와 한 줄에 못 들어가고 통째로 다음 줄로
@@ -159,28 +162,31 @@ body {
   /* .side-row-work: 브랜드+.side-row-primary와 같은 패턴 — "부서 위젯" 라벨은 고정,
      그 옆의 .side-row-work-scroll(버튼 4개)만 가로로 밀린다(라벨까지 같이 밀려
      사라지면 무슨 그룹인지 안 보이므로 분리). */
-  /* 왼쪽 패딩을 .side-brand(20px)와 맞춰 "증금 인텔리전스 PoC"와 "부서 위젯" 라벨이
-     세로로 나란히 시작하도록 한다. */
+  /* 좌우 패딩 20px — 왼쪽은 "증금 인텔리전스 PoC"와 "부서 위젯" 라벨 시작선, 오른쪽은
+     1행 "소개" 끝과 맞춘다. min-width:0 이 없으면 이 행의 최소 폭이 버튼 전체 폭으로 잡혀
+     좁은 폰에서 페이지 전체가 가로로 삐져나왔다(가로 스크롤 생김). */
   .side-row-work {
     display: flex; flex-direction: row; align-items: center; gap: 8px;
-    padding: 6px 4px 6px 20px; flex: 0 0 100%; order: 3;
+    padding: 6px 20px; flex: 0 0 100%; min-width: 0; order: 3;
   }
   .side-group-label { flex: 0 0 auto; }
+  /* 버튼 4개를 양 끝까지 퍼뜨려 "뉴스"가 오른쪽 여백선에 닿게 한다(넘치면 왼쪽 정렬 + 스크롤). */
   .side-row-work-scroll {
     position: relative;
-    display: flex; flex-direction: row; gap: 2px; min-width: 0; flex: 1 1 0;
-    padding-right: 16px; overflow-x: auto; scrollbar-width: none;
+    display: flex; flex-direction: row; justify-content: space-between; gap: 2px;
+    min-width: 0; flex: 1 1 0; overflow-x: auto; scrollbar-width: none;
   }
   .side-row-work-scroll::-webkit-scrollbar { display: none; }
-  .side-btn { flex: 0 0 auto; padding: 9px 12px; font-size: .8rem; }
-  .side-row-primary .side-btn { padding: 9px 8px; }
+  /* 이모지-글자 간격(데스크톱 9px)을 4px로 줄여 확보한 폭을 버튼 사이 간격으로 쓴다 */
+  .side-btn { flex: 0 0 auto; gap: 4px; padding: 9px 8px; font-size: .8rem; }
+  .side-row-primary { gap: 6px; }
+  .side-row-primary .side-btn { padding: 9px 7px; }
   .side-sep { display: none; }
-  /* 두 스크롤 행 모두 마지막 버튼이 화면 끝에서 뚝 잘려 보이던 문제 — padding만으로는
-     "스크롤하면 더 있다"는 게 시각적으로 안 드러나, 오른쪽 끝에 사이드바 배경색으로
-     옅어지는 페이드를 얹어(hover/클릭과 무관한 순수 장식이라 pointer-events:none)
-     잘린 게 아니라 이어진다는 걸 보여준다. */
-  .side-row-primary::after, .side-row-work-scroll::after {
-    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 18px;
+  /* 아주 좁은 폰에서 버튼이 넘칠 때만(.is-overflow — index.html 스크립트가 붙임) 오른쪽 끝에
+     사이드바 배경색 페이드를 얹어 "스크롤하면 더 있다"를 보여준다. 다 들어갈 때 페이드를
+     얹으면 마지막 버튼("소개"·"뉴스") 글자가 흐려 보여서 조건부로 바꿨다. */
+  .side-row-primary.is-overflow::after, .side-row-work-scroll.is-overflow::after {
+    content: ""; position: sticky; flex: 0 0 18px; margin-left: -18px; right: 0;
     background: linear-gradient(to right, transparent, #10162b);
     pointer-events: none;
   }
@@ -189,9 +195,11 @@ body {
 /* 아주 좁은 화면(구형/저가 기기)에서는 2행조차 빠듯해질 수 있어 글자·여백을 한 번 더
    줄여 실제로 보이는 버튼 수를 늘린다(스크롤에만 의존하지 않도록). */
 @media (max-width: 400px) {
-  .side-brand-name { font-size: .78rem; }
-  .side-btn { padding: 8px 9px; font-size: .76rem; }
-  .side-row-primary { padding-left: 16px; padding-right: 4px; }
+  .side-brand-name { font-size: .74rem; }
+  .side-btn { padding: 8px 6px; font-size: .76rem; }
+  /* 오른쪽 여백을 두 행 모두 16px로(정렬 유지) 줄여, 그 폭을 "PoC"–"홈" 간격으로 돌린다 */
+  .side-row-primary { padding-right: 16px; }
+  .side-row-work { padding-right: 16px; }
   .side-row-primary .side-btn { padding: 8px 4px; }
   .side-group-label { font-size: .8rem; }
 }

@@ -229,6 +229,17 @@ function applyView(cat) {
 
 window.AppNav = { go: applyView };
 
+// 모바일 상단 두 메뉴 행이 실제로 넘칠 때만 .is-overflow(오른쪽 끝 페이드)를 붙인다(style.css 참고).
+function markNavOverflow() {
+  document.querySelectorAll('.side-row-primary, .side-row-work-scroll').forEach(function (el) {
+    el.classList.toggle('is-overflow', el.scrollWidth > el.clientWidth + 1);
+  });
+}
+window.addEventListener('resize', markNavOverflow);
+window.addEventListener('load', markNavOverflow);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(markNavOverflow); // 웹폰트 로드 후 폭 재측정
+markNavOverflow();
+
 document.getElementById('main-tabs').addEventListener('click', function (e) {
   var btn = e.target.closest('.side-btn');
   if (btn) applyView(btn.dataset.cat);
