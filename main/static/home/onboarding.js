@@ -54,8 +54,9 @@
       "<h3>안녕하세요! 👋</h3>" +
       "<p>증금 인텔리전스에 오신 것을 환영합니다.<br>AI가 시장·정책·뉴스를 분석해 매일 아침 업무에 필요한 핵심만 먼저 알려드립니다.</p>" +
       // 모바일에서만 보이는 안내(home.css .ob-pc-note) — PC에서 보면 표·차트를 더 넓게 볼 수 있다
-      '<p class="ob-pc-note">💻 모바일이 아닌 PC 버전으로 보시면 더 자세하게 볼 수 있습니다.<br>' +
-        '<a href="https://intelligence-poc.onrender.com" target="_blank" rel="noopener">intelligence-poc.onrender.com</a></p>' +
+      // 모바일에서 링크를 눌러도 다시 모바일로 열리므로 링크 대신 주소만 적어 둔다
+      '<p class="ob-pc-note">📱 모바일이 아닌 💻 PC 버전으로 보시면 더 자세하게 볼 수 있습니다.<br>' +
+        '<span class="ob-pc-url">https://intelligence-poc.onrender.com</span></p>' +
       '<div class="ob-tooltip-actions">' +
         '<button type="button" class="dart-btn" id="ob-next">1분 투어 시작하기 →</button>' +
         '<button type="button" class="ob-skip" id="ob-skip">건너뛰기</button>' +

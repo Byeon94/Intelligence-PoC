@@ -411,7 +411,7 @@
   display: none; font-size: .8rem; color: var(--fg); background: var(--accent-bg);
   border-radius: 8px; padding: 8px 10px; margin: -6px 0 16px;
 }
-.ob-pc-note a { color: var(--accent); font-weight: 700; word-break: break-all; }
+.ob-pc-note .ob-pc-url { color: var(--accent); font-weight: 700; word-break: break-all; user-select: all; }
 @media (max-width: 880px) { .ob-tooltip p.ob-pc-note { display: block; } }
 .ob-tooltip-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .ob-tooltip.ob-centered .ob-tooltip-actions { flex-direction: column-reverse; }
