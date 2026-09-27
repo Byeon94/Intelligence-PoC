@@ -136,21 +136,21 @@ create table if not exists funding_news_snapshots (
     created_at timestamptz not null default now()
 );
 
--- 심사리스크 > 리스크 시그널(risk/signals.py): DART 거래소공시 리스크 분류. 하루 1행(1시간마다 덮어씀).
+-- 심사·리스크 > 리스크 시그널(risk/signals.py): DART 거래소공시 리스크 분류. 하루 1행(1시간마다 덮어씀).
 create table if not exists risk_signal_snapshots (
     snapshot_date date primary key,
     payload jsonb not null,
     created_at timestamptz not null default now()
 );
 
--- 심사리스크 > 워치 유니버스(risk/watch.py): 시총 상위 30 종목 지표. 하루 1행.
+-- 심사·리스크 > 워치 유니버스(risk/watch.py): 시총 상위 30 종목 지표. 하루 1행.
 create table if not exists risk_watch_snapshots (
     snapshot_date date primary key,
     payload jsonb not null,
     created_at timestamptz not null default now()
 );
 
--- 심사리스크 > 부정 키워드 기사 AI 선별(risk/news.py). 하루 1행.
+-- 심사·리스크 > 부정 키워드 기사 AI 선별(risk/news.py). 하루 1행.
 create table if not exists risk_news_snapshots (
     snapshot_date date primary key,
     payload jsonb not null,

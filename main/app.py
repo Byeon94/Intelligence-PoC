@@ -99,9 +99,9 @@ _WARMUP_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("여신 리드 AI 브리핑", lambda: get_lead_briefings(force=True)),
     ("단기자금 시황 브리프", get_funding_briefs),   # 새 자료가 있을 때만 AI 요약
     ("단기자금 관련 뉴스", get_funding_news),
-    ("심사리스크 공시 시그널", lambda: get_signals(force=True)),
-    ("심사리스크 워치 유니버스", get_watch),   # 공시 시그널 다음(워치 상태에 공시 등급을 붙임)
-    ("심사리스크 관련 뉴스", get_risk_news),
+    ("심사·리스크 공시 시그널", lambda: get_signals(force=True)),
+    ("심사·리스크 워치 유니버스", get_watch),   # 공시 시그널 다음(워치 상태에 공시 등급을 붙임)
+    ("심사·리스크 관련 뉴스", get_risk_news),
 ]
 
 # 매일 07:00 KST 아침 재생성(mode=morning) — 00:01 시점엔 미국 장이 아직 열려 있어 시장
@@ -117,8 +117,8 @@ _MORNING_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("여신 리드 AI 브리핑", lambda: get_lead_briefings(force=True)),   # 새 뉴스 반영
     ("단기자금 시황 브리프", get_funding_briefs),   # 전날 저녁 올라온 자료 반영
     ("단기자금 관련 뉴스", lambda: get_funding_news(rebuild=True)),
-    ("심사리스크 공시 시그널", lambda: get_signals(force=True)),   # 밤사이 공시 반영
-    ("심사리스크 관련 뉴스", lambda: get_risk_news(rebuild=True)),
+    ("심사·리스크 공시 시그널", lambda: get_signals(force=True)),   # 밤사이 공시 반영
+    ("심사·리스크 관련 뉴스", lambda: get_risk_news(rebuild=True)),
 ]
 
 

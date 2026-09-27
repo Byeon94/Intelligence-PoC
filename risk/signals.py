@@ -1,4 +1,4 @@
-"""심사리스크 > 리스크 시그널 — DART 거래소공시 기반 담보가치 리스크 시그널 + 급락 종목.
+"""심사·리스크 > 리스크 시그널 — DART 거래소공시 기반 담보가치 리스크 시그널 + 급락 종목.
 
 데이터 (전부 실데이터, 추정·AI 해설 없음)
   - 공시 시그널 : DART list.json 을 corp_code 없이 거래소공시(pblntf_ty=I) 최근 7일 전체로
@@ -206,7 +206,7 @@ def get_signals(force: bool = False) -> dict:
                 save_snapshot(_TABLE, today, snap)
             except Exception as exc:  # noqa: BLE001 - DART 장애 → 직전 스냅샷
                 _last_fail[0] = time.time()
-                logger.warning("심사리스크 공시 시그널 수집 실패: %s", exc)
+                logger.warning("심사·리스크 공시 시그널 수집 실패: %s", exc)
                 if force:
                     raise
         if snap is None:

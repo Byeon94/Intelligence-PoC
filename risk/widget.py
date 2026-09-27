@@ -1,4 +1,4 @@
-"""심사리스크 탭 블루프린트 — 탭 템플릿(/risk)과 리스크 시그널·워치·섹터·뉴스 JSON API."""
+"""심사·리스크 탭 블루프린트 — 탭 템플릿(/risk)과 리스크 시그널·워치·섹터·뉴스 JSON API."""
 import logging
 
 from flask import Blueprint, jsonify, render_template
@@ -28,7 +28,7 @@ def _safe(fn, label):
 
 @risk_bp.route("/risk")
 def risk_tab():
-    """심사리스크 탭 부분 템플릿 (index.html 에서 include)."""
+    """심사·리스크 탭 부분 템플릿 (index.html 에서 include)."""
     return render_template("risk.html")
 
 
@@ -40,7 +40,7 @@ def signals():
 
 @risk_bp.route("/api/risk/watch")
 def watch():
-    """워치 유니버스(시총 상위 30) · 섹터 리스크 히트 · 크레딧 스프레드."""
+    """워치 유니버스(시총 상위 30) · 섹터 리스크 히트."""
     return _safe(get_watch_sector, "워치·섹터")
 
 

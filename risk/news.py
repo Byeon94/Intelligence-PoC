@@ -1,4 +1,4 @@
-"""심사리스크 > 리스크 시그널 — 부정 키워드 기사(회생·워크아웃·상폐·감사의견 등) AI 선별.
+"""심사·리스크 > 리스크 시그널 — 부정 키워드 기사(회생·워크아웃·상폐·감사의견 등) AI 선별.
 
 네이버 뉴스에서 부정 키워드로 최근 2일 기사를 모으고(main.naver_news), Gemini 가 "특정 기업의
 신용·담보가치 리스크 사건"을 다룬 기사만 최대 5건 골라 기업명·한 줄 이유를 붙인다(정책 해설·
@@ -76,7 +76,7 @@ def _pick_with_ai(part: dict) -> None:
 def _select(part: dict) -> bool:
     """AI 선별 1회 시도 — 실패하면 최신순으로 채운다. 시도 횟수가 바뀌었는지 돌려준다."""
     before = part.get("gemini_attempts", 0)
-    if try_ai(part, _pick_with_ai, "심사리스크 뉴스") != AI_OK and not part.get("items"):
+    if try_ai(part, _pick_with_ai, "심사·리스크 뉴스") != AI_OK and not part.get("items"):
         part.update(items=[{**c, "company": "", "reason": ""} for c in part["candidates"][:_PICK]],
                     picked_by="latest")
     return part.get("gemini_attempts", 0) != before
@@ -95,7 +95,7 @@ def get_risk_news(rebuild: bool = False) -> dict:
                     save_snapshot(_TABLE, today, fresh)
                 snap = fresh if fresh["candidates"] or snap is None else snap   # 아침 재생성 실패 시 새벽 결과 유지
             except NewsFetchError as exc:
-                logger.warning("심사리스크 뉴스 수집 실패: %s", exc)
+                logger.warning("심사·리스크 뉴스 수집 실패: %s", exc)
                 snap = snap or {"items": [], "candidates": [], "picked_by": None}
         elif snap.get("picked_by") == "latest" and snap.get("candidates"):
             if _select(snap):   # 앞서 AI 가 실패했으면 상한 안에서 다시 선별

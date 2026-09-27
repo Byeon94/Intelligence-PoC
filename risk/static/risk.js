@@ -1,9 +1,10 @@
-/* 심사리스크 탭: 리스크 시그널(DART 공시·급락·부정 기사) / 워치·섹터(시총 상위 30·업종지수·크레딧 스프레드) */
+/* 심사·리스크 탭: 리스크 시그널(DART 공시·급락·부정 기사) / 워치·섹터(시총 상위 30·업종지수) */
 (function () {
   "use strict";
 
   var esc = window.KSFC.esc, get = window.KSFC.get, safeUrl = window.KSFC.safeUrl;
-  var SIG_PREVIEW = 8;   // 공시 시그널은 처음 8건만, 나머지는 "더보기"
+  var SIG_PREVIEW = 8;     // 공시 시그널은 처음 8건만, 나머지는 "더보기"
+  var WATCH_PREVIEW = 10;  // 워치 유니버스는 상위 10개만, 나머지 20개는 "더보기"
 
   function num(n, d) {
     if (n == null || isNaN(n)) return "-";
@@ -133,13 +134,17 @@
   }
 
   /* ── 워치·섹터 ── */
+  var watchData = null, watchExpanded = false;
   function renderWatch(w) {
     if (w.error) { fail(["risk-watch"], w.error); return; }
+    watchData = w;
+    var rows = watchExpanded ? w.items : w.items.slice(0, WATCH_PREVIEW);
+    var rest = w.items.length - rows.length;
     el("risk-watch-asof").textContent = shortDate(w.as_of) + " 종가 · ALERT " + w.alert + " · WARN " + w.warn + (w.stale ? " · 이전 자료" : "");
     el("risk-watch-rule").textContent = "상태 기준 — " + (w.rule || "");
     el("risk-watch").innerHTML = '<table class="rate-table risk-table risk-watch-table"><thead><tr>' +
       '<th>종목</th><th>등락률</th><th>20일</th><th class="risk-col-extra">거래량배율</th><th class="risk-col-extra">60일 변동성</th><th>상태</th></tr></thead><tbody>' +
-      w.items.map(function (s) {
+      rows.map(function (s) {
         var vr = s.vol_ratio == null ? "-" : num(s.vol_ratio, 1) + "×";
         var vol = s.volatility60 == null ? "-" : num(s.volatility60, 0) + "%";
         return '<tr class="' + (s.status === "ALERT" ? "is-alert" : s.status === "WARN" ? "is-warn" : "") + '">' +
@@ -152,6 +157,10 @@
           '<td class="risk-col-extra">' + vol + '</td>' +
           '<td>' + badge(s.status) + (s.signal ? '<span class="risk-sub">DART ' + esc(s.signal) + '</span>' : "") + '</td></tr>';
       }).join("") + '</tbody></table>';
+    el("risk-watch-more-box").innerHTML = rest > 0
+      ? '<button type="button" class="brief-more-btn risk-more" id="risk-watch-more">더보기 (' + rest + '개)</button>' : "";
+    var more = el("risk-watch-more");
+    if (more) more.addEventListener("click", function () { watchExpanded = true; renderWatch(watchData); });
   }
 
   function renderSectors(s) {
@@ -166,31 +175,12 @@
     }).join("");
   }
 
-  function spreadKpi(o, label) {
-    var chg = (o.spread_bp != null && o.week_ago_bp != null) ? o.spread_bp - o.week_ago_bp : null;
-    var sub = (o.yield != null ? "금리 " + num(o.yield, 3) + "%" : "") +
-      (chg != null ? " · 1주 전 대비 " + (chg > 0 ? "+" : "") + chg + "bp" : "");
-    return kpi(label, o.spread_bp == null ? "-" : "+" + num(o.spread_bp, 0), "bp", sub);
-  }
-
-  function renderCredit(c) {
-    if (c.error) { fail(["risk-credit-kpis", "risk-credit-trend"], c.error); return; }
-    el("risk-credit-kpis").innerHTML = [
-      spreadKpi(c.aa, "AA− 스프레드"),
-      spreadKpi(c.bbb, "BBB− 스프레드"),
-      kpi("국고채 3년", num(c.ktb3, 3), "%", shortDate(c.as_of) + " 기준")
-    ].join("");
-    window.Charts.line(el("risk-credit-trend"), {
-      labels: c.trend.labels,
-      series: [{ name: "AA− 스프레드(bp)", values: c.trend.aa, varName: "--c1" }]
-    });
-  }
-
   function loadWatch() {
-    var ids = ["risk-watch", "risk-sectors", "risk-credit-kpis", "risk-credit-trend"];
+    var ids = ["risk-watch", "risk-sectors"];
+    el("risk-watch-more-box").innerHTML = "";
     ids.forEach(loading);
     get("/api/risk/watch").then(function (d) {
-      renderWatch(d.watch || {}); renderSectors(d.sectors || {}); renderCredit(d.credit || {});
+      renderWatch(d.watch || {}); renderSectors(d.sectors || {});
     }).catch(function (e) { fail(ids, e.message); });
   }
 

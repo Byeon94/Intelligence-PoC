@@ -1,4 +1,4 @@
-"""심사리스크 > 워치·섹터 — 워치 유니버스(시총 상위 30) · 섹터 리스크 히트 · 크레딧 스프레드.
+"""심사·리스크 > 워치·섹터 — 워치 유니버스(시총 상위 30) · 섹터 리스크 히트.
 
 데이터 (전부 실데이터)
   - 워치 유니버스 : data.go.kr 전 종목 시세에서 코스피+코스닥 시가총액 상위 30개 보통주
@@ -9,7 +9,6 @@
     종목당 1회 호출(30회)이라 하루 1회 스냅샷으로 저장하고, 시세 기준일이 바뀌면 다시 만든다.
   - 섹터 리스크 히트 : data.go.kr 「금융위원회_지수시세정보」의 KRX 코스피 업종지수(건설·증권·
     화학 등 23개) 1일·20일 등락률. 업종 분류를 AI 로 추정하지 않고 거래소 공식 지수를 쓴다.
-  - 크레딧 스프레드 : 한국은행 ECOS 817Y002 회사채(3년, AA−·BBB−) − 국고채 3년(bp).
 """
 from __future__ import annotations
 
@@ -20,7 +19,6 @@ from datetime import timedelta
 
 from capital._datago import INDEX_OP, INDEX_SERVICE, get_json, pick, to_float
 from credit.equity import _daily_rows, listed_snapshot, listed_snapshot_as_of
-from funding.ecos import fetch_series
 from main.cache import ttl_cache
 from main.daily_snapshot import table_lock
 from main.snapshot_store import get_snapshot, latest_snapshot, save_snapshot
@@ -180,44 +178,13 @@ def get_sector_heat() -> dict:
     return {"as_of": ymd_to_iso(as_of), "sectors": sectors, "rule": SECTOR_RULE}
 
 
-# ── 크레딧 스프레드(ECOS) ─────────────────────────────────────────────────
-_KTB3, _AA, _BBB = "010200000", "010300000", "010320000"
-
-
-def _nth_back(series: list[tuple[str, float]], n: int) -> float | None:
-    return series[-1 - n][1] if len(series) > n else None
-
-
-def get_credit_spread() -> dict:
-    rates = fetch_series("817Y002", "D", 130)   # 단기자금 탭과 같은 호출이라 캐시를 공유
-    ktb = dict(rates.get(_KTB3, []))
-    out = {}
-    for key, code, label in (("aa", _AA, "AA−"), ("bbb", _BBB, "BBB−")):
-        sp = [(d, round((v - ktb[d]) * 100)) for d, v in rates.get(code, []) if d in ktb]
-        yld = rates.get(code, [])
-        out[key] = {"label": label, "date": sp[-1][0] if sp else None,
-                    "spread_bp": sp[-1][1] if sp else None,
-                    "week_ago_bp": _nth_back(sp, 5), "month_ago_bp": _nth_back(sp, 21),
-                    "yield": yld[-1][1] if yld else None, "series": sp[-65:]}
-    aa = out["aa"]["series"]
-    return {
-        "as_of": out["aa"]["date"],
-        "ktb3": rates.get(_KTB3, [(None, None)])[-1][1],
-        "aa": {k: v for k, v in out["aa"].items() if k != "series"},
-        "bbb": {k: v for k, v in out["bbb"].items() if k != "series"},
-        "trend": {"labels": [f"{int(d[5:7])}/{int(d[8:])}" for d, _ in aa],
-                  "aa": [v for _, v in aa],
-                  "bbb": [dict(out["bbb"]["series"]).get(d) for d, _ in aa]},
-    }
-
-
 def get_watch_sector() -> dict:
-    """워치·섹터 탭 한 번에 — 섹터·스프레드는 한쪽이 실패해도 나머지는 보여준다."""
+    """워치·섹터 탭 한 번에 — 한쪽이 실패해도 나머지는 보여준다."""
     out: dict = {}
-    for key, fn in (("watch", get_watch), ("sectors", get_sector_heat), ("credit", get_credit_spread)):
+    for key, fn in (("watch", get_watch), ("sectors", get_sector_heat)):
         try:
             out[key] = fn()
         except Exception:  # noqa: BLE001
-            logger.exception("심사리스크 %s 조회 실패", key)
+            logger.exception("심사·리스크 %s 조회 실패", key)
             out[key] = {"error": "데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}
     return out

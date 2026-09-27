@@ -60,8 +60,8 @@ credit/              여신 탭 + 기업분석 API(나의 대시보드 위젯이
   equity.py, financials.py, filings.py, reports.py, corp_map.py, store.py   기업분석·시장 리포트
   templates/, static/  credit.html, credit.js, credit.css
 
-risk/                심사리스크 탭(signals.py: DART 거래소공시 시그널·급락 종목, watch.py: 워치 유니버스·업종지수·크레딧
-                     스프레드, news.py: 부정 키워드 기사 AI 선별) — risk.html, risk.js, risk.css
+risk/                심사·리스크 탭(signals.py: DART 거래소공시 시그널·급락 종목, watch.py: 워치 유니버스·업종지수,
+                     news.py: 부정 키워드 기사 AI 선별) — risk.html, risk.js, risk.css
 funding/             단기자금 탭(ecos.py: ECOS 클라이언트, money_market.py: 원화·외화 요약) — funding.html, funding.js, funding.css
 lending/             증권대차 화면(news.py) — lending.html, lending.js, lending.css
 policy/              정책 탭(sources.py, briefing.py) — policy.html, policy.js, policy.css

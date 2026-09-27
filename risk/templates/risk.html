@@ -42,7 +42,7 @@
     <p class="page-note risk-src">출처: 금융감독원 DART 거래소공시(공시 제목 기준 자동 분류, 1시간마다 갱신), 공공데이터포털 금융위원회 주식시세정보(1~2영업일 늦게 반영), 네이버 뉴스. 공시 해설은 분류별 고정 문구이며, 실제 내용은 DART 원문에서 확인해주세요.</p>
   </div>
 
-  <!-- ── 워치·섹터: 시총 상위 30 워치 유니버스 + KRX 업종지수 + 크레딧 스프레드 ── -->
+  <!-- ── 워치·섹터: 시총 상위 30 워치 유니버스 + KRX 업종지수 ── -->
   <div class="sub-panel" data-sub="watch" hidden>
     <section class="block">
       <div class="block-head">
@@ -51,6 +51,7 @@
       </div>
       <p class="page-note risk-lead">코스피·코스닥 시가총액 상위 30개 보통주 — 내부 보유·계좌 정보와 무관한 시장 관찰 기준입니다.</p>
       <div class="table-wrap" id="risk-watch"></div>
+      <div id="risk-watch-more-box"></div>
       <p class="page-note risk-rule" id="risk-watch-rule"></p>
     </section>
 
@@ -62,15 +63,6 @@
       <div class="risk-heat" id="risk-sectors"></div>
       <p class="page-note risk-rule" id="risk-sector-rule"></p>
     </section>
-
-    <section class="block">
-      <div class="block-head">
-        <h3>크레딧 스프레드</h3>
-        <span class="unit-tag">회사채 3년 − 국고채 3년 · bp</span>
-      </div>
-      <div class="kpi-grid risk-credit-kpis" id="risk-credit-kpis"></div>
-      <div class="chart-wrap" id="risk-credit-trend"></div>
-    </section>
-    <p class="page-note risk-src">출처: 공공데이터포털 금융위원회 주식시세정보·지수시세정보(KRX 코스피 업종지수, 1~2영업일 늦게 반영), 한국은행 경제통계시스템(ECOS) 시장금리(일별), 금융감독원 DART(워치 종목 공시 등급).</p>
+    <p class="page-note risk-src">출처: 공공데이터포털 금융위원회 주식시세정보·지수시세정보(KRX 코스피 업종지수, 1~2영업일 늦게 반영), 금융감독원 DART(워치 종목 공시 등급).</p>
   </div>
 </div>

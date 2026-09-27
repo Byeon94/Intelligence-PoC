@@ -1,4 +1,4 @@
-/* 심사리스크 탭 전용 스타일 — 공통 .kpi / .rate-table / .chart-wrap / .brief-more-btn 은 main/static/style.css */
+/* 심사·리스크 탭 전용 스타일 — 공통 .kpi / .rate-table / .chart-wrap / .brief-more-btn 은 main/static/style.css */
 
 .risk { --risk-alert: var(--c6); --risk-warn: var(--c2); --risk-ok: var(--c3); }
 
@@ -6,16 +6,11 @@
 @media (min-width: 720px) { .risk .risk-kpis { grid-template-columns: repeat(4, 1fr); } }
 .risk .risk-kpi-alert .k-value { color: var(--risk-alert); }
 .risk .risk-kpi-warn .k-value { color: var(--risk-warn); }
-/* 크레딧 스프레드 3종: 모바일에서도 3열 */
-.risk .risk-credit-kpis { grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; }
 @media (max-width: 519px) {
   .risk .kpi { padding: 11px 12px; }
   .risk .kpi .k-value { font-size: 1.2rem; }
   .risk .kpi .k-sub { font-size: .68rem; margin-top: 3px; }
-  .risk .risk-credit-kpis .kpi { padding: 11px 10px; }
-  .risk .risk-credit-kpis .k-value { font-size: 1.1rem; }
 }
-.risk .chart-wrap { max-width: 520px; }
 .risk .risk-src { margin-top: -6px; }
 .risk .risk-lead { margin: -4px 0 10px; }
 .risk .risk-rule { margin: 8px 0 0; font-size: .72rem; }
