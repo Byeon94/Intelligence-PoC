@@ -18,3 +18,42 @@
 .fund-spread-table .fund-chg.down { color: var(--stock-down); font-weight: 700; }
 
 .funding .fund-src { margin-top: -6px; }
+
+/* ── AI 시황 브리프 카드 ── */
+.fund-brief {
+  background: var(--accent-bg); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.fund-brief-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.fund-brief-name { color: var(--accent); font-weight: 800; font-size: .9rem; }
+.fund-brief-when { margin-left: auto; color: var(--muted); font-size: .72rem; }
+.fund-chip {
+  display: inline-block; font-size: .66rem; font-weight: 700; color: var(--accent);
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; flex: 0 0 auto;
+}
+.fund-brief-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px 22px; }
+@media (min-width: 900px) { .fund-brief-list { grid-template-columns: 1fr 1fr; } }
+.fund-brief-list li { position: relative; padding-left: 11px; font-size: .84rem; line-height: 1.6; }
+.fund-brief-list li::before { content: "·"; position: absolute; left: 0; color: var(--accent); font-weight: 800; }
+.fund-brief-foot {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border2);
+  color: var(--muted); font-size: .76rem; line-height: 1.55;
+}
+.fund-brief-link {
+  flex: 0 0 auto; color: var(--fg); text-decoration: none; font-weight: 700; font-size: .72rem;
+  background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 3px 9px;
+}
+.fund-brief-link:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── 관련 뉴스 ── */
+.fund-news { border: 1px solid var(--border); border-radius: 12px; background: var(--card); padding: 4px 14px; }
+.fund-news-item {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 0; text-decoration: none; color: var(--fg);
+}
+.fund-news-item + .fund-news-item { border-top: 1px solid var(--border2); }
+.fund-news-item .fund-chip { color: var(--muted); margin-top: 2px; }
+.fund-news-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fund-news-title { font-size: .86rem; font-weight: 600; line-height: 1.5; }
+.fund-news-item:hover .fund-news-title { color: var(--accent); }
+.fund-news-meta { font-size: .72rem; color: var(--muted); }

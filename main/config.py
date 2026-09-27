@@ -68,7 +68,7 @@ def get_settings() -> Settings:
         gemini_api_keys=_gemini_keys(),
         gemini_model=_env("GEMINI_MODEL") or "gemini-3.6-flash",
         ai_retries_per_snapshot=_int("POLICY_MAX_GEMINI_CALLS_PER_DAY", 3),
-        gemini_max_calls_per_day=_int("GEMINI_MAX_CALLS_PER_DAY", 30),
+        gemini_max_calls_per_day=_int("GEMINI_MAX_CALLS_PER_DAY", 40),
         naver_client_id=_env("NAVER_CLIENT_ID"),
         naver_client_secret=_env("NAVER_CLIENT_SECRET"),
         dart_api_key=_env("DART_API_KEY"),

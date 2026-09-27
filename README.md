@@ -109,7 +109,7 @@ flask --app main.app run --port 5000
 | `DATA_GO_KR_API_KEY` | data.go.kr 공용 인증키(없으면 샘플 데이터) |
 | `GEMINI_API_KEY` | Gemini 키(하나만 사용, 없으면 AI 가공 생략) |
 | `GEMINI_MODEL` | 모델명(기본 `gemini-3.6-flash`) |
-| `GEMINI_MAX_CALLS_PER_DAY` | 앱 전체 하루 Gemini 실호출 상한(기본 30, 0이면 무제한) |
+| `GEMINI_MAX_CALLS_PER_DAY` | 앱 전체 하루 Gemini 실호출 상한(기본 40, 0이면 무제한) |
 | `POLICY_MAX_GEMINI_CALLS_PER_DAY` | 이름과 달리 **스냅샷 1건당 AI 재시도 상한**(모든 탭 공통, 기본 3) |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 네이버 검색 API |
 | `DART_API_KEY` | DART OpenAPI |

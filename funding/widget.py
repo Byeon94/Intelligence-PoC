@@ -3,7 +3,9 @@ import logging
 
 from flask import Blueprint, jsonify, render_template
 
+from .briefs import get_funding_briefs
 from .money_market import get_fx_summary, get_won_summary
+from .news import get_funding_news
 
 logger = logging.getLogger(__name__)
 
@@ -38,3 +40,15 @@ def won_summary():
 @funding_bp.route("/api/funding/fx")
 def fx_summary():
     return _safe(get_fx_summary, "외화 자금")
+
+
+@funding_bp.route("/api/funding/briefs")
+def briefs():
+    """원화 탭 시황 브리프(KIDB·한국자금중개 PDF AI 요약). 새 자료가 있을 때만 AI 를 부른다."""
+    return _safe(get_funding_briefs, "단기자금 시황 브리프")
+
+
+@funding_bp.route("/api/funding/news")
+def news():
+    """원화·외화 관련 뉴스 추천(하루 1회 스냅샷)."""
+    return _safe(get_funding_news, "단기자금 관련 뉴스")

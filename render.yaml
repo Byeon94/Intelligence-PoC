@@ -20,7 +20,7 @@ services:
         value: "3"
       # 앱 전체 하루 Gemini 실호출 상한(비용 통제, 0이면 무제한)
       - key: GEMINI_MAX_CALLS_PER_DAY
-        value: "30"
+        value: "40"
       # Gemini 모델명(비우면 코드 기본값 gemini-3.6-flash)
       - key: GEMINI_MODEL
         sync: false

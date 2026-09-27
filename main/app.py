@@ -34,6 +34,8 @@ from policy.briefing import get_policy_digest
 from policy.widget import policy_bp
 from research.curate import get_research_digest
 from research.widget import research_bp
+from funding.briefs import get_funding_briefs
+from funding.news import get_funding_news
 from funding.widget import funding_bp
 from sector.widget import sector_bp
 
@@ -90,6 +92,8 @@ _WARMUP_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("우리사주 뉴스 동향", get_esop_news),
     # 위 스냅샷들을 방금 새로 만들었으니 브리핑도 같이 갱신
     ("여신 리드 AI 브리핑", lambda: get_lead_briefings(force=True)),
+    ("단기자금 시황 브리프", get_funding_briefs),   # 새 자료가 있을 때만 AI 요약
+    ("단기자금 관련 뉴스", get_funding_news),
 ]
 
 # 매일 07:00 KST 아침 재생성(mode=morning) — 00:01 시점엔 미국 장이 아직 열려 있어 시장
@@ -103,6 +107,8 @@ _MORNING_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("상속·증여 뉴스 동향", lambda: get_inherit_news(rebuild=True)),
     ("우리사주 뉴스 동향", lambda: get_esop_news(rebuild=True)),
     ("여신 리드 AI 브리핑", lambda: get_lead_briefings(force=True)),   # 새 뉴스 반영
+    ("단기자금 시황 브리프", get_funding_briefs),   # 전날 저녁 올라온 자료 반영
+    ("단기자금 관련 뉴스", lambda: get_funding_news(rebuild=True)),
 ]
 
 

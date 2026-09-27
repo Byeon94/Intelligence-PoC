@@ -110,13 +110,67 @@
     }).catch(function (e) { fail(FX_IDS, e.message); });
   }
 
+  /* ── AI 시황 브리프(원화) — KIDB·한국자금중개 일일 PDF 요약 ── */
+  function briefCardHTML(b) {
+    if (b.error) return '<div class="fund-brief"><div class="chart-error">' + esc(b.error) + '</div></div>';
+    var when = (b.doc_date ? shortDate(b.doc_date) + " 자료" : "") +
+      (b.briefed_at ? " · " + esc(String(b.briefed_at).slice(11)) + " 자동요약" : "") + (b.stale ? " · 이전 자료" : "");
+    var bullets = (b.bullets || []).map(function (x) {
+      return '<li><b>' + esc(x.head) + '</b> ' + esc(x.text) + '</li>';
+    }).join("");
+    var body = bullets
+      ? '<ul class="fund-brief-list">' + bullets + '</ul>'
+      : '<div class="page-note">' + esc(b.note || "AI 요약을 준비 중입니다.") + '</div>';
+    var link = b.url ? '<a class="fund-brief-link" href="' + esc(window.KSFC.safeUrl(b.url)) +
+      '" target="_blank" rel="noopener">원문 →</a>' : "";
+    return '<div class="fund-brief">' +
+      '<div class="fund-brief-head"><span class="fund-brief-name">📑 ' + esc(b.name) + '</span>' +
+        '<span class="fund-chip">AI 요약</span><span class="fund-chip">일간</span>' +
+        '<span class="fund-brief-when">' + when + '</span></div>' +
+      body +
+      '<div class="fund-brief-foot"><span>' + (b.summary ? '💬 <b>AI 종합:</b> ' + esc(b.summary) : "") + '</span>' + link + '</div>' +
+      '</div>';
+  }
+  function loadBriefs() {
+    loading("won-briefs");
+    get("/api/funding/briefs").then(function (d) {
+      document.getElementById("won-briefs").innerHTML = (d.items || []).map(briefCardHTML).join("");
+    }).catch(function (e) { fail(["won-briefs"], e.message); });
+  }
+
+  /* ── 관련 뉴스(원화·외화 각 3건, 하루 1회 AI 추천 — 한 번 받아 두 탭에 나눠 그림) ── */
+  var newsPromise = null;
+  function newsData() {
+    if (!newsPromise) newsPromise = get("/api/funding/news").catch(function (e) { newsPromise = null; throw e; });
+    return newsPromise;
+  }
+  function renderNews(topic) {
+    var box = "fx" === topic ? "fx-news" : "won-news";
+    loading(box);
+    newsData().then(function (d) {
+      var part = d[topic] || {};
+      var asof = document.getElementById(topic + "-news-asof");
+      if (asof) asof.textContent = part.picked_by === "ai" ? "AI 추천" : part.picked_by === "latest" ? "최신순" : "";
+      var items = part.items || [];
+      document.getElementById(box).innerHTML = items.length
+        ? '<div class="fund-news">' + items.map(function (a) {
+            return '<a class="fund-news-item" href="' + esc(window.KSFC.safeUrl(a.url)) + '" target="_blank" rel="noopener">' +
+              '<span class="fund-chip">뉴스</span>' +
+              '<span class="fund-news-body"><span class="fund-news-title">' + esc(a.title) + '</span>' +
+              '<span class="fund-news-meta">' + esc(shortDate(String(a.published || "").slice(0, 10))) +
+                (a.reason ? " · " + esc(a.reason) : "") + '</span></span></a>';
+          }).join("") + '</div>'
+        : '<div class="page-note">관련 뉴스를 아직 찾지 못했습니다.</div>';
+    }).catch(function (e) { fail([box], e.message); });
+  }
+
   /* ── 하위 탭 전환 · 지연 로딩(탭이 처음 보일 때 한 번) ── */
   var loaded = {};
   function ensure(sub) {
     if (loaded[sub]) return;
     loaded[sub] = true;
-    if (sub === "won") loadWon();
-    else if (sub === "fx") loadFx();
+    if (sub === "won") { loadWon(); loadBriefs(); renderNews("won"); }
+    else if (sub === "fx") { loadFx(); renderNews("fx"); }
   }
   function activateSub(sub) {
     var root = document.getElementById("funding-root");

@@ -2,7 +2,7 @@
 
 - 키는 GEMINI_API_KEY 하나만 쓴다(main/config.py). 모델은 GEMINI_MODEL.
 - Gemini 3.x/4.x 는 thinking_budget 을 받지 않으므로(400) 모델별로 thinking 설정을 분기한다.
-- 앱 전체(모든 탭 합산) 하루 실호출 수를 GEMINI_MAX_CALLS_PER_DAY(기본 30)로 제한한다
+- 앱 전체(모든 탭 합산) 하루 실호출 수를 GEMINI_MAX_CALLS_PER_DAY(기본 40)로 제한한다
   — 비용 통제용 소프트 캡. 스냅샷 1건당 재시도 상한(POLICY_MAX_GEMINI_CALLS_PER_DAY,
   main/daily_snapshot.try_ai)과는 별개다. 업종 분류 배치(sector/classify.py)처럼 수동으로만
   돌리는 대량 호출은 count_against_daily_budget=False 로 이 예산에서 제외한다.
@@ -57,10 +57,18 @@ def generate_text(
     thinking: bool = True,
     tools: list | None = None,
     count_against_daily_budget: bool = True,
+    pdf: bytes | None = None,
 ) -> str:
-    """Gemini 호출 1회. 키 미설정·일일 예산 초과·빈 응답·API 오류는 예외로 올린다."""
+    """Gemini 호출 1회. 키 미설정·일일 예산 초과·빈 응답·API 오류는 예외로 올린다.
+
+    pdf 를 넘기면 PDF 원문(표 포함)을 첨부해 함께 보낸다 — 단기자금 시황 브리프 요약용.
+    """
     from google.genai import Client
     from google.genai import errors as genai_errors
+    from google.genai import types
+
+    if pdf is not None:
+        contents = [types.Part.from_bytes(data=pdf, mime_type="application/pdf"), contents]
 
     s = get_settings()
     if not s.gemini_api_keys:

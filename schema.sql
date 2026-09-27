@@ -120,6 +120,26 @@ create table if not exists gemini_usage_snapshots (
     created_at timestamptz not null default now()
 );
 
+-- 단기자금 > 원화 시황 브리프(funding/briefs.py): 자금중개사 일일 PDF의 AI 요약.
+-- snapshot_date = 자료 날짜(오늘이 아님) — 새 자료가 올라왔을 때만 AI 를 부르기 위함.
+create table if not exists funding_kidb_brief_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+create table if not exists funding_kmb_brief_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
+-- 단기자금 > 원화·외화 관련 뉴스 추천(funding/news.py). 하루 1행, payload = {"won": .., "fx": ..}.
+create table if not exists funding_news_snapshots (
+    snapshot_date date primary key,
+    payload jsonb not null,
+    created_at timestamptz not null default now()
+);
+
 -- 서버가 publishable(anon) 키로 접속한다면 아래 RLS 정책을 추가해야 읽기/쓰기가 됩니다.
 -- (service_role / sb_secret_ 키를 쓰면 RLS를 우회하므로 불필요합니다.)
 -- alter table policy_snapshots  enable row level security;
