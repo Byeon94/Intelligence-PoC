@@ -24,9 +24,12 @@
       (up ? "▲ +" : "▼ ") + num(change, Math.abs(change) < 10 ? 2 : 1) + (unit || "") +
       ' <span style="color:var(--muted);font-weight:600">' + label + '</span></div>';
   }
+  // o.info: 제목 옆 "!" 안내 문구(클릭 시 카드 폭 팝업 — initAsofInfo 가 위임 처리)
   function kpi(o) {
-    return '<div class="kpi">' +
-      '<div class="k-label">' + o.label + (o.source ? srcBadge(o.source) : "") + '</div>' +
+    return '<div class="kpi' + (o.info ? " kpi-has-info" : "") + '">' +
+      '<div class="k-label">' + o.label +
+        (o.info ? '<button type="button" class="asof-info k-info" data-msg="' + esc(o.info) + '" aria-label="' + esc(o.label) + ' 안내">!</button>' : "") +
+        (o.source ? srcBadge(o.source) : "") + '</div>' +
       '<div class="k-value">' + o.value + (o.unit ? '<span class="k-unit">' + o.unit + '</span>' : "") + '</div>' +
       (o.sub ? '<div class="k-sub">' + esc(o.sub) + '</div>' : "") +
       (o.delta || "") +
@@ -45,6 +48,7 @@
         kpi({ label: "투자자예탁금", value: num(it.investor_deposits.value, 1), unit: u,
               delta: deltaHTML(it.investor_deposits.change, "", basis), source: d.source }),
         kpi({ label: "신용공여 잔고", value: num(it.credit_balance.value, 1), unit: u,
+              info: "신용공여 잔고 =\n  신용거래융자\n+ 신용거래대주\n+ 청약자금대출\n+ 예탁증권담보융자",
               delta: deltaHTML(it.credit_balance.change, "", basis), source: d.source }),
         kpi({ label: "CMA 잔고", value: num(it.cma_balance.value, 1), unit: u,
               delta: deltaHTML(it.cma_balance.change, "", basis), source: d.source }),
@@ -201,18 +205,22 @@
   function closeAsofPopups() {
     document.querySelectorAll(".asof-popup").forEach(function (p) { p.remove(); });
   }
+  // KPI 카드 안의 "!"(k-info)는 데이터를 받은 뒤에 그려지므로 버튼마다 묶지 않고 탭 전체에 위임한다.
+  // 카드 안 팝업은 카드 자체에 붙여 카드 폭으로 띄운다(모바일 2열에서 화면 밖으로 나가지 않게).
   function initAsofInfo() {
-    document.querySelectorAll(".asof-info").forEach(function (btn) {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        var already = btn.parentElement.querySelector(".asof-popup");
-        closeAsofPopups();
-        if (already) return;               // 같은 버튼 다시 누르면 닫기만
-        var pop = document.createElement("div");
-        pop.className = "asof-popup";
-        pop.textContent = btn.dataset.msg || "";
-        btn.parentElement.appendChild(pop);
-      });
+    var root = document.querySelector('.tab-panel[data-panel="capital"]') || document;
+    root.addEventListener("click", function (e) {
+      var btn = e.target.closest(".asof-info");
+      if (!btn) return;
+      e.stopPropagation();
+      var host = btn.classList.contains("k-info") ? btn.closest(".kpi") : btn.parentElement;
+      var already = host.querySelector(":scope > .asof-popup");
+      closeAsofPopups();
+      if (already) return;               // 같은 버튼 다시 누르면 닫기만
+      var pop = document.createElement("div");
+      pop.className = "asof-popup";
+      pop.textContent = btn.dataset.msg || "";
+      host.appendChild(pop);
     });
     document.addEventListener("click", closeAsofPopups);
   }

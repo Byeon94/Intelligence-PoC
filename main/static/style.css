@@ -420,6 +420,14 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
   border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
   box-shadow: var(--shadow), 0 4px 14px rgba(16,24,40,.12);
 }
+/* KPI 카드 제목 옆 "!" — 팝업을 카드 폭에 맞춰 제목 아래로 */
+.kpi.kpi-has-info { position: relative; }
+.kpi .asof-info.k-info { margin-left: 0; }
+.kpi > .asof-popup {
+  top: 34px; left: 10px; right: 10px; width: auto; max-width: none; margin-top: 0;
+  padding: 8px 10px; font-size: .72rem; line-height: 1.6; white-space: pre; overflow-x: auto;   /* 계산식 줄바꿈·정렬 유지 */
+}
+.kpi > .asof-popup::first-line { font-weight: 700; }
 .k-up { color: var(--stock-up); font-weight: 700; }
 .k-dn { color: var(--stock-down); font-weight: 700; }
 
