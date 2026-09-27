@@ -108,7 +108,14 @@
     get("/api/risk/signals").then(function (d) {
       sig = d;
       var r = d.range || {};
-      el("risk-sig-asof").textContent = (d.generated_at ? String(d.generated_at).slice(11) + " 수집" : "") + (d.stale ? " · 이전 자료" : "");
+      // "최신 공시 09.23 · 09.27 12:19 업데이트" — 공시가 언제 것인지와 언제 새로 받아왔는지를 함께
+      var latest = (d.items || []).reduce(function (m, it) { return it.date > m ? it.date : m; }, "");
+      var gen = String(d.generated_at || "");
+      el("risk-sig-asof").textContent = [
+        latest ? "최신 공시 " + shortDate(latest) : "",
+        gen ? shortDate(gen.slice(0, 10)) + " " + gen.slice(11) + " 업데이트" : "",
+        d.stale ? "이전 자료" : ""
+      ].filter(Boolean).join(" · ");
       if (r.from) el("risk-sig-range").textContent = "DART 거래소공시 · " + shortDate(r.from) + "~" + shortDate(r.to);
       renderKpis(); renderSigList(); renderDrops();
     }).catch(function (e) { fail(["risk-sig-kpis", "risk-sig-list", "risk-drops"], e.message); });

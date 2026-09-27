@@ -1,4 +1,4 @@
-"""정책·규제 탭 라우트 — 화면(/policy)과 다이제스트 API(/api/policy/digest).
+"""정책 탭 라우트 — 화면(/policy)과 다이제스트 API(/api/policy/digest).
 
 API 는 policy.briefing 의 일일 스냅샷에서 화면이 쓰는 필드만 내보낸다
 (브리핑 근거용 상세 본문 body·gemini_attempts 등 내부 필드 제외).
@@ -42,7 +42,7 @@ def digest():
         data = get_policy_digest()
     except Exception:  # noqa: BLE001
         policy_bp.logger.exception("정책 다이제스트 조회 실패")
-        return jsonify({"error": "정책·규제 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}), 502
+        return jsonify({"error": "정책 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요."}), 502
     out = {k: data.get(k) for k in _PUBLIC}
     out["groups"] = _public_groups(data.get("groups"))
     out["affiliate_groups"] = _public_groups(data.get("affiliate_groups"))

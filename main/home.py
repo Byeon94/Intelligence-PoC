@@ -19,6 +19,7 @@ from capital.market_snapshot import (
     get_market_snapshot,
 )
 from credit.today_summary import get_today_leads_summary
+from risk.signals import get_home_risk_summary
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
 
@@ -30,8 +31,9 @@ T = TypeVar("T")
 _RATIO_ALERT_PP = 1.0
 
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
-# 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②이상징후(유동성) ③금융당국
-# 보도자료 1건 ④여신 신규 리드(상속·증여/우리사주) ⑤AI 선별 뉴스 기사(나머지 자리를 채움).
+# 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②심사·리스크 공시 시그널
+# ③이상징후(유동성) ④금융당국 보도자료 1건 ⑤여신 신규 리드(상속·증여/우리사주)
+# ⑥AI 선별 뉴스 기사(나머지 자리를 채움).
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -173,7 +175,7 @@ def _market_briefing_key(briefing: dict | None) -> dict | None:
 
 
 def get_home_summary() -> dict:
-    policy = _safe("정책·규제", get_policy_digest)
+    policy = _safe("정책", get_policy_digest)
     research = _safe("뉴스", get_research_digest)
     market = _safe("오늘의 시장 한눈에(국내)", get_market_snapshot)
     global_market = _safe("오늘의 시장 한눈에(해외·환율)", get_global_market_snapshot)
@@ -183,8 +185,9 @@ def get_home_summary() -> dict:
 
     # "오늘의 핵심" — AI가 먼저 걸러준 최대 3건. 뉴스 feed가 아니라 우선순위 목록이라는
     # 인상을 주기 위해, 이미 계산해둔 실데이터 신호를 정해진 순서로 최대 3개까지만 채운다.
-    # 1번은 항상 시장 브리핑 요약(있으면) — 나머지는 기존 우선순위(유동성 이상징후 →
-    # 금융당국 발표 → 여신 신규 리드 → AI 선별 뉴스 기사)로 남은 자리를 채운다.
+    # 1번은 항상 시장 브리핑 요약(있으면), 2번은 심사·리스크 공시 시그널(있으면) — 나머지는
+    # 기존 우선순위(유동성 이상징후 → 금융당국 발표 → 여신 신규 리드 → AI 선별 뉴스 기사)로
+    # 남은 자리를 채운다.
     # 뉴스 기사는 research.curate 가 이미 업무 관련도순으로 정렬·태깅·이유(reason)까지
     # 판단해둔 결과를 그대로 재사용한다(추가 Gemini 호출 없음).
     articles = research.get("articles") if research else None
@@ -192,6 +195,9 @@ def get_home_summary() -> dict:
     market_key = _market_briefing_key(market_briefing)
     if market_key:
         today_key.append(market_key)
+    risk_alert = _safe("심사·리스크 공시 시그널", get_home_risk_summary)   # 스냅샷만 읽음
+    if risk_alert:
+        today_key.append({"kind": "alert", **risk_alert})
     liquidity_alert = _liquidity_alert()
     if liquidity_alert:
         today_key.append({"kind": "alert", **liquidity_alert})

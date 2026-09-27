@@ -18,8 +18,8 @@
     });
   }
 
-  // ── 오늘의 핵심 ── AI가 먼저 골라낸 최대 3건만 보여준다(시장 브리핑 요약 → 유동성
-  // 이상징후 알림 → 정책 발표 → 여신 신규 리드 → AI 선별 뉴스 기사 순으로 채워짐,
+  // ── 오늘의 핵심 ── AI가 먼저 골라낸 최대 3건만 보여준다(시장 브리핑 요약 → 심사·리스크
+  // 공시 시그널 → 유동성 이상징후 알림 → 정책 발표 → 여신 신규 리드 → AI 선별 뉴스 기사 순으로 채워짐,
   // main/home.py get_home_summary 참고). 뉴스 feed처럼 보이지 않도록 01번은 크게
   // (+"왜 중요한가?"), 02/03은 컴팩트하게 렌더한다. 새 Gemini 호출 없음.
   // 알림 제목 뒤 "(YYYY-MM-DD 기준)" — detail 안의 날짜가 하나로 모일 때만 붙인다
@@ -32,12 +32,12 @@
   function todayKeyCardHTML(h, rank) {
     var cat, badge, reason, dateText;
     if (h.kind === "alert") {
-      cat = "알림";
+      cat = h.cat || "알림";
       badge = h.level === "warn" ? '<span class="hl-badge">HOT</span>' : "";
       reason = h.detail || "";
       dateText = "";
     } else if (h.kind === "policy") {
-      cat = h.org || "정책·규제";
+      cat = h.org || "정책";
       badge = '<span class="hl-badge">HOT</span>';
       reason = "금융당국 발표 — 관련 업무 영향 확인이 필요합니다.";
       dateText = fmtDate(h.date);

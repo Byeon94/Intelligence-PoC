@@ -74,7 +74,7 @@
   H.goWork = function (tab, sub) {
     if (window.AppNav) window.AppNav.go(tab);
     if (sub && tab === "capital" && window.CapitalNav) window.CapitalNav.goSub(sub);
-    // 각 업무 모듈(정책·규제/뉴스 등)은 #main-tabs 클릭을 감지해 처음 한 번
+    // 각 업무 모듈(정책/뉴스 등)은 #main-tabs 클릭을 감지해 처음 한 번
     // 데이터를 지연 로딩한다. 홈/나의 대시보드에서 곧장 이동할 때도 그 로딩이 걸리도록
     // 같은 이벤트를 한 번 흉내 낸다.
     var bar = document.getElementById("main-tabs");

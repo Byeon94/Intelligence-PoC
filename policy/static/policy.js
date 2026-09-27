@@ -1,4 +1,4 @@
-/* 정책·규제 탭: AI 브리핑(3줄 요약) + 금융당국·유관기관별 보도자료 (/api/policy/digest) */
+/* 정책 탭: AI 브리핑(3줄 요약) + 금융당국·유관기관별 보도자료 (/api/policy/digest) */
 (function () {
   "use strict";
 

@@ -63,6 +63,9 @@ RULES: list[tuple[str, str, re.Pattern]] = [
 ]
 # 거래정지 중 액면병합·분할·합병 등 기술적 정지, 정지 해제 공시는 리스크가 아니다.
 _TECHNICAL_HALT = re.compile(r"액면병합|액면분할|주식의병합|주식병합|주식분할|전자등록|변경상장|합병|분할|해제")
+# "감사의견 적정" 같은 정상 의견은 리스크가 아니다(비적정 단어가 함께 있으면 그대로 ALERT).
+_CLEAN_AUDIT = re.compile(r"(?<![부비])적정")
+_BAD_AUDIT = re.compile(r"의견거절|부적정|비적정|한정")
 _LEVEL_RANK = {"ALERT": 0, "WARN": 1}
 
 NOTES = {   # 분류별 고정 해설 — 공시 제목 이상의 사실을 덧붙이지 않는다
@@ -87,6 +90,8 @@ def classify(report_nm: str) -> tuple[str, str] | None:
     for level, category, pat in RULES:
         if pat.search(t):
             if category == "거래정지" and _TECHNICAL_HALT.search(t):
+                return None
+            if category == "감사의견" and _CLEAN_AUDIT.search(t) and not _BAD_AUDIT.search(t):
                 return None
             return level, category
     return None
@@ -230,3 +235,28 @@ def latest_signal_items() -> list[dict]:
     """저장된 최신 시그널 목록만 읽는다(수집 없음) — 워치 유니버스 상태 판정용."""
     snap = get_snapshot(_TABLE, today_iso()) or latest_snapshot(_TABLE) or {}
     return snap.get("items") or []
+
+
+def get_home_risk_summary() -> dict | None:
+    """홈 "오늘의 핵심" 카드용 요약 — 저장된 스냅샷만 읽는다(홈 요청이 DART 를 부르지 않게).
+
+    최근 7일 목록 중 가장 최근 공시일의 회사만 센다(주말·휴장일엔 직전 공시일). 대표로 ALERT
+    회사(없으면 WARN)를 최대 3곳 "분류 회사명"으로 보여준다. 리스크 공시가 없으면 None.
+    """
+    items = latest_signal_items()
+    if not items:
+        return None
+    ref = max(it["date"] for it in items)
+    day = [it for it in items if it["date"] == ref]
+    alerts = [it for it in day if it["level"] == "ALERT"]
+    warns = [it for it in day if it["level"] == "WARN"]
+    picks = (alerts or warns)[:3]
+    names = " · ".join(f"{it['category']} {it['name']}" for it in picks)
+    more = len(alerts or warns) - len(picks)
+    return {
+        "level": "warn" if alerts else "info",
+        "title": f"리스크 공시 ALERT {len(alerts)}곳 · WARN {len(warns)}곳",
+        "detail": f"{ref} 기준 · {names}" + (f" 외 {more}곳" if more > 0 else ""),
+        "tab": "risk",
+        "cat": "심사·리스크",
+    }

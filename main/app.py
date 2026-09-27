@@ -83,7 +83,7 @@ _warmup_lock = threading.Lock()
 # 항상 sector.classify.get_cached_classification() 으로 저장된 분류만 읽으므로 이 배치가
 # 없어도 정상 동작한다.
 _WARMUP_JOBS: list[tuple[str, Callable[[], object]]] = [
-    ("정책·규제", get_policy_digest),
+    ("정책", get_policy_digest),
     ("뉴스", get_research_digest),
     ("발행시장", get_issuance_digest),
     ("CMA 금리", get_cma_rates),
