@@ -38,13 +38,10 @@
 
 /* ── 오늘의 브리핑: 인사말 ── */
 .brief-greet { margin-bottom: 18px; }
-/* TODAY'S BRIEFING 과 마지막 업데이트 시각을 한 줄에 — 사이 간격을 넉넉히(28px) 둔다 */
-.brief-eyebrow-row {
-  display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 28px; row-gap: 2px; margin-bottom: 6px;
+.brief-eyebrow {
+  font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--accent); margin-bottom: 6px;
 }
-.brief-eyebrow { font-size: .7rem; font-weight: 800; letter-spacing: .08em; color: var(--accent); }
 .brief-greet h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; letter-spacing: -.01em; }
-.brief-greet-time { color: var(--muted); font-size: .74rem; }
 
 /* ── 오늘의 브리핑 / 시장 한눈에: 데스크톱에서는 나란히, 좁은 화면에서는 세로로 쌓인다.
    "오늘의 핵심"이 더 넓게(1.6fr), "시장 한눈에"는 옆에서 보조하는 폭(1fr)으로. ── */

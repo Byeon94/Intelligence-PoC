@@ -285,29 +285,28 @@
   var briefNewsMoreBtn = document.querySelector('#brief-news-block [data-work]');
   if (briefNewsMoreBtn) bindGoWorkButtons(briefNewsMoreBtn.parentElement);
 
-  function renderGreetTime() {
-    var now = new Date();
-    var hh = String(now.getHours()).padStart(2, "0");
-    var mm = String(now.getMinutes()).padStart(2, "0");
-    var yyyy = now.getFullYear();
-    var mo = String(now.getMonth() + 1).padStart(2, "0");
-    var dd = String(now.getDate()).padStart(2, "0");
-    var wd = ["일", "월", "화", "수", "목", "금", "토"][now.getDay()];
-    var timeEl = document.getElementById("brief-greet-time");
-    if (timeEl) {
-      timeEl.textContent = yyyy + "." + mo + "." + dd + "(" + wd + ") 마지막 업데이트 " + hh + ":" + mm;
-    }
+  function renderGreetTitle() {
     var titleEl = document.getElementById("brief-greet-title");
     if (titleEl) titleEl.textContent = "좋은 하루입니다.";
+  }
+
+  // "오늘의 핵심" 제목 옆 업데이트 시각 — 여러 출처를 모아 만든 블록이라 단일 스냅샷 시각이
+  // 없어, 홈 요약을 받아온 시각을 다른 블록과 같은 형식(MM.DD HH:MM 업데이트)으로 표시한다.
+  function renderKeyUpdatedAt() {
+    var now = new Date();
+    function p(n) { return String(n).padStart(2, "0"); }
+    setUpdatedAt("brief-greet-time", now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" +
+      p(now.getDate()) + " " + p(now.getHours()) + ":" + p(now.getMinutes()));
   }
 
   var briefingLoaded = false;
   H.ensureBriefing = function () {
     if (briefingLoaded) return;
     briefingLoaded = true;
-    renderGreetTime();
+    renderGreetTitle();
     get("/api/home/summary").then(function (d) {
       renderHighlights(d);
+      renderKeyUpdatedAt();
       renderMarket(d);
       renderMarketBriefing(d);
       renderBriefNews(d);
