@@ -54,7 +54,10 @@ _LIST_URL = "https://opendart.fss.or.kr/api/list.json"
 _TABLE = "credit_lead_snapshots"
 
 _MAX_WORKERS = 5
-_LOOKBACK_DAYS = 60
+_LOOKBACK_DAYS = 60            # 우리사주(유상증자·IPO) 공시 조회 기간
+# 상속·증여 공시는 드물어 60일이면 비는 달이 많다 — 최근 6개월로 넓힌다(2026-09-28 사용자 요청).
+# majorstock.json 은 회사별 전체 이력을 한 번에 주므로 기간을 넓혀도 DART 호출 수는 같다.
+_INHERIT_LOOKBACK_DAYS = 183
 _session = requests.Session()
 
 # DART 쪽 남용 방지 차단을 피하기 위한 전역 호출 속도 제한(스레드 공유) — 초당 약 4건.
@@ -257,7 +260,9 @@ def _scan_inherit(s: dict, key: str, cutoff: str, health: _CallHealth) -> list[d
     seen: set[str] = set()
     out: list[dict] = []
     for it in _majorstock(cc, key, health):
-        rcept_dt = (it.get("rcept_dt") or "").strip()
+        # majorstock.json 의 rcept_dt 는 "2026-09-23"(하이픈) 형식으로 온다 — cutoff("YYYYMMDD")와
+        # 그대로 비교하면 '-' < '0' 이라 모든 건이 기간 밖으로 걸러져 늘 0건이 됐다. 숫자만 남겨 비교.
+        rcept_dt = (it.get("rcept_dt") or "").strip().replace("-", "")
         if rcept_dt < cutoff:
             continue
         resn = (it.get("report_resn") or "").strip()
@@ -411,12 +416,13 @@ def _collect() -> dict:
         raise RuntimeError("DART corp_code 매핑을 불러오지 못했습니다(삼성전자 조회 실패) — 이번 수집은 건너뜁니다.")
 
     cutoff = (today_kst() - timedelta(days=_LOOKBACK_DAYS)).strftime("%Y%m%d")
-    collateral = _collect_collateral(stocks, key, cutoff)
+    inherit_cutoff = (today_kst() - timedelta(days=_INHERIT_LOOKBACK_DAYS)).strftime("%Y%m%d")
+    collateral = _collect_collateral(stocks, key, inherit_cutoff)
     esop = _collect_esop(stocks, key, cutoff)
 
     return {
         # 목록은 화면 표시용으로 자르고, 건수(월별·일별)는 전체 목록 기준으로 센다.
-        "collateral": collateral[:30],
+        "collateral": collateral[:60],
         "esop": esop[:60],
         "esop_monthly": _esop_monthly_summary(esop),
         "collateral_monthly": _collateral_monthly_summary(collateral),
