@@ -1,7 +1,7 @@
 """자본시장 > CMA·단기수신 지표.
 
 - 잔고 / 유형별 점유율 : data.go.kr getCMAStatus (실패 시 sample)
-- 증권사별 금리 / RP형 최고금리 : capital/cma_rates.py (AI 검색 스냅샷 → 큐레이션 JSON 폴백)
+- 증권사별 금리 / RP형 최고금리 : capital/cma_rates.py (증권사 공식 홈페이지, 매일 새벽 확인)
 """
 from __future__ import annotations
 
@@ -103,5 +103,6 @@ def get_cma_mix() -> dict:
         return sample_data.cma_mix()
 
 
-def get_cma_rates() -> dict:
-    return rate_table()
+def get_cma_rates(force: bool = False) -> dict:
+    """force=True 는 새벽 배치용 — 오늘 스냅샷이 있어도 증권사 페이지를 다시 확인."""
+    return rate_table(force=force)

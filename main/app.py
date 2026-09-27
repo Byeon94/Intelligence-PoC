@@ -91,7 +91,7 @@ _WARMUP_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("정책", get_policy_digest),
     ("뉴스", get_research_digest),
     ("발행시장", get_issuance_digest),
-    ("CMA 금리", get_cma_rates),
+    ("CMA 금리(증권사 공식 홈페이지)", lambda: get_cma_rates(force=True)),
     ("오늘의 시장 브리핑", get_market_briefing),   # 전영업일 마감 수치 기준(AI)
     ("시장 리포트 동향", get_market_report_digest),
     ("IT·정보보호 뉴스", get_it_news_digest),

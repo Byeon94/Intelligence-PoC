@@ -92,7 +92,7 @@ home → sector 순으로 링크합니다(분리 전 style.css 안의 순서 그
 - **네이버 검색 API / 네이버 금융** — 업무 관련 뉴스, 기업분석 참고 지표
 - **한경컨센서스** — 증권사 리포트(스크랩)
 - **Yahoo Finance(비공식)** — 해외 지수·환율·미국채 10년(참고용)
-- **Google AI Studio(Gemini)** — 브리핑·뉴스 선별·리드 판단·CMA 금리 조사·업종 분류
+- **Google AI Studio(Gemini)** — 브리핑·뉴스 선별·리드 판단·업종 분류 (CMA 금리는 증권사 공식 홈페이지를 직접 읽음, capital/cma_firms.py)
 - **Supabase** — 일일 스냅샷 저장
 
 ## 로컬 실행

@@ -12,6 +12,7 @@
     if (source === "live") return '<span class="src-badge live">● 연결</span>';
     if (source === "curated") return '<span class="src-badge sample">● 큐레이션</span>';
     if (source === "ai_search") return '<span class="src-badge sample">● AI 검색</span>';
+    if (source === "official") return '<span class="src-badge live">● 공식</span>';
     return '<span class="src-badge sample">● 샘플</span>';
   }
   // basis: 서버가 알려주는 비교 기준("day" → 전일 대비, 그 외·미지정 → 전월 대비)
@@ -138,20 +139,28 @@
   function loadCmaRates() {
     loading("cma-rates");
     get("/api/capital/cma/rates").then(function (d) {
-      var tag = d.source === "ai_search" ? "AI 검색 기준" : "큐레이션 기준";
+      // 증권사 공식 홈페이지를 매일 새벽 확인(capital/cma_rates.py) — 기준일은 증권사가 페이지에 적은 날짜
+      var checked = String(d.checked_at || d.as_of || "");
       document.getElementById("cma-rate-asof").textContent =
-        (d.as_of || "") + " · " + tag + (d.stale ? " · 이전값" : "");
+        (checked ? checked.slice(5, 10).replace("-", ".") + " " + checked.slice(11) + " 확인 · " : "") +
+        "증권사 공식 홈페이지" + (d.stale ? " · 이전값" : "");
       document.getElementById("cma-rate-note").textContent = d.note || "";
+      var dash = '<span class="dash">–</span>';
+      function pctCell(v) { return v != null ? num(v, 2) + "%" : dash; }
       var rows = d.companies.map(function (c, i) {
-        return '<tr class="' + (i === 0 ? "top-row" : "") + '">' +
+        var link = c.url ? '<a class="cma-src" href="' + esc(window.KSFC.safeUrl(c.url)) + '" target="_blank" rel="noopener">' : "";
+        var when = c.as_of ? c.as_of.slice(2).replace(/-/g, ".") : "기준일 미표기";
+        var basis = c.unavailable ? "확인 불가" : when + (c.stale ? " · 이전값" : "");
+        return '<tr class="' + (i === 0 && !c.unavailable ? "top-row" : "") + '">' +
           '<td>' + esc(c.company) + '</td>' +
-          '<td>' + num(c.rp_rate, 2) + '%</td>' +
-          '<td>' + (c.note_rate != null ? num(c.note_rate, 2) + "%" : '<span class="dash">–</span>') + '</td>' +
+          '<td>' + pctCell(c.rp_rate) + '</td>' +
+          '<td>' + pctCell(c.note_rate) + '</td>' +
+          '<td class="cma-basis">' + (link ? link + esc(basis) + " ↗</a>" : esc(basis)) + '</td>' +
           '</tr>';
       }).join("");
       document.getElementById("cma-rates").innerHTML =
         '<table class="rate-table"><thead><tr>' +
-        '<th>증권사</th><th>RP형 CMA</th><th>발행어음형 CMA</th>' +
+        '<th>증권사</th><th>RP형 CMA</th><th>발행어음형 CMA</th><th>기준일(출처)</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>';
     }).catch(function (e) { fail("cma-rates", e.message); });
   }
