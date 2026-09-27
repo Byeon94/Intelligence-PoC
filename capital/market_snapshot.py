@@ -85,8 +85,7 @@ def get_market_history_1y() -> dict:
 _YF_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/"
 _US_INDICES = [("다우존스", "%5EDJI"), ("나스닥", "%5EIXIC"), ("S&P500", "%5EGSPC")]
 # (표시명, 심볼, 심볼값에 곱할 배수) — 엔화는 관행상 100엔 기준으로 표기.
-_FX_PAIRS = [("USD/KRW", "KRW=X", 1), ("JPY100/KRW", "JPYKRW=X", 100), ("EUR/KRW", "EURKRW=X", 1),
-             ("CNY/KRW", "CNYKRW=X", 1)]
+_FX_PAIRS = [("USD/KRW", "KRW=X", 1), ("JPY100/KRW", "JPYKRW=X", 100), ("EUR/KRW", "EURKRW=X", 1)]
 # CBOE ^TNX는 미국채 10년물 금리를 그대로 %(예: 4.25 = 4.25%)로 준다 — 10을 곱한 값이
 # 아니라 실제 확인 결과 그대로 퍼센트였음(오배수 주의).
 _US_BOND_SYMBOL = "%5ETNX"
@@ -169,22 +168,6 @@ def _yf_history(symbol: str) -> dict:
     return {"labels": labels, "values": values}
 
 
-def _cny_krw_history() -> dict:
-    """CNYKRW=X 는 현재가만 주고 1년 일별 이력이 비어 온다 — 원/달러(KRW=X) ÷ 위안/달러(CNY=X)
-    교차환율로 같은 날짜끼리 계산한다."""
-    krw, cny = _yf_history("KRW=X"), _yf_history("CNY=X")
-    cny_by_day = dict(zip(cny["labels"], cny["values"]))
-    labels, values = [], []
-    for d, v in zip(krw["labels"], krw["values"]):
-        c = cny_by_day.get(d)
-        if c:
-            labels.append(d)
-            values.append(round(v / c, 2))
-    if len(values) < 2:
-        raise ValueError("CNY/KRW 히스토리 없음")
-    return {"labels": labels, "values": values}
-
-
 @ttl_cache(3600 * 6)
 def get_global_market_history_1y() -> dict:
     try:
@@ -196,7 +179,7 @@ def get_global_market_history_1y() -> dict:
         # 환율 스파크라인 — 한 통화가 실패해도 지수 그래프는 살린다(해당 카드만 그래프 없음)
         for name, sym, mult in _FX_PAIRS:
             try:
-                h = _cny_krw_history() if name == "CNY/KRW" else _yf_history(sym)
+                h = _yf_history(sym)
                 out[name] = {"labels": h["labels"], "values": [round(v * mult, 2) for v in h["values"]]}
             except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
                 pass
