@@ -422,6 +422,8 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 /* KPI 카드 제목 옆 "!" — 팝업을 카드 폭에 맞춰 제목 아래로 */
 .kpi.kpi-has-info { position: relative; }
+/* 좁은 폰(360px)에서 제목이 "잔/고"처럼 글자 중간에서 끊기지 않게 — 넘치면 배지만 다음 줄로 */
+.kpi.kpi-has-info .k-label { flex-wrap: wrap; white-space: nowrap; row-gap: 3px; }
 .kpi .asof-info.k-info { margin-left: 0; }
 .kpi > .asof-popup {
   top: 34px; left: 10px; right: 10px; width: auto; max-width: none; margin-top: 0;

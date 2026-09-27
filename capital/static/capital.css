@@ -4,3 +4,8 @@
 @media (min-width: 720px) {
   #capital-root .chart-wrap { max-width: 520px; }
 }
+
+/* 모바일: "증시 대기·레버리지 자금" 제목이 옆의 기준일과 함께 한 줄에 들어가도록 한 단계 작게 */
+@media (max-width: 519px) {
+  .block-head h3.liq-title { font-size: .86rem; white-space: nowrap; }
+}
