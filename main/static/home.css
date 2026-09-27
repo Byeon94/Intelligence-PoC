@@ -92,6 +92,15 @@
 .hl-reason-label {
   display: block; font-size: .68rem; font-weight: 800; color: var(--accent); margin-bottom: 3px;
 }
+/* 01번 카드 "왜 중요한가?" 접기/펼치기 — 헤더 줄 전체가 토글 버튼 */
+.hl-reason-toggle {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  background: none; border: 0; padding: 0; cursor: pointer; font: inherit; text-align: left;
+}
+.hl-reason-toggle .hl-reason-label { margin-bottom: 0; }
+.hl-reason-more { font-size: .7rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.hl-reason-body { margin-top: 4px; }
+.hl-reason.is-collapsed .hl-reason-body { display: none; }
 .hl-reason-sm { font-size: .76rem; color: var(--muted); margin-top: 3px; line-height: 1.5; }
 
 /* 모바일 화면에서는 1번 카드(.hl-card-primary)의 큰 순번·제목·"왜 중요한가?" 박스가

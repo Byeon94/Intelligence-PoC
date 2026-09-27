@@ -1,12 +1,13 @@
 """단기자금 탭 — 원화(시장금리·기준금리·스프레드) / 외화(환율·한미 정책금리) 요약.
 
-전부 한국은행 ECOS 실데이터(funding.ecos)이며 샘플 폴백은 없다 — 키 미설정·API 장애면 예외가
+한국은행 ECOS(funding.ecos) 실데이터이고, 미국 목표금리만 뉴욕 연준(funding.nyfed)을 쓴다. 샘플 폴백은 없다 — 키 미설정·API 장애면 예외가
 올라가고 화면에 오류 문구가 뜬다. ECOS 일별 통계는 보통 1영업일 늦게 올라오므로 각 지표에
 실제 기준일(date)을 함께 내려준다.
 """
 from __future__ import annotations
 
 from .ecos import fetch_series
+from .nyfed import fed_target_range
 
 # ── 원화: 817Y002 시장금리(일별) + 722Y001 기준금리 ──────────────────────────
 _RATE_STAT, _BASE_STAT, _BASE_ITEM = "817Y002", "722Y001", "0101000"
@@ -27,7 +28,7 @@ _TREND_KEYS = [("base", "기준금리"), ("call", "콜"), ("cd", "CD 91일"), ("
 _TREND_POINTS = 65      # 약 3개월(영업일)
 _LOOKBACK_DAYS = 130    # 3개월 추이 + 1주 전 비교에 충분한 달력일
 
-# ── 외화: 731Y001 대원화환율(일별) + 902Y006 주요국 정책금리(월별) ─────────────
+# ── 외화: 731Y001 대원화환율(일별) + 미국 목표금리(뉴욕 연준, funding.nyfed) ───────
 _FX_STAT = "731Y001"
 FX_ITEMS = [
     ("usd", "0000001", "원/달러"),
@@ -35,7 +36,6 @@ FX_ITEMS = [
     ("eur", "0000003", "원/유로"),
     ("cny", "0000053", "원/위안"),
 ]
-_POLICY_STAT = "902Y006"
 
 
 def _bp(a: float | None, b: float | None) -> int | None:
@@ -122,14 +122,20 @@ def get_fx_summary() -> dict:
     if not usd:
         raise RuntimeError("원/달러 환율 데이터가 없습니다.")
 
-    # 한·미 정책금리: 한국은 기준금리(최신값은 일별, 추이는 월별 722Y001 — 902Y006 의 한국 값은
-    # 반영이 한두 달 늦다), 미국은 ECOS 902Y006 월별 정책금리.
-    us_series = fetch_series(_POLICY_STAT, "M", 800).get("US", [])
+    # 한·미 정책금리(상단 기준): 한국은 기준금리(최신값은 일별, 추이는 월별 722Y001), 미국은
+    # 뉴욕 연준 목표금리 범위 상단(일별). 월별 추이는 각 달 마지막 값, 이번 달은 최신 일별 값.
     base = fetch_series(_BASE_STAT, "D", _LOOKBACK_DAYS, _BASE_ITEM).get(_BASE_ITEM, [])
     base_m = fetch_series(_BASE_STAT, "M", 800, _BASE_ITEM).get(_BASE_ITEM, [])
-    kr, us = _latest(base), _latest(us_series)
-    months = sorted({m for m, _ in us_series} | {m for m, _ in base_m})[-24:]
-    kr_m, us_m = dict(base_m), dict(us_series)
+    fed = fed_target_range(800)
+    kr = _latest(base)
+    us_last = fed[-1]
+    kr_m = dict(base_m)
+    if kr["date"]:
+        kr_m[kr["date"][:7]] = kr["value"]
+    us_m: dict[str, float] = {}
+    for r in fed:                      # 날짜 오름차순 → 달마다 마지막 값이 남는다
+        us_m[r["date"][:7]] = r["upper"]
+    months = sorted(set(kr_m) | set(us_m))[-24:]
 
     return {
         "source": "live",
@@ -138,8 +144,8 @@ def get_fx_summary() -> dict:
         "usd_trend": {"labels": [_short(d) for d, _ in usd], "values": [v for _, v in usd]},
         "policy": {
             "kr": {"value": kr["value"], "date": kr["date"]},
-            "us": {"value": us["value"], "date": us["date"]},
-            "gap_bp": _bp(kr["value"], us["value"]),
+            "us": {"value": us_last["upper"], "lower": us_last["lower"], "date": us_last["date"]},
+            "gap_bp": _bp(kr["value"], us_last["upper"]),
             "trend": {"labels": months,
                       "kr": [kr_m.get(m) for m in months],
                       "us": [us_m.get(m) for m in months]},

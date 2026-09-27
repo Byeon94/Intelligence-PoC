@@ -96,7 +96,8 @@
       var p = d.policy;
       document.getElementById("fx-policy-kpis").innerHTML = [
         kpi({ label: "한국 기준금리", value: num(p.kr.value, 2), unit: "%", sub: shortDate(p.kr.date) + " 기준" }),
-        kpi({ label: "미국 정책금리", value: num(p.us.value, 3), unit: "%", sub: String(p.us.date || "").slice(2).replace("-", ".") + " 월말" }),
+        kpi({ label: "미국 정책금리(상단)", value: num(p.us.value, 2), unit: "%",
+              sub: (p.us.lower != null ? num(p.us.lower, 2) + "~" + num(p.us.value, 2) + "% · " : "") + shortDate(p.us.date) }),
         kpi({ label: "한·미 금리차", value: p.gap_bp == null ? "-" : signed(p.gap_bp, 0), unit: "bp",
               sub: p.gap_bp == null ? "" : (p.gap_bp < 0 ? "역전(미국↑)" : "한국↑") })
       ].join("");
@@ -104,7 +105,7 @@
         labels: p.trend.labels,
         series: [
           { name: "한국 기준금리", values: p.trend.kr, varName: "--c1" },
-          { name: "미국 정책금리", values: p.trend.us, varName: "--c2" }
+          { name: "미국 정책금리(상단)", values: p.trend.us, varName: "--c2" }
         ]
       });
     }).catch(function (e) { fail(FX_IDS, e.message); });

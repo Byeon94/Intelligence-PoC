@@ -55,7 +55,12 @@
     var primary = rank === 1;
     var reasonHTML = "";
     if (reason && primary) {
-      reasonHTML = '<div class="hl-reason"><span class="hl-reason-label">왜 중요한가?</span>' + esc(reason) + "</div>";
+      // 모바일에서 01번 카드의 긴 설명(시장 브리핑 4줄)이 한 화면을 다 차지해, 기본은 접어두고
+      // "더보기"로 펼친다(renderHighlights 에서 토글 바인딩).
+      reasonHTML = '<div class="hl-reason is-collapsed">' +
+        '<button type="button" class="hl-reason-toggle" aria-expanded="false">' +
+          '<span class="hl-reason-label">왜 중요한가?</span><span class="hl-reason-more">더보기 ▾</span></button>' +
+        '<div class="hl-reason-body">' + esc(reason) + "</div></div>";
     } else if (reason) {
       reasonHTML = '<div class="hl-reason-sm">' + esc(reason) + "</div>";
     }
@@ -88,6 +93,17 @@
       ? items.map(function (h, i) { return todayKeyCardHTML(h, i + 1); }).join("")
       : '<div class="page-note">오늘은 꼭 확인할 만큼 중요한 항목이 없습니다.</div>';
     bindGoWorkButtons(box);
+    // "왜 중요한가? 더보기" — 카드 자체의 클릭(탭 이동·스크롤·외부 링크)으로 번지지 않게 막는다.
+    box.querySelectorAll(".hl-reason-toggle").forEach(function (t) {
+      t.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var wrap = t.parentElement;
+        var collapsed = wrap.classList.toggle("is-collapsed");
+        t.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        t.querySelector(".hl-reason-more").textContent = collapsed ? "더보기 ▾" : "접기 ▴";
+      });
+    });
     box.querySelectorAll("[data-scroll]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var el = document.getElementById(btn.dataset.scroll);
