@@ -112,7 +112,13 @@
 
   /* ── AI 시황 브리프(원화) — KIDB·한국자금중개 일일 PDF 요약 ── */
   function briefCardHTML(b) {
-    if (b.error) return '<div class="fund-brief"><div class="chart-error">' + esc(b.error) + '</div></div>';
+    if (b.error) {
+      return '<div class="fund-brief"><div class="fund-brief-head"><span class="fund-brief-name">📑 ' + esc(b.name) + '</span></div>' +
+        '<div class="fund-brief-foot"><span>' + esc(b.error) + (b.reason ? ' (' + esc(b.reason) + ')' : '') +
+        ' 원문 게시판에서 직접 확인해주세요.</span>' +
+        (b.url ? '<a class="fund-brief-link" href="' + esc(window.KSFC.safeUrl(b.url)) + '" target="_blank" rel="noopener">원문 →</a>' : '') +
+        '</div></div>';
+    }
     var when = (b.doc_date ? shortDate(b.doc_date) + " 자료" : "") +
       (b.briefed_at ? " · " + esc(String(b.briefed_at).slice(11)) + " 자동요약" : "") + (b.stale ? " · 이전 자료" : "");
     var bullets = (b.bullets || []).map(function (x) {

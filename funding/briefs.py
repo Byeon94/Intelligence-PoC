@@ -180,7 +180,20 @@ def get_funding_briefs() -> dict:
         try:
             snap = get_brief(key)
             items.append({k: snap.get(k) for k in _PUBLIC})
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             logger.exception("%s 조회 실패", name)
-            items.append({"key": key, "name": name, "error": f"{name}를 불러오지 못했습니다."})
+            items.append({"key": key, "name": name, "error": f"{name}를 불러오지 못했습니다.",
+                          "reason": _reason(exc), "url": _LIST_URLS[key]})
     return {"items": items}
+
+
+# 실패 시 화면에 원문 게시판 링크를 대신 보여준다(요약은 못 해도 원문은 바로 볼 수 있게).
+_LIST_URLS = {"kidb": _KIDB_LIST, "kmb": _KMB_LIST}
+
+
+def _reason(exc: Exception) -> str:
+    """오류 원인 코드(진단용) — 예: 'HTTP 403'. 서버 내부 정보는 담지 않는다."""
+    resp = getattr(exc, "response", None)
+    if resp is not None and getattr(resp, "status_code", None):
+        return f"HTTP {resp.status_code}"
+    return type(exc).__name__
