@@ -43,8 +43,13 @@ def run_jobs(jobs: list[tuple[str, Callable[[], object]]]) -> list[dict]:
     for label, job in jobs:
         t0 = time.monotonic()
         try:
-            job()
-            results.append({"label": label, "ok": True, "secs": time.monotonic() - t0})
+            out = job()
+            item = {"label": label, "ok": True, "secs": time.monotonic() - t0}
+            failed = out.get("failed") if isinstance(out, dict) else None
+            if failed:   # 부분 실패(예: CMA 금리 일부 증권사) — 성공으로 세되 ⚠️ 로 사유 표시
+                names = ", ".join(f"{f.get('company')}({f.get('error')})" for f in failed[:4])
+                item["warn"] = names + (f" 외 {len(failed) - 4}곳" if len(failed) > 4 else "")
+            results.append(item)
         except Exception as exc:  # noqa: BLE001
             logger.exception("%s 워밍업 실패", label)
             results.append({"label": label, "ok": False, "secs": time.monotonic() - t0,
@@ -67,8 +72,8 @@ def build_message(mode: str, results: list[dict], secs: float, calls: dict[str, 
     lines = [f"[증금 인텔리전스] {head} 배치 {'완료' if ok == len(results) else '일부 실패'}",
              f"{now_kst():%Y-%m-%d %H:%M} · {_fmt_secs(secs)} · 성공 {ok}/{len(results)}", ""]
     for r in results:
-        mark = "✅" if r["ok"] else "❌"
-        tail = f" — {r['error']}" if not r["ok"] else ""
+        mark = "❌" if not r["ok"] else ("⚠️" if r.get("warn") else "✅")
+        tail = f" — {r['error']}" if not r["ok"] else (f" — 일부 실패: {r['warn']}" if r.get("warn") else "")
         lines.append(f"{mark} {r['label']} ({_fmt_secs(r['secs'])}){tail}")
 
     s = get_settings()

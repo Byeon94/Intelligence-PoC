@@ -37,7 +37,19 @@ def _fetch_one(firm: tuple) -> dict:
         return {"key": key, "company": name, "ok": True, **fetch_firm(fn)}
     except Exception as exc:  # noqa: BLE001 - 한 곳 실패가 나머지를 막지 않게
         logger.warning("CMA 금리 파싱 실패(%s): %s", key, type(exc).__name__)
-        return {"key": key, "company": name, "ok": False, "url": link}
+        return {"key": key, "company": name, "ok": False, "url": link, "error": _reason(exc)}
+
+
+def _reason(exc: Exception) -> str:
+    """실패 사유(진단용) — 'HTTP 403', 'ConnectTimeout', 'ValueError' 등. URL·키 같은 내부 정보는 담지 않는다."""
+    resp = getattr(exc, "response", None)
+    if resp is not None and getattr(resp, "status_code", None):
+        return f"HTTP {resp.status_code}"
+    return type(exc).__name__
+
+
+def _expected_keys() -> set[str]:
+    return {fn.__name__ if fn else name for name, fn, _ in FIRMS}
 
 
 def _collect(prev: dict | None) -> dict:
@@ -56,8 +68,11 @@ def _collect(prev: dict | None) -> dict:
             companies.append({"key": r["key"], "company": r["company"], "rp_rate": None, "note_rate": None,
                               "as_of": None, "url": r.get("url"), "stale": False, "unavailable": True})
     companies.sort(key=lambda c: (c["rp_rate"] is None, -(c["rp_rate"] or 0)))
+    failed = [{"key": r["key"], "company": r["company"], "error": r.get("error") or "파서 없음"}
+              for r in results if not r["ok"]]
     return {"as_of": today_iso(), "checked_at": stamp(), "companies": companies,
-            "ok_count": sum(1 for r in results if r["ok"]), "note": _NOTE, "source": _SOURCE}
+            "ok_count": sum(1 for r in results if r["ok"]), "total": len(results), "failed": failed,
+            "note": _NOTE, "source": _SOURCE}
 
 
 def _official(snap: dict | None) -> dict | None:
@@ -70,7 +85,9 @@ def rate_table(force: bool = False) -> dict:
     today = today_iso()
     with table_lock(_TABLE):
         snap = _official(get_snapshot(_TABLE, today))
-        if snap and not force:
+        # 대상 증권사 목록이 코드에서 바뀌었으면(배포 직후) 오늘 저장본이 있어도 다시 확인한다
+        same_set = bool(snap) and {c.get("key") for c in snap.get("companies") or []} == _expected_keys()
+        if snap and same_set and not force:
             return snap
         prev = snap or _official(latest_snapshot(_TABLE))
         fresh = _collect(prev)
