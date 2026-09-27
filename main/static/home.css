@@ -406,6 +406,13 @@
 .ob-tooltip-step { font-size: .72rem; font-weight: 800; color: var(--accent); margin-bottom: 8px; }
 .ob-tooltip h3 { font-size: 1.05rem; margin-bottom: 8px; }
 .ob-tooltip p { font-size: .84rem; color: var(--muted); line-height: 1.55; margin-bottom: 16px; }
+/* 온보딩 환영 말풍선의 "PC 버전으로 보면 더 자세하다" 안내 — 모바일(사이드바가 상단 바로 바뀌는 880px 이하)에서만 */
+.ob-tooltip p.ob-pc-note {
+  display: none; font-size: .8rem; color: var(--fg); background: var(--accent-bg);
+  border-radius: 8px; padding: 8px 10px; margin: -6px 0 16px;
+}
+.ob-pc-note a { color: var(--accent); font-weight: 700; word-break: break-all; }
+@media (max-width: 880px) { .ob-tooltip p.ob-pc-note { display: block; } }
 .ob-tooltip-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .ob-tooltip.ob-centered .ob-tooltip-actions { flex-direction: column-reverse; }
 .ob-skip {
