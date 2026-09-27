@@ -117,24 +117,67 @@
   // 줄로 붙인다(지수와 단위가 달라 같은 그리드에 섞지는 않음).
   // sparkValues가 있으면 카드 안에 빈 자리(id 부여)를 만들어두고, box.innerHTML 대입
   // 이후에 window.Charts.sparkline로 채운다(SVG를 문자열로 직접 만들지 않기 위함).
+  // 홈 섹션 바로가기(home.html .brief-jump) — 홈 패널은 나중에 그려질 수 있어 document 위임으로 한 번만 건다
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest(".brief-jump [data-jump]");
+    if (!b) return;
+    var t = document.getElementById(b.getAttribute("data-jump"));
+    if (t) t.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
   var mktSparkQueue = [];
-  function mktIdxHTML(label, close, chg, sparkValues, unit) {
-    var cls = chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : "";
-    var arrow = chg > 0 ? "▲" : chg < 0 ? "▼" : "";
-    var chgText = chg == null ? "-" : arrow + Math.abs(chg).toFixed(2) + "%";
+  // opts: { unit: "%", pp: true(금리 — 변동폭을 %p 로만), digits: 변동폭 소수 자릿수 }
+  // 변동폭(change)은 전영업일 대비 포인트·원, 괄호 안은 등락률.
+  function mktIdxHTML(label, value, change, chgPct, hist, opts) {
+    opts = opts || {};
+    var dir = change != null ? change : chgPct;
+    var cls = dir > 0 ? "st-c-up" : dir < 0 ? "st-c-down" : "";
+    var arrow = dir > 0 ? "▲" : dir < 0 ? "▼" : "";
+    var chgText;
+    if (opts.pp) {
+      chgText = change == null ? "-" : arrow + Math.abs(change).toFixed(opts.digits || 3) + "%p";
+    } else if (change != null) {
+      chgText = arrow + Math.abs(change).toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+        (chgPct != null ? ' <span class="mkt-idx-pct">(' + Math.abs(chgPct).toFixed(2) + "%)</span>" : "");
+    } else {
+      chgText = chgPct == null ? "-" : arrow + Math.abs(chgPct).toFixed(2) + "%";
+    }
     var sparkHTML = "";
-    if (sparkValues && sparkValues.length > 1) {
+    if (hist && hist.values && hist.values.length > 1) {
       var id = "mkt-spark-" + mktSparkQueue.length;
-      mktSparkQueue.push({ id: id, values: sparkValues });
-      sparkHTML = '<div class="mkt-idx-spark" id="' + id + '"></div>';
+      mktSparkQueue.push({ id: id, values: hist.values, labels: hist.labels || [] });
+      sparkHTML = '<div class="mkt-idx-spark" id="' + id + '"></div><div class="mkt-idx-axis" id="' + id + '-axis"></div>';
     }
     return (
       '<div class="mkt-idx"><div class="mkt-idx-name">' + esc(label) + "</div>" +
-        '<div class="mkt-idx-value">' + esc(Number(close).toLocaleString("ko-KR") + (unit || "")) + "</div>" +
+        '<div class="mkt-idx-value">' + esc(Number(value).toLocaleString("ko-KR") + (opts.unit || "")) + "</div>" +
         '<div class="mkt-idx-chg ' + cls + '">' + chgText + "</div>" +
         sparkHTML +
       "</div>"
     );
+  }
+  // 그래프 밑 "연도.월" 눈금 — 분기 월(3·6·9·12월) 첫 거래일 위치에 작게. 칸이 좁으면
+  // 최신 눈금부터 두고 겹치는(28px 이내) 눈금은 뺀다.
+  function mktAxis(el, labels) {
+    if (!el || labels.length < 2) return;
+    var w = el.clientWidth || 120, n = labels.length, ticks = [], lastX = null, prevMonth = null;
+    var cand = [];
+    labels.forEach(function (l, i) {
+      var d = String(l).replace(/-/g, "");
+      var ym = d.slice(0, 6), m = +d.slice(4, 6);
+      if (ym !== prevMonth && prevMonth !== null && m % 3 === 0) cand.push({ i: i, text: d.slice(2, 4) + "." + d.slice(4, 6) });
+      prevMonth = ym;
+    });
+    // 분기마다 작은 눈금선은 모두 긋고, 글자는 겹치지 않는 자리에만 붙인다
+    for (var k = cand.length - 1; k >= 0; k--) {
+      var x = cand[k].i / (n - 1) * w, left = (x / w * 100).toFixed(1) + "%";
+      ticks.push('<i style="left:' + left + '"></i>');
+      if (x < 12 || x > w - 12) continue;
+      if (lastX !== null && lastX - x < 26) continue;
+      ticks.push('<span style="left:' + left + '">' + cand[k].text + "</span>");
+      lastX = x;
+    }
+    el.innerHTML = ticks.join("");
   }
   function renderMarket(d) {
     var box = document.getElementById("brief-market");
@@ -153,23 +196,23 @@
     if (gm && gm.source === "live") asofBits.push("실시간 해외·환율·금리(Yahoo Finance, 참고용)");
     if (asofBits.length) {
       html += '<div class="page-note mkt-asof"><span class="mkt-asof-inline">' + asofBits.join(" · ") +
-        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율·금리는 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다. 그래프는 최근 1년 일별 종가 추이입니다." ' +
+        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율·금리는 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다. 그래프는 최근 1년 일별 종가 추이이고, 등락은 전영업일 대비입니다(금리는 %p)." ' +
           'aria-label="기준일 안내">!</button></span></div>';
     }
 
     var idxCards = "";
     if (m && m.source === "live") {
-      idxCards += mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change_pct, mhLive && mh.kospi.values) +
-        mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change_pct, mhLive && mh.kosdaq.values);
+      idxCards += mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change, m.kospi.change_pct, mhLive && mh.kospi) +
+        mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change, m.kosdaq.change_pct, mhLive && mh.kosdaq);
     }
     if (gm && gm.source === "live") {
       idxCards += gm.us_indices.map(function (idx) {
         var hist = ghLive && gh[idx.name];
-        return mktIdxHTML(idx.name, idx.close, idx.change_pct, hist && hist.values);
+        return mktIdxHTML(idx.name, idx.close, idx.change, idx.change_pct, hist);
       }).join("");
     }
     if (idxCards) {
-      html += '<div class="mkt-grid mkt-grid-3">' + idxCards + "</div>";
+      html += '<div class="mkt-sub-label">주가지수</div><div class="mkt-grid mkt-grid-3">' + idxCards + "</div>";
     } else {
       html += '<div class="page-note">시장 지수를 일시적으로 불러오지 못했습니다.</div>';
     }
@@ -177,18 +220,18 @@
     if (gm && gm.source === "live") {
       html += '<div class="mkt-sub-label">환율</div>' +
         '<div class="mkt-grid mkt-grid-3">' +
-          gm.fx.map(function (f) { return mktIdxHTML(f.name, f.value, f.change_pct); }).join("") +
+          gm.fx.map(function (f) { return mktIdxHTML(f.name, f.value, f.change, f.change_pct, ghLive && gh[f.name]); }).join("") +
         "</div>";
     }
 
-    // 국고채 3년물은 아직 안정적인 데이터 소스를 못 구해 표시하지 않는다(있는 척 지어내지
-    // 않음). 미국채10년은 Yahoo Finance(^TNX)로 붙였다.
-    if (gm && gm.source === "live" && gm.bond_us10y) {
-      var bondHist = ghLive && gh.bond_us10y;
+    // 금리 — 미국채 10년·30년(Yahoo Finance ^TNX·^TYX). 3년물은 Yahoo 에 없어 표시하지 않는다.
+    var bonds = gm && gm.source === "live" ? (gm.bonds || (gm.bond_us10y ? [Object.assign({ key: "bond_us10y" }, gm.bond_us10y)] : [])) : [];
+    if (bonds.length) {
       html += '<div class="mkt-sub-label">금리</div>' +
         '<div class="mkt-grid mkt-grid-3">' +
-          mktIdxHTML(gm.bond_us10y.name, gm.bond_us10y.value, gm.bond_us10y.change_pct,
-            bondHist && bondHist.values, "%") +
+          bonds.map(function (b) {
+            return mktIdxHTML(b.name, b.value, b.change, b.change_pct, ghLive && gh[b.key], { unit: "%", pp: b.change != null });
+          }).join("") +
         "</div>";
     }
 
@@ -197,6 +240,7 @@
     mktSparkQueue.forEach(function (s) {
       var el = document.getElementById(s.id);
       if (el && window.Charts) window.Charts.sparkline(el, { values: s.values });
+      mktAxis(document.getElementById(s.id + "-axis"), s.labels);
     });
   }
 

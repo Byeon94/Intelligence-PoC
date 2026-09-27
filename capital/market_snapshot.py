@@ -85,10 +85,13 @@ def get_market_history_1y() -> dict:
 _YF_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/"
 _US_INDICES = [("다우존스", "%5EDJI"), ("나스닥", "%5EIXIC"), ("S&P500", "%5EGSPC")]
 # (표시명, 심볼, 심볼값에 곱할 배수) — 엔화는 관행상 100엔 기준으로 표기.
-_FX_PAIRS = [("USD/KRW", "KRW=X", 1), ("JPY100/KRW", "JPYKRW=X", 100), ("EUR/KRW", "EURKRW=X", 1)]
+_FX_PAIRS = [("USD/KRW", "KRW=X", 1), ("JPY100/KRW", "JPYKRW=X", 100), ("EUR/KRW", "EURKRW=X", 1),
+             ("CNY/KRW", "CNYKRW=X", 1)]
 # CBOE ^TNX는 미국채 10년물 금리를 그대로 %(예: 4.25 = 4.25%)로 준다 — 10을 곱한 값이
 # 아니라 실제 확인 결과 그대로 퍼센트였음(오배수 주의).
 _US_BOND_SYMBOL = "%5ETNX"
+# 금리 카드(키, 표시명, 심볼) — ^TYX 도 ^TNX 처럼 %를 그대로 준다. 미국채 3년물은 Yahoo 에 없어 뺐다.
+_US_BONDS = [("bond_us10y", "미국채10년", _US_BOND_SYMBOL), ("bond_us30y", "미국채30년", "%5ETYX")]
 
 
 def _yf_quote(symbol: str) -> dict:
@@ -99,7 +102,13 @@ def _yf_quote(symbol: str) -> dict:
     chg_pct = meta.get("regularMarketChangePercent")
     if price is None:
         raise ValueError(f"{symbol} 시세 없음")
-    return {"price": price, "change_pct": chg_pct}
+    # 기본 range(1d)의 chartPreviousClose = 전영업일 종가 → 전영업일 대비 변동폭
+    prev = meta.get("chartPreviousClose") or meta.get("previousClose")
+    return {"price": price, "change_pct": chg_pct, "change": price - prev if prev else None}
+
+
+def _rnd(v, n: int = 2):
+    return round(v, n) if v is not None else None
 
 
 @ttl_cache(1800)
@@ -109,7 +118,7 @@ def get_global_market_snapshot() -> dict:
         for name, sym in _US_INDICES:
             q = _yf_quote(sym)
             us.append({
-                "name": name, "close": round(q["price"], 2),
+                "name": name, "close": round(q["price"], 2), "change": _rnd(q["change"]),
                 "change_pct": round(q["change_pct"], 2) if q["change_pct"] is not None else None,
             })
         fx = []
@@ -117,23 +126,27 @@ def get_global_market_snapshot() -> dict:
             q = _yf_quote(sym)
             fx.append({
                 "name": name, "value": round(q["price"] * mult, 2),
+                "change": _rnd(q["change"] * mult if q["change"] is not None else None),
                 "change_pct": round(q["change_pct"], 2) if q["change_pct"] is not None else None,
             })
-        bond_us10y = None
-        try:
-            qb = _yf_quote(_US_BOND_SYMBOL)
-            bond_us10y = {
-                "name": "미국채10년", "value": round(qb["price"], 3),
+        # 금리는 전영업일 대비 변동을 %p(change)로 — 금리의 등락률(%)은 의미가 약하다.
+        bonds = []
+        for key, name, sym in _US_BONDS:
+            try:
+                qb = _yf_quote(sym)
+            except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
+                continue  # 지수·환율은 살아있는데 금리만 실패해도 나머지는 그대로 보여준다.
+            bonds.append({
+                "key": key, "name": name, "value": round(qb["price"], 3), "change": _rnd(qb["change"], 3),
                 "change_pct": round(qb["change_pct"], 2) if qb["change_pct"] is not None else None,
-            }
-        except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
-            pass  # 지수·환율은 살아있는데 금리만 실패해도 나머지는 그대로 보여준다.
-        return {"source": "live", "us_indices": us, "fx": fx, "bond_us10y": bond_us10y}
+            })
+        bond_us10y = next((b for b in bonds if b["key"] == "bond_us10y"), None)   # 시장 브리핑 프롬프트용
+        return {"source": "live", "us_indices": us, "fx": fx, "bonds": bonds, "bond_us10y": bond_us10y}
     except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as exc:
         return {"source": "unavailable", "error": str(exc)}
 
 
-# 시장 한눈에 스파크라인용 — 다우/나스닥/S&P500/미국채10년 1년치 일별 종가(Yahoo chart
+# 시장 한눈에 스파크라인용 — 다우/나스닥/S&P500/환율/미국채10·30년 1년치 일별 종가(Yahoo chart
 # API의 timestamp[]+close[] 배열을 그대로 씀. get_global_market_snapshot과 별도 캐시라,
 # 스파크라인 요청이 실시간 시세 캐시를 밀어내지 않는다).
 def _yf_history(symbol: str) -> dict:
@@ -156,13 +169,37 @@ def _yf_history(symbol: str) -> dict:
     return {"labels": labels, "values": values}
 
 
+def _cny_krw_history() -> dict:
+    """CNYKRW=X 는 현재가만 주고 1년 일별 이력이 비어 온다 — 원/달러(KRW=X) ÷ 위안/달러(CNY=X)
+    교차환율로 같은 날짜끼리 계산한다."""
+    krw, cny = _yf_history("KRW=X"), _yf_history("CNY=X")
+    cny_by_day = dict(zip(cny["labels"], cny["values"]))
+    labels, values = [], []
+    for d, v in zip(krw["labels"], krw["values"]):
+        c = cny_by_day.get(d)
+        if c:
+            labels.append(d)
+            values.append(round(v / c, 2))
+    if len(values) < 2:
+        raise ValueError("CNY/KRW 히스토리 없음")
+    return {"labels": labels, "values": values}
+
+
 @ttl_cache(3600 * 6)
 def get_global_market_history_1y() -> dict:
     try:
         out = {"source": "live"}
         for name, sym in _US_INDICES:
             out[name] = _yf_history(sym)
-        out["bond_us10y"] = _yf_history(_US_BOND_SYMBOL)
+        for key, _name, sym in _US_BONDS:
+            out[key] = _yf_history(sym)
+        # 환율 스파크라인 — 한 통화가 실패해도 지수 그래프는 살린다(해당 카드만 그래프 없음)
+        for name, sym, mult in _FX_PAIRS:
+            try:
+                h = _cny_krw_history() if name == "CNY/KRW" else _yf_history(sym)
+                out[name] = {"labels": h["labels"], "values": [round(v * mult, 2) for v in h["values"]]}
+            except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
+                pass
         return out
     except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as exc:
         return {"source": "unavailable", "error": str(exc)}
