@@ -168,7 +168,7 @@
       }).join("");
       document.getElementById("cma-rates").innerHTML =
         '<table class="rate-table"><thead><tr>' +
-        '<th>증권사</th><th>RP형 CMA</th><th>발행어음형 CMA</th><th class="cma-basis">기준일(출처)</th>' +
+        '<th>증권사</th><th>RP형<span class="cma-th2"> CMA</span></th><th>발행어음형<span class="cma-th2"> CMA</span></th><th class="cma-basis">기준일(출처)</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>';
     }).catch(function (e) { fail("cma-rates", e.message); });
   }
