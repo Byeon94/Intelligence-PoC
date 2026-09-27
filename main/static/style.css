@@ -143,10 +143,11 @@ body {
   /* 좌우 여백 20px(네이버 모바일 참고) — 브랜드·"부서 위젯" 라벨·본문(main)이 같은 선에서 시작 */
   .side-brand { padding: 10px 0 10px 20px; flex: 0 0 auto; order: 1; }
   .side-brand-name { font-size: .84rem; }
-  /* 왼쪽 14px: "PoC" 배지와 "홈" 사이 간격. 대신 1행 버튼 좌우 패딩을 줄여 "소개"까지 한 화면에 들어오게 한다. */
+  /* 왼쪽 24px: "PoC" 배지와 "홈" 사이 간격. 대신 1행 버튼 좌우 패딩·오른쪽 여백을 줄여
+     "소개"까지 한 화면에 들어오게 한다(360·375·390·412px 폭에서 확인). */
   .side-row-primary {
     position: relative;
-    display: flex; flex-direction: row; gap: 2px; padding: 6px 12px 6px 14px;
+    display: flex; flex-direction: row; gap: 0; padding: 6px 6px 6px 24px;
     overflow-x: auto; scrollbar-width: none;
   }
   .side-row-primary::-webkit-scrollbar { display: none; }
@@ -172,7 +173,7 @@ body {
   }
   .side-row-work-scroll::-webkit-scrollbar { display: none; }
   .side-btn { flex: 0 0 auto; padding: 9px 12px; font-size: .8rem; }
-  .side-row-primary .side-btn { padding: 9px 9px; }
+  .side-row-primary .side-btn { padding: 9px 8px; }
   .side-sep { display: none; }
   /* "소개"도 1행 안에서 다른 메뉴와 나란히 보일 뿐이라, 데스크톱 전용 하단 고정
      스타일(margin-top:auto 등)은 해제한다. */
@@ -193,8 +194,8 @@ body {
 @media (max-width: 400px) {
   .side-brand-name { font-size: .78rem; }
   .side-btn { padding: 8px 9px; font-size: .76rem; }
-  .side-row-primary { padding-left: 10px; }
-  .side-row-primary .side-btn { padding: 8px 6px; }
+  .side-row-primary { padding-left: 16px; padding-right: 4px; }
+  .side-row-primary .side-btn { padding: 8px 4px; }
   .side-group-label { font-size: .8rem; }
 }
 
@@ -226,6 +227,9 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 .api-table th { color: var(--muted); font-weight: 700; font-size: .72rem; white-space: nowrap; }
 .api-table td:first-child { font-weight: 600; }
+/* 소개 > 메뉴 한눈에 보기: 모바일에서 메뉴명이 두 줄로 밀리지 않게 가장 긴 "👤 나의 대시보드"가
+   한 줄에 들어가는 폭을 확보한다(설명 열이 나머지 폭을 쓴다). */
+.menu-table td:first-child, .menu-table th:first-child { white-space: nowrap; }
 
 /* ── 준비 중 탭 ── */
 .placeholder-card { text-align: center; padding: 56px 20px; }
