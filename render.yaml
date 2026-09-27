@@ -32,6 +32,8 @@ services:
         sync: false
       - key: NAVER_CLIENT_SECRET
         sync: false
+      - key: ECOS_API_KEY
+        sync: false
       - key: DART_API_KEY
         sync: false
       - key: SUPABASE_URL

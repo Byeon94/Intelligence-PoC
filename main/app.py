@@ -34,6 +34,7 @@ from policy.briefing import get_policy_digest
 from policy.widget import policy_bp
 from research.curate import get_research_digest
 from research.widget import research_bp
+from funding.widget import funding_bp
 from sector.widget import sector_bp
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ app.register_blueprint(credit_bp)
 app.register_blueprint(it_news_bp)
 app.register_blueprint(lending_bp)
 app.register_blueprint(sector_bp)
+app.register_blueprint(funding_bp)
 
 
 @app.route("/")

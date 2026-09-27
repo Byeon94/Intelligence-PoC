@@ -32,6 +32,9 @@ class Settings:
     # DART OpenAPI — 발행시장(유상증자 공시), 여신 리드·기업분석(기업개황·재무·공시).
     dart_api_key: str | None
 
+    # 한국은행 ECOS Open API — 단기자금 탭(원화 시장금리·기준금리, 외화 환율·주요국 정책금리).
+    ecos_api_key: str | None
+
     # Supabase — 모든 탭 일일 스냅샷 저장용(main/snapshot_store.py). 없으면 프로세스 메모리에 임시 저장.
     supabase_url: str | None
     supabase_key: str | None
@@ -69,6 +72,7 @@ def get_settings() -> Settings:
         naver_client_id=_env("NAVER_CLIENT_ID"),
         naver_client_secret=_env("NAVER_CLIENT_SECRET"),
         dart_api_key=_env("DART_API_KEY"),
+        ecos_api_key=_env("ECOS_API_KEY"),
         supabase_url=_env("SUPABASE_URL"),
         supabase_key=_env("SUPABASE_KEY"),
         warmup_key=_env("WARMUP_KEY"),

@@ -1,0 +1,63 @@
+<div class="funding" id="funding-root">
+  <div class="subtabs" id="funding-subtabs" role="tablist">
+    <button class="subtab-btn active" data-sub="won">원화</button>
+    <button class="subtab-btn" data-sub="fx">외화</button>
+  </div>
+
+  <!-- ── 원화: 콜·KOFR·CD·CP·통안 + 기준금리 (ECOS 817Y002·722Y001) ── -->
+  <div class="sub-panel" data-sub="won">
+    <section class="block">
+      <div class="block-head">
+        <h3>원화 단기금리</h3>
+        <span class="asof" id="won-asof"></span>
+      </div>
+      <div class="kpi-grid fund-kpis" id="won-kpis"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>단기금리 스프레드</h3>
+        <span class="unit-tag">bp</span>
+      </div>
+      <div class="table-wrap" id="won-spreads"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>최근 3개월 추이</h3>
+        <span class="unit-tag">연% · 일별</span>
+      </div>
+      <div class="chart-wrap" id="won-trend"></div>
+    </section>
+    <p class="page-note fund-src">출처: 한국은행 경제통계시스템(ECOS) 시장금리(일별)·기준금리. ECOS는 보통 1영업일 늦게 반영되어 지표별 기준일이 다를 수 있습니다.</p>
+  </div>
+
+  <!-- ── 외화: 대원화 환율 + 한·미 정책금리 (ECOS 731Y001·902Y006·722Y001) ── -->
+  <div class="sub-panel" data-sub="fx" hidden>
+    <section class="block">
+      <div class="block-head">
+        <h3>주요 통화 환율</h3>
+        <span class="asof" id="fx-asof"></span>
+      </div>
+      <div class="kpi-grid" id="fx-kpis"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>원/달러 최근 3개월</h3>
+        <span class="unit-tag">원 · 매매기준율</span>
+      </div>
+      <div class="chart-wrap" id="fx-usd-trend"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>한·미 정책금리</h3>
+        <span class="unit-tag">연% · 월말</span>
+      </div>
+      <div class="kpi-grid fund-policy-kpis" id="fx-policy-kpis"></div>
+      <div class="chart-wrap" id="fx-policy-trend"></div>
+    </section>
+    <p class="page-note fund-src">출처: 한국은행 경제통계시스템(ECOS) 주요국 통화의 대원화환율(일별)·국제 주요국 중앙은행 정책금리(월별)·기준금리.</p>
+  </div>
+</div>

@@ -5,7 +5,7 @@ QR로 접속해 모바일에서도 확인할 수 있도록 만든 데모입니�
 
 ## 화면 구성
 
-좌측 사이드바(모바일에선 상단 2줄 바) 6개 메뉴 + 소개.
+좌측 사이드바(모바일에선 상단 2줄 바) 7개 메뉴 + 소개.
 
 | 메뉴 | 내용 |
 |---|---|
@@ -13,11 +13,12 @@ QR로 접속해 모바일에서도 확인할 수 있도록 만든 데모입니�
 | 👤 나의 대시보드 | "+ 위젯 추가"/"AI가 추천하기"(mock)로 위젯을 담아 하나씩 보기. 기본 2개(한눈에 보는 기업분석, 업종별 시가총액·밸류체인). **선택은 탭 메모리에만 유지**(새로고침 시 초기화, 로그인·저장 없음) |
 | 📈 자본시장 | 증시자금·유동성(예탁금·신용공여·CMA, 거래대금), CMA·단기수신(유형별 비중·증권사 금리), 발행시장(IPO·유상증자 캘린더 + AI 브리핑) |
 | 🏦 여신 | 증권담보대출·우리사주대출 수요 리드 레이더(DART 공시 + 상속·증여/우리사주 뉴스 AI 판단 + AI 브리핑) |
+| 💵 단기자금 | 원화(콜·KOFR·CD·CP·통안 금리, 기준금리, 스프레드, 3개월 추이) / 외화(주요 통화 환율, 원/달러 추이, 한·미 정책금리) — 한국은행 ECOS 실데이터만 |
 | 📜 정책·규제 | 금융당국·유관기관 보도자료 + AI 브리핑 |
 | 📰 뉴스 | 네이버 뉴스에서 업무 관련 기사 AI 선별·태깅 + 브리핑 |
 
 사이드바에는 없지만 해시로 열리는 화면: `#lending`(증권대차 — 주식·채권 대차 뉴스·리서치),
-`#gallery`(옛 전사 위젯 갤러리, 옛 링크 호환), `#ib`·`#custody`·`#funding`(준비 중), 독립 페이지 `/sector`.
+`#gallery`(옛 전사 위젯 갤러리, 옛 링크 호환), `#ib`·`#custody`(준비 중), 독립 페이지 `/sector`.
 
 ## 코드 구조
 
@@ -59,6 +60,7 @@ credit/              여신 탭 + 기업분석 API(나의 대시보드 위젯이
   equity.py, financials.py, filings.py, reports.py, corp_map.py, store.py   기업분석·시장 리포트
   templates/, static/  credit.html, credit.js, credit.css
 
+funding/             단기자금 탭(ecos.py: ECOS 클라이언트, money_market.py: 원화·외화 요약) — funding.html, funding.js, funding.css
 lending/             증권대차 화면(news.py) — lending.html, lending.js, lending.css
 policy/              정책·규제 탭(sources.py, briefing.py) — policy.html, policy.js, policy.css
 research/            뉴스 탭(sources.py, curate.py) — research.html, research.js, research.css
@@ -67,7 +69,7 @@ sector/              업종별 시가총액·밸류체인(market_map.py, value_c
                      — /sector 페이지 + window.SectorWidget(sector.js), sector.css
 ```
 
-CSS는 `index.html`에서 style.css → capital → lending → policy → issuance → research → credit →
+CSS는 `index.html`에서 style.css → capital → lending → policy → issuance → research → credit → funding →
 home → sector 순으로 링크합니다(분리 전 style.css 안의 순서 그대로).
 
 ## 코드 컨벤션
@@ -111,6 +113,7 @@ flask --app main.app run --port 5000
 | `POLICY_MAX_GEMINI_CALLS_PER_DAY` | 이름과 달리 **스냅샷 1건당 AI 재시도 상한**(모든 탭 공통, 기본 3) |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 네이버 검색 API |
 | `DART_API_KEY` | DART OpenAPI |
+| `ECOS_API_KEY` | 한국은행 ECOS Open API — 단기자금 탭(없으면 탭에 오류 문구만 표시) |
 | `SUPABASE_URL` / `SUPABASE_KEY` | 스냅샷 저장(없으면 프로세스 메모리) |
 | `WARMUP_KEY` | `/internal/warmup` 인증(없으면 403) |
 

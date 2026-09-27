@@ -1,0 +1,20 @@
+/* 단기자금 탭 전용 스타일 — 공통 .kpi / .rate-table / .chart-wrap 은 main/static/style.css */
+
+/* 원화 금리 6종: 모바일 2열, 넓은 화면 3열(4열이면 2줄째가 2칸만 남아 어색) */
+@media (min-width: 720px) { .funding .fund-kpis { grid-template-columns: repeat(3, 1fr); } }
+/* 한·미 정책금리 3종: 모바일에서도 3열(2열이면 마지막 카드가 혼자 남음) — 좁은 폭은 숫자만 작게 */
+.funding .fund-policy-kpis { grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; }
+@media (max-width: 519px) {
+  .funding .fund-policy-kpis .kpi { padding: 11px 10px; }
+  .funding .fund-policy-kpis .k-value { font-size: 1.15rem; }
+}
+
+.funding .k-delta-label { color: var(--muted); font-weight: 600; }
+.funding .chart-wrap { max-width: 520px; }
+
+.fund-spread-table td:first-child { font-weight: 700; }
+.fund-spread-table .fund-strong { font-weight: 800; }
+.fund-spread-table .fund-chg.up { color: var(--stock-up); font-weight: 700; }
+.fund-spread-table .fund-chg.down { color: var(--stock-down); font-weight: 700; }
+
+.funding .fund-src { margin-top: -6px; }
