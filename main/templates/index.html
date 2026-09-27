@@ -135,7 +135,7 @@
 
         <h3 class="section-label">매일 자동 수집(배치)</h3>
         <p class="page-note">
-          매일 <b>00:01 KST</b>에 GitHub Actions가 <code>/internal/warmup</code>을 호출해 위 데이터의 스냅샷을
+          매일 <b>05:00 KST</b>에 GitHub Actions가 <code>/internal/warmup</code>을 호출해 위 데이터의 스냅샷을
           미리 만들어 DB에 저장해두고, <b>07:00 KST</b>에 미국 장 마감·아침 기사를 반영해 시장 브리핑과
           뉴스류를 한 번 더 갱신합니다. 화면 접속 시에는 이 스냅샷만 읽으므로 사용자 접속 자체가 외부
           API를 재호출하지 않으며, 원천 장애 시에도 직전 스냅샷을 그대로 보여줍니다.

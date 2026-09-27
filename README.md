@@ -129,9 +129,9 @@ flask --app main.app run --port 5000
   (free 플랜 메모리 제약 + 인프로세스 캐시·락 공유를 위해 워커 1 + 스레드 4)
 - Supabase에서 `schema.sql` 실행
 
-### 매일 스냅샷 예열 (`/internal/warmup`, 00:01 + 07:00)
+### 매일 스냅샷 예열 (`/internal/warmup`, 05:00 + 07:00)
 
-`.github/workflows/warmup.yml`이 매일 **00:01 KST**에 `GET /internal/warmup?key=<WARMUP_KEY>`를 호출합니다.
+`.github/workflows/warmup.yml`이 매일 **05:00 KST**에 `GET /internal/warmup?key=<WARMUP_KEY>`를 호출합니다.
 엔드포인트는 즉시 202를 응답하고(호출 측 curl `--max-time`·프록시 타임아웃 회피) 백그라운드 스레드에서
 `main/app.py`의 `_WARMUP_JOBS`를 순서대로 실행합니다:
 
@@ -139,7 +139,7 @@ flask --app main.app run --port 5000
 증권대차 뉴스 → 여신 리드(`force=True`) → 상속·증여 뉴스 → 우리사주 뉴스 → 여신 리드 AI 브리핑(`force=True`)
 
 같은 워크플로가 **07:00 KST**에 한 번 더 `...&mode=morning`으로 호출해 `_MORNING_JOBS`만 다시 만듭니다
-(00:01엔 미국 장이 아직 열려 있고 당일 기사도 거의 없기 때문):
+(05:00엔 미국 장이 막 끝났거나 아직 열려 있고, 당일 기사도 거의 없기 때문):
 
 오늘의 시장 브리핑(`force=True`) → 뉴스 → IT·정보보호 뉴스 → 증권대차 뉴스 → 상속·증여 뉴스 → 우리사주 뉴스
 (모두 `rebuild=True`) → 여신 리드 AI 브리핑. 재생성이 실패하면 새벽 스냅샷이 그대로 유지됩니다.

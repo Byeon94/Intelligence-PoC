@@ -1,6 +1,6 @@
 """자본시장 > CMA > 증권사별 CMA 금리 — 증권사 공식 홈페이지 기준(네이버페이 CMA 비교 20개사 중 17곳).
 
-매일 00:01 KST 새벽 배치(/internal/warmup 의 "CMA 금리")가 각 증권사 CMA 안내 페이지를 읽어
+매일 05:00 KST 새벽 배치(/internal/warmup 의 "CMA 금리")가 각 증권사 CMA 안내 페이지를 읽어
 (capital/cma_firms.py) 그날 스냅샷(cma_rate_snapshots)으로 저장하고, 화면은 그 스냅샷만 읽는다.
 오늘 스냅샷이 없으면(배치 실패·재배포 직후) 첫 화면 요청이 한 번 대신 수집한다.
 

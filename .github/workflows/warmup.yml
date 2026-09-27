@@ -2,15 +2,15 @@ name: Daily snapshot warmup
 
 on:
   schedule:
-    # 15:01 UTC = 00:01 KST(다음날) — 그날 전체 스냅샷 생성.
-    - cron: "1 15 * * *"
+    # 20:00 UTC = 05:00 KST(다음날) — 그날 전체 스냅샷 생성.
+    - cron: "0 20 * * *"
     # 22:00 UTC = 07:00 KST — 미국 장 마감 후 시장 브리핑·뉴스류만 재생성(mode=morning).
     - cron: "0 22 * * *"
     # GitHub Actions 스케줄은 서버 부하에 따라 몇 분 정도 지연될 수 있다(PoC 목적상 허용 범위).
   workflow_dispatch:
     inputs:
       mode:
-        description: "daily(전체) 또는 morning(시장 브리핑·뉴스만 재생성)"
+        description: "daily(전체) / morning(시장 브리핑·뉴스만 재생성) / leads(여신 리드 DART만 재수집)"
         default: daily
         required: false
 

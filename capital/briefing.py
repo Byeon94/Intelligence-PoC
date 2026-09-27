@@ -4,7 +4,7 @@
 최근 5거래일 누적 등락률·52주 최고/최저 대비 위치까지 텍스트로 정리해 Gemini에 넘기고,
 Gemini는 그 수치 안에서만 근거를 찾아 문장으로 풀어쓴다(새 수치를 지어내지 않음).
 
-main/app.py 의 새벽 배치(/internal/warmup, 00:01)가 만들고 07:00 아침 배치가 미국 장 마감 후 다시
+main/app.py 의 새벽 배치(/internal/warmup, 05:00)가 만들고 07:00 아침 배치가 미국 장 마감 후 다시
 생성해 market_briefing_snapshots 에 저장한다. 배치가 아직 못 돌았다면 첫 요청(홈) 때
 생성한다 — table_lock 으로 동시 요청이 Gemini를 중복 호출하지 않고, 시도 횟수는
 try_ai 가 스냅샷당 상한(settings.ai_retries_per_snapshot) 안에서 관리한다.
@@ -219,7 +219,7 @@ def _maybe_generate(payload: dict, force: bool = False) -> None:
 
 
 def get_market_briefing(force: bool = False) -> dict:
-    """force=True(07:00 아침 배치)면 브리핑을 다시 생성한다 — 00:01 배치 시점엔 미국 장이
+    """force=True(07:00 아침 배치)면 브리핑을 다시 생성한다 — 05:00 배치 시점엔 미국 장이
     아직 열려 있어 '장전' 수치가 마감값이 아니기 때문. 재생성이 실패하면 기존 브리핑을 유지한다."""
     today = today_iso()
     with table_lock(_TABLE):

@@ -68,7 +68,7 @@ def _gemini_today() -> int | None:
 
 def build_message(mode: str, results: list[dict], secs: float, calls: dict[str, int]) -> str:
     ok = sum(1 for r in results if r["ok"])
-    head = "07:00 아침" if mode == "morning" else "00:01 새벽"
+    head = {"morning": "07:00 아침", "leads": "수동(여신 리드)"}.get(mode, "05:00 새벽")
     lines = [f"[증금 인텔리전스] {head} 배치 {'완료' if ok == len(results) else '일부 실패'}",
              f"{now_kst():%Y-%m-%d %H:%M} · {_fmt_secs(secs)} · 성공 {ok}/{len(results)}", ""]
     for r in results:
