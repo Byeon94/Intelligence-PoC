@@ -234,6 +234,9 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 .intro-list { list-style: none; padding: 0; font-size: .85rem; }
 .intro-list li { padding: 7px 2px; border-bottom: 1px solid var(--border2); }
 .intro-list li:last-child { border-bottom: none; }
+/* 소개 > "데이터 출처·배치 수집 더 보기" — 위 환경 목록과 붙어 보이지 않게 위아래 여백 */
+.intro-details { margin: 22px 0 14px; }
+.intro-details > summary { cursor: pointer; }
 .api-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
 .api-table th, .api-table td {
   text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border2); vertical-align: top;
