@@ -150,9 +150,7 @@
         var when = c.as_of ? c.as_of.slice(2).replace(/-/g, ".") : "기준일 미표기";
         var basis = c.unavailable ? "확인 불가" : when + (c.stale ? " · 이전값" : "");
         return '<tr class="' + (i === 0 && !c.unavailable ? "top-row" : "") + '">' +
-          '<td>' + esc(c.company) + (c.product ? '<span class="cma-product">' + esc(c.product) + '</span>' : "") +
-            // 모바일은 기준일 칸을 숨기고 여기(상품명 아래)에 보여준다(capital.css)
-            '<span class="cma-basis-m">' + (link ? link + esc(basis) + " ↗</a>" : esc(basis)) + '</span></td>' +
+          '<td>' + esc(c.company) + (c.product ? '<span class="cma-product">' + esc(c.product) + '</span>' : "") + '</td>' +
           '<td>' + pctCell(c.rp_rate) + '</td>' +
           '<td>' + pctCell(c.note_rate) + '</td>' +
           '<td class="cma-basis">' + (link ? link + esc(basis) + " ↗</a>" : esc(basis)) + '</td>' +

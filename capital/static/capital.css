@@ -28,10 +28,12 @@
 /* CMA 잔고 카드 3종(RP형 최고금리 카드 제거) — 넓은 화면 3열 */
 @media (min-width: 720px) { #capital-root .cma-kpis { grid-template-columns: repeat(3, 1fr); } }
 #cma-rates .cma-product { display: block; color: var(--muted); font-size: .7rem; font-weight: 500; }
-#cma-rates .cma-basis-m { display: none; }
+/* 모바일: 4개 칸을 그대로 두고 표를 옆으로 밀어서 보게(table-wrap 가로 스크롤) — 증권사 칸은 왼쪽 고정 */
 @media (max-width: 519px) {
-  #cma-rates .cma-basis { display: none; }
-  #cma-rates .cma-basis-m { display: block; margin-top: 2px; color: var(--muted); font-size: .68rem; }
-  #cma-rates .cma-basis-m a { color: inherit; text-decoration: none; }
-  #cma-rates td:first-child { white-space: normal; }
+  #cma-rates { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  #cma-rates th:first-child, #cma-rates td:first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border2);
+    width: 132px; min-width: 132px; max-width: 132px; white-space: normal; word-break: keep-all;
+  }
+  #cma-rates .rate-table { min-width: 470px; }
 }
