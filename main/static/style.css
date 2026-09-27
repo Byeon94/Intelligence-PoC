@@ -142,7 +142,8 @@ body {
   }
   /* 좌우 여백 20px(네이버 모바일 참고) — 브랜드·"부서 위젯" 라벨·본문(main)이 같은 선에서 시작 */
   .side-brand { padding: 10px 0 10px 20px; flex: 0 0 auto; order: 1; }
-  .side-brand-name { font-size: .84rem; }
+  /* "부서 위젯" 라벨(.88rem)과 같은 크기 — 두 줄의 왼쪽 제목이 같은 무게로 보이게 */
+  .side-brand-name { font-size: .88rem; }
   /* 1행 버튼(홈·나의 대시보드·소개)은 오른쪽 정렬 — 오른쪽 여백 20px로 "소개" 끝을 2행
      "뉴스" 끝과 맞추고, 남는 폭은 전부 "PoC"와 "홈" 사이 간격이 된다(최소 16px).
      justify-content:flex-end 대신 첫 버튼의 margin-left:auto 를 쓰는 이유: 폭이 모자라
@@ -195,13 +196,19 @@ body {
 /* 아주 좁은 화면(구형/저가 기기)에서는 2행조차 빠듯해질 수 있어 글자·여백을 한 번 더
    줄여 실제로 보이는 버튼 수를 늘린다(스크롤에만 의존하지 않도록). */
 @media (max-width: 400px) {
-  .side-brand-name { font-size: .74rem; }
+  .side-brand-name { font-size: .8rem; }   /* "부서 위젯" 라벨(.8rem)과 같은 크기 */
   .side-btn { padding: 8px 6px; font-size: .76rem; }
   /* 오른쪽 여백을 두 행 모두 16px로(정렬 유지) 줄여, 그 폭을 "PoC"–"홈" 간격으로 돌린다 */
   .side-row-primary { padding-right: 16px; }
   .side-row-work { padding-right: 16px; }
   .side-row-primary .side-btn { padding: 8px 4px; }
   .side-group-label { font-size: .8rem; }
+}
+/* 360px급(갤럭시 등): 버튼 여백을 한 단계 더 줄여 "소개"·"뉴스"까지 페이드 없이 다 들어오게 */
+@media (max-width: 370px) {
+  .side-btn { padding: 8px 4px; }
+  .side-row-primary { gap: 4px; padding-left: 12px; }
+  .side-row-primary .side-btn { padding: 8px 3px; }
 }
 
 /* ── 레이아웃 ── */
