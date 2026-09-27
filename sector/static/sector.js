@@ -6,7 +6,8 @@
   "use strict";
 
   var esc = global.KSFC.esc, get = global.KSFC.get;   // common.js(먼저 로드)
-  function jo(v) { return v == null ? "-" : (Math.round(v / 1e11) / 10); }
+  // 1,000조 이상은 천 단위 쉼표(예: 6,266.9)
+  function jo(v) { return v == null ? "-" : (Math.round(v / 1e11) / 10).toLocaleString("ko-KR", { maximumFractionDigits: 1 }); }
   function chgClass(chg) { return chg == null ? "" : (chg > 0 ? "st-c-up" : chg < 0 ? "st-c-down" : ""); }
   function chgText(chg) {
     if (chg == null) return "-";

@@ -6,7 +6,7 @@
   var esc = K.esc, get = K.get;
 
   // ── 포맷터 ──
-  function jo(v) { return v == null ? "-" : (Math.round(v * 10) / 10) + "조"; }
+  function jo(v) { return v == null ? "-" : (Math.round(v * 10) / 10).toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "조"; }
   // 재무요약 표: 무조건 조 단위로 맞추면 조 미만 규모 기업은 "0.0조"처럼 실제 크기가
   // 사라져 버린다 — 1조 이상이면 조(0.1조 단위), 미만이면 억(1억 단위)으로 자동 전환한다.
   function finWon(v) {
