@@ -81,7 +81,7 @@ def home_summary():
 
 _warmup_lock = threading.Lock()
 
-# 매일 05:00 KST 워밍업 작업 — (로그 라벨, 함수). 순서가 의미 있다: 여신 리드 AI 브리핑은
+# 매일 02:00 KST 워밍업 작업 — (로그 라벨, 함수). 순서가 의미 있다: 여신 리드 AI 브리핑은
 # 앞의 리드·상속증여·우리사주 스냅샷을 방금 새로 만든 뒤에 갱신해야 한다.
 # 업종별 시가총액 맵의 전종목 재분류(sector.classify.refresh_sector_classification)는
 # 일부러 넣지 않는다 — API 사용량을 최소화하기 위해 필요할 때만 수동으로 돌린다. 화면은
@@ -109,7 +109,7 @@ _WARMUP_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("심사·리스크 관련 뉴스", get_risk_news),
 ]
 
-# 매일 07:00 KST 아침 재생성(mode=morning) — 05:00 시점엔 미국 장이 막 끝났거나(겨울엔 아직 열려 있어) 시장
+# 매일 07:00 KST 아침 재생성(mode=morning) — 02:00 시점엔 미국 장이 아직 열려 있어 시장
 # 브리핑의 '장전' 수치가 마감값이 아니고, 뉴스류는 당일 기사가 거의 없다. 그래서 이 작업들만
 # 다시 만든다. 각 함수는 재생성이 실패하면 새벽 스냅샷을 그대로 유지한다.
 _MORNING_JOBS: list[tuple[str, Callable[[], object]]] = [
@@ -152,7 +152,7 @@ def _run_warmup(mode: str, jobs: list[tuple[str, Callable[[], object]]]) -> None
 def warmup():
     """GitHub Actions(.github/workflows/warmup.yml)가 하루 두 번 호출한다.
 
-    - 05:00 KST: `?key=...` → _WARMUP_JOBS 로 그날 스냅샷을 미리 생성
+    - 02:00 KST: `?key=...` → _WARMUP_JOBS 로 그날 스냅샷을 미리 생성
     - 07:00 KST: `?key=...&mode=morning` → _MORNING_JOBS(시장 브리핑·뉴스류)만 다시 생성
     - 수동: `?key=...&mode=leads` → _LEADS_JOBS(여신 리드 DART 재수집 + AI 브리핑)
 
