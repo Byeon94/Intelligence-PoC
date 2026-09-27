@@ -139,8 +139,11 @@ def _sweep(key: str) -> list[dict]:
                 "date": ymd_to_iso(x.get("rcept_dt")), "rcept_no": x.get("rcept_no"),
                 "url": _VIEW_URL + str(x.get("rcept_no")),
             })
-        if page >= int(data.get("total_page") or 0):
+        total = int(data.get("total_page") or 0)
+        if page >= total:
             break
+        if page == _MAX_PAGES:
+            logger.warning("거래소공시 %d페이지 중 %d페이지까지만 훑음 — 오래된 공시 일부 누락", total, _MAX_PAGES)
         page += 1
     out.sort(key=lambda f: (f["date"], f["rcept_no"] or ""), reverse=True)
     return out
@@ -240,8 +243,8 @@ def latest_signal_items() -> list[dict]:
 def get_home_risk_summary() -> dict | None:
     """홈 "오늘의 핵심" 카드용 요약 — 저장된 스냅샷만 읽는다(홈 요청이 DART 를 부르지 않게).
 
-    최근 7일 목록 중 가장 최근 공시일의 회사만 센다(주말·휴장일엔 직전 공시일). 대표로 ALERT
-    회사(없으면 WARN)를 최대 3곳 "분류 회사명"으로 보여준다. 리스크 공시가 없으면 None.
+    최근 7일 목록 중 가장 최근 공시일의 회사만 센다(주말·휴장일엔 직전 공시일). 그날 ALERT 가
+    없으면 None(카드 생략). 대표로 ALERT 회사를 최대 3곳 "분류 회사명"으로 보여준다.
     """
     items = latest_signal_items()
     if not items:
@@ -250,11 +253,13 @@ def get_home_risk_summary() -> dict | None:
     day = [it for it in items if it["date"] == ref]
     alerts = [it for it in day if it["level"] == "ALERT"]
     warns = [it for it in day if it["level"] == "WARN"]
-    picks = (alerts or warns)[:3]
+    if not alerts:   # WARN(조회공시·투자유의 등)은 거의 매일 있어, ALERT 가 있는 날만 핵심 자리를 차지
+        return None
+    picks = alerts[:3]
     names = " · ".join(f"{it['category']} {it['name']}" for it in picks)
-    more = len(alerts or warns) - len(picks)
+    more = len(alerts) - len(picks)
     return {
-        "level": "warn" if alerts else "info",
+        "level": "warn",
         "title": f"리스크 공시 ALERT {len(alerts)}곳 · WARN {len(warns)}곳",
         "detail": f"{ref} 기준 · {names}" + (f" 외 {more}곳" if more > 0 else ""),
         "tab": "risk",

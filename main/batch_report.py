@@ -13,6 +13,7 @@ from typing import Callable
 import requests
 
 from main import api_meter
+from main.redact import redact
 from main.config import get_settings
 from main.utils import now_kst
 
@@ -32,7 +33,7 @@ def _short_error(exc: Exception) -> str:
     resp = getattr(exc, "response", None)
     if resp is not None and getattr(resp, "status_code", None):
         return f"HTTP {resp.status_code}"
-    msg = str(exc).split("?")[0].replace("\n", " ").strip()
+    msg = redact(str(exc)).split("?")[0].replace("\n", " ").strip()
     return f"{type(exc).__name__}: {msg[:80]}" if msg else type(exc).__name__
 
 

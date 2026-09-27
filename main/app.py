@@ -13,8 +13,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, jsonify, render_template, request
 
-from main import api_meter
+from main import api_meter, redact
 api_meter.install()   # 외부 API 호출 수 집계(배치 결과 텔레그램 알림용) — 다른 모듈 import 전에
+redact.install()      # 로그에 API 키(오류 메시지 속 URL 등)가 찍히지 않게 가림
 
 from capital.briefing import get_market_briefing
 from capital.cma import get_cma_rates
@@ -122,6 +123,7 @@ _MORNING_JOBS: list[tuple[str, Callable[[], object]]] = [
     ("단기자금 시황 브리프", get_funding_briefs),   # 전날 저녁 올라온 자료 반영
     ("단기자금 관련 뉴스", lambda: get_funding_news(rebuild=True)),
     ("심사·리스크 공시 시그널", lambda: get_signals(force=True)),   # 밤사이 공시 반영
+    ("심사·리스크 워치 유니버스", get_watch),   # 새 거래일 시세가 올라왔으면 여기서 미리 재계산
     ("심사·리스크 관련 뉴스", lambda: get_risk_news(rebuild=True)),
 ]
 

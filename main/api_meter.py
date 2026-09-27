@@ -35,6 +35,11 @@ _HOST_LABELS = [
     ("hankyung.com", "한경"),
     ("freesis.kofia.or.kr", "금투협 FreeSIS"),
     ("kofia.or.kr", "금융투자협회"),
+    ("moef.go.kr", "재정경제부"),
+    ("kdic.or.kr", "예금보험공사"),
+    ("ksd.or.kr", "한국예탁결제원"),
+    ("krx.co.kr", "한국거래소"),
+    ("38.co.kr", "38커뮤니케이션"),
 ]
 _EXCLUDE = ("api.telegram.org", "supabase.co")   # 알림 발송·DB 저장은 외부 데이터 호출이 아님
 

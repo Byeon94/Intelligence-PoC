@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 _TABLE = "risk_watch_snapshots"
 _UNIVERSE = 30
+_RETRY_AFTER_FAIL = 600      # 초 — 생성 실패 후 이 시간 동안은 화면 요청이 재시도하지 않음
+_last_fail = [0.0]           # 테이블 락 안에서만 읽고 씀
 _HISTORY_DAYS = 150          # 달력일 — 60거래일 변동성 + 20일 평균에 충분
 STATUS_RULE = ("ALERT: 등락률 −8% 이하 또는 DART 리스크 공시(ALERT) · "
                "WARN: 등락률 −4% 이하, 20일 수익률 −15% 이하, 거래량배율 3배 이상 또는 DART 공시(WARN)")
@@ -110,11 +113,16 @@ def get_watch() -> dict:
     today = today_iso()
     with table_lock(_TABLE):
         snap = get_snapshot(_TABLE, today)
-        if snap is None or (as_of and snap.get("as_of") != as_of):
+        needs = snap is None or (as_of and snap.get("as_of") != as_of)
+        cooling = time.time() - _last_fail[0] < _RETRY_AFTER_FAIL
+        if needs and snap is not None and cooling:
+            snap = {**snap, "stale": True}     # 직전 실패 직후 — 30종목 재조회로 요청을 붙잡지 않음
+        elif needs:
             try:
                 snap = _build_watch(as_of)
                 save_snapshot(_TABLE, today, snap)
             except Exception as exc:  # noqa: BLE001
+                _last_fail[0] = time.time()
                 logger.warning("워치 유니버스 생성 실패: %s", exc)
                 snap = snap or latest_snapshot(_TABLE)
                 if snap is None:
@@ -151,7 +159,7 @@ def _sector_level(d1: float | None, d20: float | None) -> str:
 def get_sector_heat() -> dict:
     today = today_kst()
     rows = get_json(INDEX_SERVICE, INDEX_OP, {
-        "beginBasDt": (today - timedelta(days=45)).strftime("%Y%m%d"),
+        "beginBasDt": (today - timedelta(days=40)).strftime("%Y%m%d"),   # 20영업일 + 휴장 여유
         "endBasDt": today.strftime("%Y%m%d"),
     })
     series: dict[str, list[tuple[str, float, float | None]]] = {}
@@ -164,6 +172,8 @@ def get_sector_heat() -> dict:
             series.setdefault(name, []).append((str(pick(r, "basDt")), close, to_float(pick(r, "fltRt"))))
     if not series:
         raise RuntimeError("KRX 업종지수 응답 없음")
+    if len(rows) >= 10000:   # get_json 한 페이지 상한 — 넘으면 오래된 날짜가 잘렸을 수 있음
+        logger.warning("KRX 지수시세 응답이 한 페이지 상한(10,000행)에 닿음 — 20일 등락률이 비을 수 있음")
     sectors, as_of = [], None
     for name in KOSPI_SECTORS:
         s = sorted(series.get(name) or [])
