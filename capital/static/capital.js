@@ -9,7 +9,7 @@
     return Number(n).toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
   function srcBadge(source) {
-    if (source === "live") return '<span class="src-badge live">● 연결됨</span>';
+    if (source === "live") return '<span class="src-badge live">● 연결</span>';
     if (source === "curated") return '<span class="src-badge sample">● 큐레이션</span>';
     if (source === "ai_search") return '<span class="src-badge sample">● AI 검색</span>';
     return '<span class="src-badge sample">● 샘플</span>';

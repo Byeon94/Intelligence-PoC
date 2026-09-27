@@ -6,7 +6,7 @@
   --fg: #1b2333; --muted: #667085; --accent: #2f6fed; --accent-bg: rgba(47,111,237,.08);
   --up: #12805c; --down: #dc2626;
   /* 주가 등락 전용(국내 증권 관행: 상승=빨강, 하락=파랑) — --up/--down 은 "전사 등재"·
-     "연결됨" 같은 일반 성공/강조 배지에도 쓰이므로 등락 표시는 이 변수만 쓴다 */
+     "연결" 같은 일반 성공/강조 배지에도 쓰이므로 등락 표시는 이 변수만 쓴다 */
   --stock-up: #dc2626; --stock-down: #2563eb;
   --c1: #2f6fed; --c2: #e8912d; --c3: #12a150; --c4: #e0489e; --c5: #8b5cf6; --c6: #ef4444;
   --shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.045);
@@ -425,8 +425,10 @@ main { flex: 1 1 auto; min-width: 0; padding: 16px 14px 64px; }
 }
 /* KPI 카드 제목 옆 "!" — 팝업을 카드 폭에 맞춰 제목 아래로 */
 .kpi.kpi-has-info { position: relative; }
-/* 좁은 폰(360px)에서 제목이 "잔/고"처럼 글자 중간에서 끊기지 않게 — 넘치면 배지만 다음 줄로 */
-.kpi.kpi-has-info .k-label { flex-wrap: wrap; white-space: nowrap; row-gap: 3px; }
+/* 좁은 폰(360px)에서 카드 제목·배지가 "잔/고", "연/결"처럼 글자 중간에서 끊기지 않게 —
+   줄바꿈은 띄어쓰기에서만, 넘치면 배지만 다음 줄로 */
+.kpi .k-label { flex-wrap: wrap; row-gap: 3px; word-break: keep-all; }
+.kpi .k-label .src-badge { white-space: nowrap; }
 .kpi .asof-info.k-info { margin-left: 0; }
 .kpi > .asof-popup {
   top: 34px; left: 10px; right: 10px; width: auto; max-width: none; margin-top: 0;

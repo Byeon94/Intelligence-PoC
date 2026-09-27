@@ -5,7 +5,8 @@
   #capital-root .chart-wrap { max-width: 520px; }
 }
 
-/* 모바일: "증시 대기·레버리지 자금" 제목이 옆의 기준일과 함께 한 줄에 들어가도록 한 단계 작게 */
-@media (max-width: 519px) {
-  .block-head h3.liq-title { font-size: .86rem; white-space: nowrap; }
-}
+/* "증시 대기·레버리지 자금" — 다른 제목과 같은 크기를 유지하고, 좁은 폰에서 제목 글자가 중간에
+   끊기지 않게 제목은 한 줄로 두고 공간이 모자라면 오른쪽 기준일만 다음 줄(오른쪽 정렬)로 */
+.block-head.liq-head { flex-wrap: wrap; row-gap: 4px; }
+.block-head.liq-head h3 { white-space: nowrap; }
+.block-head.liq-head .asof { margin-left: auto; }
