@@ -32,9 +32,9 @@ _KIDB_LIST = "https://www.kidb.com/bbs/board.php?bo_table=money"
 _KMB_LIST = "https://www.kmbco.com/kor/trendi/money_trend.do"
 _KMB_DOWNLOAD = "https://www.kmbco.com/common/downloadFile.do"
 
-SOURCES = {   # 키 → (화면 이름, 스냅샷 테이블 — 자료 날짜별 1행)
-    "kidb": ("KIDB 머니마켓브리프", "funding_kidb_brief_snapshots"),
+SOURCES = {   # 키 → (화면 이름, 스냅샷 테이블 — 자료 날짜별 1행). 화면 표시 순서 그대로.
     "kmb": ("한국자금중개 시황 브리프", "funding_kmb_brief_snapshots"),
+    "kidb": ("KIDB 머니마켓브리프", "funding_kidb_brief_snapshots"),
 }
 
 _MAX_BULLETS = 6

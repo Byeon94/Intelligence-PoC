@@ -32,7 +32,7 @@
     { type: "spot", nav: "capital",
       selRange: ['.side-btn[data-cat="capital"]', '.side-btn[data-cat="research"]'],
       title: "업무별 메뉴(부서 위젯)",
-      body: "자본시장·여신·단기자금·정책·규제·뉴스처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다." },
+      body: "자본시장·단기자금·여신·정책·규제·뉴스처럼 부서별 상세 화면은 여기서 바로 이동해 확인할 수 있습니다." },
     { type: "done" }
   ];
   var SPOT_STEPS = OB_STEPS.filter(function (s) { return s.type === "spot"; });
