@@ -37,3 +37,9 @@
   }
   #cma-rates .rate-table { min-width: 470px; }
 }
+/* RP형·발행어음형 칸별 최고 금리 */
+#cma-rates td.cma-top { color: var(--accent); font-weight: 800; }
+#cma-rates .cma-top-badge {
+  display: inline-block; margin-left: 5px; font-size: .6rem; font-weight: 700; vertical-align: 1px;
+  border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px;
+}

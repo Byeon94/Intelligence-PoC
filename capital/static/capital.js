@@ -144,15 +144,25 @@
         "증권사 공식 홈페이지" + (d.stale ? " · 이전값" : "");
       document.getElementById("cma-rate-note").textContent = d.note || "";
       var dash = '<span class="dash">–</span>';
-      function pctCell(v) { return v != null ? num(v, 2) + "%" : dash; }
-      var rows = d.companies.map(function (c, i) {
+      // RP형·발행어음형 칸마다 최고 금리에 "최고" 배지(공동 1위는 모두)
+      function maxOf(k) {
+        return d.companies.reduce(function (m, c) { return c[k] != null && (m == null || c[k] > m) ? c[k] : m; }, null);
+      }
+      var topRp = maxOf("rp_rate"), topNote = maxOf("note_rate");
+      function pctCell(v, top) {
+        if (v == null) return '<td>' + dash + '</td>';
+        return v === top
+          ? '<td class="cma-top">' + num(v, 2) + '%<span class="cma-top-badge">최고</span></td>'
+          : '<td>' + num(v, 2) + '%</td>';
+      }
+      var rows = d.companies.map(function (c) {
         var link = c.url ? '<a class="cma-src" href="' + esc(window.KSFC.safeUrl(c.url)) + '" target="_blank" rel="noopener">' : "";
         var when = c.as_of ? c.as_of.slice(2).replace(/-/g, ".") : "기준일 미표기";
         var basis = c.unavailable ? "확인 불가" : when + (c.stale ? " · 이전값" : "");
-        return '<tr class="' + (i === 0 && !c.unavailable ? "top-row" : "") + '">' +
+        return '<tr>' +
           '<td>' + esc(c.company) + (c.product ? '<span class="cma-product">' + esc(c.product) + '</span>' : "") + '</td>' +
-          '<td>' + pctCell(c.rp_rate) + '</td>' +
-          '<td>' + pctCell(c.note_rate) + '</td>' +
+          pctCell(c.rp_rate, topRp) +
+          pctCell(c.note_rate, topNote) +
           '<td class="cma-basis">' + (link ? link + esc(basis) + " ↗</a>" : esc(basis)) + '</td>' +
           '</tr>';
       }).join("");
