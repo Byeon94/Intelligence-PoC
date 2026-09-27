@@ -49,6 +49,13 @@ def _budget_ok(cap: int) -> bool:
     return True
 
 
+def daily_usage() -> int:
+    """오늘(KST) 일일 예산에 잡힌 Gemini 호출 수 — 배치 결과 알림용(읽기만)."""
+    from main.snapshot_store import get_snapshot
+
+    return (get_snapshot(_USAGE_TABLE, today_iso()) or {}).get("count", 0)
+
+
 def generate_text(
     contents: str,
     *,
@@ -85,6 +92,8 @@ def generate_text(
     elif thinking:
         config["thinking_config"] = _thinking_config(s.gemini_model)
 
+    from main import api_meter
+    api_meter.count("Gemini")   # 배치 결과 알림의 "이번 배치 Gemini 호출" 집계(예산 제외 호출 포함)
     client = Client(api_key=s.gemini_api_keys[0])   # 지역변수로 유지(임시 객체면 GC 가 httpx 를 닫아버림)
     try:
         resp = client.models.generate_content(

@@ -42,3 +42,7 @@ services:
         sync: false
       - key: WARMUP_KEY
         sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false

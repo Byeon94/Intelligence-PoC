@@ -43,6 +43,10 @@ class Settings:
     # 호출하면 각 탭의 그날 스냅샷을 미리 만들어둔다(main/app.py _WARMUP_JOBS). 비면 403.
     warmup_key: str | None
 
+    # 텔레그램 봇 — 배치 결과 알림(main/batch_report.py). 둘 다 있어야 발송, 없으면 건너뜀.
+    telegram_bot_token: str | None
+    telegram_chat_id: str | None
+
 
 def _env(name: str) -> str | None:
     v = os.getenv(name)
@@ -76,4 +80,6 @@ def get_settings() -> Settings:
         supabase_url=_env("SUPABASE_URL"),
         supabase_key=_env("SUPABASE_KEY"),
         warmup_key=_env("WARMUP_KEY"),
+        telegram_bot_token=_env("TELEGRAM_BOT_TOKEN"),
+        telegram_chat_id=_env("TELEGRAM_CHAT_ID"),
     )

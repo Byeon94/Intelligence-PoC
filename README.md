@@ -118,6 +118,7 @@ flask --app main.app run --port 5000
 | `ECOS_API_KEY` | 한국은행 ECOS Open API — 단기자금 탭(없으면 탭에 오류 문구만 표시) |
 | `SUPABASE_URL` / `SUPABASE_KEY` | 스냅샷 저장(없으면 프로세스 메모리) |
 | `WARMUP_KEY` | `/internal/warmup` 인증(없으면 403) |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` | 배치 결과 텔레그램 알림(main/batch_report.py, 없으면 발송 안 함) |
 
 ## 배포 (Render)
 

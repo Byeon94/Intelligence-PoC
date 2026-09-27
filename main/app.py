@@ -13,6 +13,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from flask import Flask, jsonify, render_template, request
 
+from main import api_meter
+api_meter.install()   # 외부 API 호출 수 집계(배치 결과 텔레그램 알림용) — 다른 모듈 import 전에
+
 from capital.briefing import get_market_briefing
 from capital.cma import get_cma_rates
 from capital.issuance.calendar import get_issuance_digest
@@ -28,6 +31,7 @@ from it_news.curate import get_it_news_digest
 from it_news.widget import it_news_bp
 from lending.news import get_lending_news
 from lending.widget import lending_bp
+from main.batch_report import run_and_report
 from main.config import get_settings
 from main.home import get_home_summary
 from policy.briefing import get_policy_digest
@@ -122,15 +126,13 @@ _MORNING_JOBS: list[tuple[str, Callable[[], object]]] = [
 ]
 
 
-def _run_warmup(jobs: list[tuple[str, Callable[[], object]]]) -> None:
+def _run_warmup(mode: str, jobs: list[tuple[str, Callable[[], object]]]) -> None:
+    """작업을 순서대로 실행(한 작업 실패가 다음을 막지 않음)하고, 끝나면 결과를 텔레그램으로
+    보고한다(main/batch_report.py — TELEGRAM_* 미설정이면 보고만 건너뜀)."""
     if not _warmup_lock.acquire(blocking=False):
         return
     try:
-        for label, job in jobs:
-            try:
-                job()
-            except Exception:  # noqa: BLE001
-                logger.exception("%s 워밍업 실패", label)
+        run_and_report(mode, jobs)
     finally:
         _warmup_lock.release()
 
@@ -152,7 +154,7 @@ def warmup():
         return jsonify({"status": "already_running"}), 202
     morning = request.args.get("mode") == "morning"
     jobs = _MORNING_JOBS if morning else _WARMUP_JOBS
-    threading.Thread(target=_run_warmup, args=(jobs,), daemon=True).start()
+    threading.Thread(target=_run_warmup, args=("morning" if morning else "daily", jobs), daemon=True).start()
     return jsonify({"status": "started", "mode": "morning" if morning else "daily"}), 202
 
 
