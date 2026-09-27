@@ -157,7 +157,7 @@
       }
       var rows = d.companies.map(function (c) {
         var link = c.url ? '<a class="cma-src" href="' + esc(window.KSFC.safeUrl(c.url)) + '" target="_blank" rel="noopener">' : "";
-        var when = c.as_of ? c.as_of.slice(2).replace(/-/g, ".") : "기준일 미표기";
+        var when = c.as_of ? c.as_of.slice(2).replace(/-/g, ".") : "미표기";
         var basis = c.unavailable ? "확인 불가" : when + (c.stale ? " · 이전값" : "");
         return '<tr>' +
           '<td>' + esc(c.company) + (c.product ? '<span class="cma-product">' + esc(c.product) + '</span>' : "") + '</td>' +
@@ -168,7 +168,7 @@
       }).join("");
       document.getElementById("cma-rates").innerHTML =
         '<table class="rate-table"><thead><tr>' +
-        '<th>증권사</th><th>RP형<span class="cma-th2"> CMA</span></th><th>발행어음형<span class="cma-th2"> CMA</span></th><th class="cma-basis">기준일(출처)</th>' +
+        '<th>증권사</th><th>RP형<span class="cma-th2"> CMA</span></th><th>발행어음형<span class="cma-th2"> CMA</span></th><th class="cma-basis">기준일<span class="cma-th2">(출처)</span></th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>';
     }).catch(function (e) { fail("cma-rates", e.message); });
   }

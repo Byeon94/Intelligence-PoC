@@ -28,23 +28,23 @@
 /* CMA 잔고 카드 3종(RP형 최고금리 카드 제거) — 넓은 화면 3열 */
 @media (min-width: 720px) { #capital-root .cma-kpis { grid-template-columns: repeat(3, 1fr); } }
 #cma-rates .cma-product { display: block; color: var(--muted); font-size: .7rem; font-weight: 500; }
-/* 모바일: 첫 화면에 증권사·RP형·발행어음형까지 보이게 칸을 좁히고, 기준일(출처)만 옆으로 밀어서 보게
-   (table-wrap 가로 스크롤) — 증권사 칸은 왼쪽 고정 */
+/* 모바일: 첫 화면에 4개 칸(증권사·RP형·발행어음형·기준일)이 다 보이게 칸·글씨를 좁힌다.
+   더 좁은 폰에서 넘치면 옆으로 밀어서 보게(table-wrap 가로 스크롤) — 증권사 칸은 왼쪽 고정 */
 @media (max-width: 519px) {
   #cma-rates { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
-  #cma-rates .rate-table { font-size: .8rem; }
-  #cma-rates th, #cma-rates td { padding: 9px 7px; }
+  #cma-rates .rate-table { font-size: .78rem; }
+  #cma-rates th, #cma-rates td { padding: 9px 5px; }
   #cma-rates th:first-child, #cma-rates td:first-child {
     position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border2);
-    width: 112px; min-width: 112px; max-width: 112px; padding-left: 10px;
+    width: 98px; min-width: 98px; max-width: 98px; padding-left: 9px;
     white-space: normal; word-break: keep-all;
   }
-  #cma-rates .cma-product { font-size: .66rem; line-height: 1.3; margin-top: 1px; }
-  /* 헤더는 "RP형 / CMA" 두 줄, 금리 칸 폭을 맞춤 */
+  #cma-rates .cma-product { font-size: .64rem; line-height: 1.3; margin-top: 1px; }
+  /* 헤더는 "RP형 / CMA", "기준일 / (출처)" 두 줄, 금리 칸 폭을 맞춤 */
   #cma-rates .cma-th2 { display: block; }
   #cma-rates th:nth-child(2), #cma-rates td:nth-child(2),
-  #cma-rates th:nth-child(3), #cma-rates td:nth-child(3) { min-width: 74px; }
-  #cma-rates td.cma-basis { padding-right: 10px; }
+  #cma-rates th:nth-child(3), #cma-rates td:nth-child(3) { min-width: 60px; }
+  #cma-rates .cma-basis { font-size: .7rem; padding-right: 9px; }
 }
 /* RP형·발행어음형 칸별 최고 금리 */
 #cma-rates td.cma-top { color: var(--accent); font-weight: 800; }

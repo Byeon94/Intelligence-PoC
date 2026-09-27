@@ -142,8 +142,9 @@ body {
   }
   /* 좌우 여백 20px(네이버 모바일 참고) — 브랜드·"부서 위젯" 라벨·본문(main)이 같은 선에서 시작 */
   .side-brand { padding: 10px 0 10px 20px; flex: 0 0 auto; order: 1; }
-  /* "부서 위젯" 라벨(.88rem)과 같은 크기 — 두 줄의 왼쪽 제목이 같은 무게로 보이게 */
-  .side-brand-name { font-size: .88rem; }
+  /* "부서 위젯" 라벨(.92rem)과 같은 크기 — 두 줄의 왼쪽 제목이 같은 무게로 보이게 */
+  .side-brand-name { font-size: .92rem; }
+  .side-group-label { font-size: .92rem; }
   /* 1행 버튼(홈·나의 대시보드·소개)은 오른쪽 정렬 — 오른쪽 여백 20px로 "소개" 끝을 2행
      "뉴스" 끝과 맞추고, 남는 폭은 전부 "PoC"와 "홈" 사이 간격이 된다(최소 16px).
      justify-content:flex-end 대신 첫 버튼의 margin-left:auto 를 쓰는 이유: 폭이 모자라
@@ -180,9 +181,9 @@ body {
   }
   .side-row-work-scroll::-webkit-scrollbar { display: none; }
   /* 이모지-글자 간격(데스크톱 9px)을 4px로 줄여 확보한 폭을 버튼 사이 간격으로 쓴다 */
-  .side-btn { flex: 0 0 auto; gap: 4px; padding: 9px 8px; font-size: .8rem; }
-  .side-row-primary { gap: 6px; }
-  .side-row-primary .side-btn { padding: 9px 7px; }
+  .side-btn { flex: 0 0 auto; gap: 4px; padding: 9px 8px; font-size: .86rem; }
+  .side-row-primary { gap: 2px; }
+  .side-row-primary .side-btn { padding: 9px 5px; gap: 3px; }
   .side-sep { display: none; }
   /* 아주 좁은 폰에서 버튼이 넘칠 때만(.is-overflow — index.html 스크립트가 붙임) 오른쪽 끝에
      사이드바 배경색 페이드를 얹어 "스크롤하면 더 있다"를 보여준다. 다 들어갈 때 페이드를
@@ -197,19 +198,25 @@ body {
 /* 아주 좁은 화면(구형/저가 기기)에서는 2행조차 빠듯해질 수 있어 글자·여백을 한 번 더
    줄여 실제로 보이는 버튼 수를 늘린다(스크롤에만 의존하지 않도록). */
 @media (max-width: 400px) {
-  .side-brand-name { font-size: .8rem; }   /* "부서 위젯" 라벨(.8rem)과 같은 크기 */
-  .side-btn { padding: 8px 6px; font-size: .76rem; }
+  .side-brand-name { font-size: .86rem; }   /* "부서 위젯" 라벨(.86rem)과 같은 크기 */
+  .side-btn { padding: 8px 6px; font-size: .84rem; }
   /* 오른쪽 여백을 두 행 모두 16px로(정렬 유지) 줄여, 그 폭을 "PoC"–"홈" 간격으로 돌린다 */
   .side-row-primary { padding-right: 16px; }
   .side-row-work { padding-right: 16px; }
   .side-row-primary .side-btn { padding: 8px 4px; }
-  .side-group-label { font-size: .8rem; }
+  .side-group-label { font-size: .86rem; }
+  /* 1행은 이모지-글자 간격·버튼 사이 간격을 줄여 "소개"까지 한 화면에 */
+  .side-row-primary { gap: 2px; padding-left: 10px; }
+  .side-row-primary .side-btn { gap: 3px; }
+  .side-brand { gap: 5px; }
 }
 /* 360px급(갤럭시 등): 버튼 여백을 한 단계 더 줄여 "소개"·"뉴스"까지 페이드 없이 다 들어오게 */
 @media (max-width: 370px) {
   .side-btn { padding: 8px 4px; }
-  .side-row-primary { gap: 4px; padding-left: 12px; }
-  .side-row-primary .side-btn { padding: 8px 3px; }
+  .side-row-primary { gap: 1px; padding-left: 8px; }
+  .side-row-primary .side-btn { padding: 8px 3px; gap: 2px; }
+  .side-btn { font-size: .8rem; }
+  .side-brand-name, .side-group-label { font-size: .82rem; }
 }
 
 /* ── 레이아웃 ── */
