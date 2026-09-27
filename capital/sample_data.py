@@ -45,6 +45,9 @@ def liquidity_trend(months: int = 24) -> dict:
             "investor_deposits": deposits,
             "credit_balance": credit,
             "cma_balance": cma,
+            # 샘플: 신용공여를 대략 신용융자 56% · 예탁증권담보융자 44% 로 나눈 합성값
+            "credit_loan": [round(v * 0.56, 2) for v in credit],
+            "securities_loan": [round(v * 0.44, 2) for v in credit],
         },
         "unit": "조원",
         "source": "sample",
@@ -56,6 +59,7 @@ def liquidity_summary() -> dict:
     dep = tr["series"]["investor_deposits"]
     cr = tr["series"]["credit_balance"]
     cma = tr["series"]["cma_balance"]
+    loan, sec = tr["series"]["credit_loan"], tr["series"]["securities_loan"]
     ratio = round(cr[-1] / dep[-1] * 100, 2)
     prev_ratio = round(cr[-2] / dep[-2] * 100, 2)
     return {
@@ -66,6 +70,8 @@ def liquidity_summary() -> dict:
             "investor_deposits": {"value": dep[-1], "change": round(dep[-1] - dep[-2], 2)},
             "credit_balance": {"value": cr[-1], "change": round(cr[-1] - cr[-2], 2)},
             "cma_balance": {"value": cma[-1], "change": round(cma[-1] - cma[-2], 2)},
+            "credit_loan": {"value": loan[-1], "change": round(loan[-1] - loan[-2], 2)},
+            "securities_loan": {"value": sec[-1], "change": round(sec[-1] - sec[-2], 2)},
             "credit_deposit_ratio": {"value": ratio, "change": round(ratio - prev_ratio, 2), "unit": "%"},
         },
         "source": "sample",

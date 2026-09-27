@@ -47,13 +47,12 @@
       document.getElementById("liq-kpis").innerHTML = [
         kpi({ label: "투자자예탁금", value: num(it.investor_deposits.value, 1), unit: u,
               delta: deltaHTML(it.investor_deposits.change, "", basis), source: d.source }),
-        kpi({ label: "신용공여 잔고", value: num(it.credit_balance.value, 1), unit: u,
-              info: "신용공여 잔고 =\n  신용거래융자\n+ 신용거래대주\n+ 청약자금대출\n+ 예탁증권담보융자",
-              delta: deltaHTML(it.credit_balance.change, "", basis), source: d.source }),
         kpi({ label: "CMA 잔고", value: num(it.cma_balance.value, 1), unit: u,
               delta: deltaHTML(it.cma_balance.change, "", basis), source: d.source }),
-        kpi({ label: "신용공여 / 예탁금", value: num(it.credit_deposit_ratio.value, 2), unit: "%",
-              delta: deltaHTML(it.credit_deposit_ratio.change, "%p", basis), source: d.source })
+        kpi({ label: "신용융자", value: num((it.credit_loan || {}).value, 1), unit: u,
+              delta: deltaHTML((it.credit_loan || {}).change, "", basis), source: d.source }),
+        kpi({ label: "예탁증권담보융자", value: num((it.securities_loan || {}).value, 1), unit: u,
+              delta: deltaHTML((it.securities_loan || {}).change, "", basis), source: d.source })
       ].join("");
     }).catch(function (e) { fail("liq-kpis", e.message); });
   }
@@ -64,9 +63,11 @@
       window.Charts.line(document.getElementById("liq-trend"), {
         labels: d.labels,
         series: [
-          { name: "투자자예탁금", values: d.series.investor_deposits, varName: "--c1" },
-          { name: "신용공여", values: d.series.credit_balance, varName: "--c2" },
-          { name: "CMA", values: d.series.cma_balance, varName: "--c3" }
+          // 빨강·파랑·초록·보라(주황 제외) — 선명한 색은 capital.css 의 --liq-* 변수
+          { name: "투자자예탁금", values: d.series.investor_deposits, varName: "--liq-red" },
+          { name: "CMA", values: d.series.cma_balance, varName: "--liq-blue" },
+          { name: "신용융자", values: d.series.credit_loan || [], varName: "--liq-green" },
+          { name: "예탁증권담보융자", values: d.series.securities_loan || [], varName: "--liq-purple" }
         ]
       });
     }).catch(function (e) { fail("liq-trend", e.message); });

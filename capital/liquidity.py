@@ -53,6 +53,16 @@ def _credit_total(row: dict) -> float | None:
     return round(sum(vals) / JO, 2)
 
 
+def _credit_loan(row: dict) -> float | None:
+    """신용거래융자(전체) 잔고."""
+    return _jo(pick(row, "crdTrFingWhl"))
+
+
+def _securities_loan(row: dict) -> float | None:
+    """예탁증권담보융자 잔고."""
+    return _jo(pick(row, "dpsgScrtMogFing"))
+
+
 def _cma_total_by_day(cma_rows: list[dict]) -> "OrderedDict[str, float]":
     """basDt → CMA 총잔고(조원).  mngInvTgt=='합계' 행의 개인+기관 합."""
     acc: dict[str, float] = {}
@@ -94,6 +104,8 @@ def _live_trend(months: int) -> dict:
 
     dep = _monthly_last(fund, _investor_deposits)
     cr = _monthly_last(credit, _credit_total)
+    loan = _monthly_last(credit, _credit_loan)
+    sec = _monthly_last(credit, _securities_loan)
     cm = _monthly_from_daymap(_cma_total_by_day(cma))
 
     labels = sorted(set(dep) & set(cm))[-n:]
@@ -105,6 +117,8 @@ def _live_trend(months: int) -> dict:
             "investor_deposits": [dep.get(k) for k in labels],
             "credit_balance": [cr.get(k) for k in labels],
             "cma_balance": [cm.get(k) for k in labels],
+            "credit_loan": [loan.get(k) for k in labels],
+            "securities_loan": [sec.get(k) for k in labels],
         },
         "unit": "조원",
         "source": "live",
@@ -127,6 +141,8 @@ def _live_summary() -> dict:
 
     dep, dep0 = last2(fund, _investor_deposits)
     cr, cr0 = last2(credit, _credit_total)
+    loan, loan0 = last2(credit, _credit_loan)
+    sec, sec0 = last2(credit, _securities_loan)
     cma_vals = list(cma_daymap.values())
     cm, cm0 = cma_vals[-1], (cma_vals[-2] if len(cma_vals) > 1 else cma_vals[-1])
     if None in (dep, cr, cm):
@@ -142,6 +158,9 @@ def _live_summary() -> dict:
             "investor_deposits": {"value": dep, "change": round(dep - dep0, 2)},
             "credit_balance": {"value": cr, "change": round(cr - cr0, 2)},
             "cma_balance": {"value": cm, "change": round(cm - cm0, 2)},
+            # 화면 카드는 예탁금·CMA·신용융자·예탁증권담보융자 4종. credit_balance·ratio 는 홈 위젯·유동성 알림용
+            "credit_loan": {"value": loan, "change": None if loan is None else round(loan - loan0, 2)},
+            "securities_loan": {"value": sec, "change": None if sec is None else round(sec - sec0, 2)},
             "credit_deposit_ratio": {"value": ratio, "change": round(ratio - ratio0, 2), "unit": "%"},
         },
         "source": "live",

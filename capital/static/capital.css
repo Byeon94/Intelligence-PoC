@@ -10,3 +10,13 @@
 .block-head.liq-head { flex-wrap: wrap; row-gap: 4px; }
 .block-head.liq-head h3 { white-space: nowrap; }
 .block-head.liq-head .asof { margin-left: auto; }
+
+/* 투자자예탁금·CMA·신용융자·예탁증권담보융자 추이 — 주황 없이 선명한 빨강·파랑·초록·보라 */
+:root, [data-theme="light"] {
+  --liq-red: #e5202e; --liq-blue: #1d64f2; --liq-green: #0fa958; --liq-purple: #8b3dff;
+}
+[data-theme="dark"] {
+  --liq-red: #ff5a64; --liq-blue: #4f8dff; --liq-green: #34d17f; --liq-purple: #a879ff;
+}
+/* 긴 추이 제목 — 모바일에서 "예탁증권/담보융자"처럼 단어 중간이 아니라 두 덩어리(span) 사이에서만 줄바꿈 */
+.block-head h3.liq-trend-title span { white-space: nowrap; }
