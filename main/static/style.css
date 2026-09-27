@@ -176,6 +176,7 @@ body {
     position: relative;
     display: flex; flex-direction: row; justify-content: space-between; gap: 2px;
     min-width: 0; flex: 1 1 0; overflow-x: auto; scrollbar-width: none;
+    overscroll-behavior-x: contain;   /* 옆으로 밀 때 브라우저 뒤로가기 제스처로 번지지 않게 */
   }
   .side-row-work-scroll::-webkit-scrollbar { display: none; }
   /* 이모지-글자 간격(데스크톱 9px)을 4px로 줄여 확보한 폭을 버튼 사이 간격으로 쓴다 */

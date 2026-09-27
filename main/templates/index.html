@@ -227,6 +227,7 @@ function applyView(cat) {
 
   history.replaceState(null, '', '#' + cat);
   window.scrollTo(0, 0);
+  revealActiveNav();
 
   if (window.HomeDashboard) {
     if (cat === 'home') window.HomeDashboard.enterHome();
@@ -239,6 +240,17 @@ function applyView(cat) {
 }
 
 window.AppNav = { go: applyView };
+
+// 모바일 2행(부서 위젯)은 옆으로 밀어서 고르는 스크롤 줄 — 선택된 버튼이 화면 밖에 있으면
+// (예: 뉴스로 바로 들어온 경우) 그 버튼이 보이도록 줄만 가로로 밀어준다(페이지 세로 스크롤은 건드리지 않음).
+function revealActiveNav() {
+  var row = document.querySelector('.side-row-work-scroll');
+  var btn = row && row.querySelector('.side-btn.active');
+  if (!row || !btn || row.scrollWidth <= row.clientWidth) return;
+  var r = row.getBoundingClientRect(), b = btn.getBoundingClientRect();
+  if (b.left < r.left) row.scrollLeft -= (r.left - b.left) + 8;
+  else if (b.right > r.right - 18) row.scrollLeft += (b.right - r.right) + 26;  // 18px 페이드만큼 여유
+}
 
 // 모바일 상단 두 메뉴 행이 실제로 넘칠 때만 .is-overflow(오른쪽 끝 페이드)를 붙인다(style.css 참고).
 function markNavOverflow() {
