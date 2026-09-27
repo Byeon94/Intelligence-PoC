@@ -1,4 +1,4 @@
-"""자본시장 > CMA > 증권사별 CMA 금리 — 증권사 공식 홈페이지 기준(상위 9개사, 키움 제외).
+"""자본시장 > CMA > 증권사별 CMA 금리 — 증권사 공식 홈페이지 기준(네이버페이 CMA 비교 20개사 중 18곳).
 
 매일 00:01 KST 새벽 배치(/internal/warmup 의 "CMA 금리")가 각 증권사 CMA 안내 페이지를 읽어
 (capital/cma_firms.py) 그날 스냅샷(cma_rate_snapshots)으로 저장하고, 화면은 그 스냅샷만 읽는다.
@@ -22,35 +22,38 @@ from .cma_firms import FIRMS, fetch_firm
 logger = logging.getLogger(__name__)
 _TABLE = "cma_rate_snapshots"
 _SOURCE = "official"
-_NOTE = ("각 증권사 공식 홈페이지의 CMA 안내 페이지에서 매일 새벽 확인한 값입니다(개인 기본 금리, 세전 연 %, "
-         "대량예치·이벤트 우대 제외). 기준일은 증권사가 페이지에 적은 날짜이며, 정확한 조건은 각 사 안내를 확인하세요.")
+_NOTE = ("네이버페이 CMA 비교에 나오는 20개 증권사 중 공식 홈페이지에서 금리를 확인할 수 있는 18개사입니다"
+         "(신영증권·케이프투자증권은 사이트 조회 제한으로 제외). 각 사 CMA 안내 페이지에서 매일 새벽 확인한 "
+         "개인 기본 금리(세전 연 %, 대량예치·이벤트 우대 제외)이며, 미래에셋증권은 일반 CMA와 네이버통장을 따로 표시합니다. "
+         "기준일은 증권사가 페이지에 적은 날짜이며, 정확한 조건은 각 사 안내를 확인하세요.")
 
 
 def _fetch_one(firm: tuple) -> dict:
     name, fn, link = firm
+    key = fn.__name__ if fn else name   # 같은 증권사의 상품 여러 개(미래에셋 일반·네이버통장)를 구분
     if fn is None:
-        return {"company": name, "ok": False, "url": link}
+        return {"key": key, "company": name, "ok": False, "url": link}
     try:
-        return {"company": name, "ok": True, **fetch_firm(fn)}
+        return {"key": key, "company": name, "ok": True, **fetch_firm(fn)}
     except Exception as exc:  # noqa: BLE001 - 한 곳 실패가 나머지를 막지 않게
-        logger.warning("CMA 금리 파싱 실패(%s): %s", name, type(exc).__name__)
-        return {"company": name, "ok": False, "url": link}
+        logger.warning("CMA 금리 파싱 실패(%s): %s", key, type(exc).__name__)
+        return {"key": key, "company": name, "ok": False, "url": link}
 
 
 def _collect(prev: dict | None) -> dict:
     with ThreadPoolExecutor(max_workers=5) as ex:
         results = list(ex.map(_fetch_one, FIRMS))
-    prev_by = {c["company"]: c for c in (prev or {}).get("companies") or []
+    prev_by = {c.get("key") or c["company"]: c for c in (prev or {}).get("companies") or []
                if c.get("rp_rate") is not None or c.get("note_rate") is not None}
     companies = []
     for r in results:
         if r["ok"]:
-            companies.append({k: r.get(k) for k in ("company", "rp_rate", "note_rate", "as_of", "url")}
+            companies.append({k: r.get(k) for k in ("key", "company", "product", "rp_rate", "note_rate", "as_of", "url")}
                              | {"stale": False})
-        elif r["company"] in prev_by:   # 오늘 못 읽었으면 직전 확인값
-            companies.append({**prev_by[r["company"]], "stale": True})
+        elif r["key"] in prev_by:   # 오늘 못 읽었으면 직전 확인값
+            companies.append({**prev_by[r["key"]], "stale": True})
         else:
-            companies.append({"company": r["company"], "rp_rate": None, "note_rate": None,
+            companies.append({"key": r["key"], "company": r["company"], "rp_rate": None, "note_rate": None,
                               "as_of": None, "url": r.get("url"), "stale": False, "unavailable": True})
     companies.sort(key=lambda c: (c["rp_rate"] is None, -(c["rp_rate"] or 0)))
     return {"as_of": today_iso(), "checked_at": stamp(), "companies": companies,
@@ -73,7 +76,7 @@ def rate_table(force: bool = False) -> dict:
         fresh = _collect(prev)
         if fresh["ok_count"] == 0:
             # 전부 실패(네트워크 장애 등) — 저장하지 않고 직전 스냅샷 유지
-            logger.warning("CMA 금리: 9개사 모두 확인 실패 — 이전 스냅샷 유지")
+            logger.warning("CMA 금리: 모든 증권사 확인 실패 — 이전 스냅샷 유지")
             if prev:
                 return {**prev, "stale": True}
             return fresh

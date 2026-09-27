@@ -117,9 +117,7 @@
         kpi({ label: "RP형 잔고", value: num(it.rp.value, 1), unit: "조원",
               sub: "점유율 " + num(it.rp.share, 1) + "%", source: d.source }),
         kpi({ label: "발행어음형 잔고", value: num(it.note.value, 1), unit: "조원",
-              sub: "점유율 " + num(it.note.share, 1) + "%", source: d.source }),
-        kpi({ label: "RP형 최고금리", value: num(it.rp_top_rate.value, 2), unit: "%",
-              sub: (it.rp_top_rate.company || "-"), source: it.rp_top_rate.source })
+              sub: "점유율 " + num(it.note.share, 1) + "%", source: d.source })
       ].join("");
     }).catch(function (e) { fail("cma-kpis", e.message); });
   }
@@ -152,7 +150,9 @@
         var when = c.as_of ? c.as_of.slice(2).replace(/-/g, ".") : "기준일 미표기";
         var basis = c.unavailable ? "확인 불가" : when + (c.stale ? " · 이전값" : "");
         return '<tr class="' + (i === 0 && !c.unavailable ? "top-row" : "") + '">' +
-          '<td>' + esc(c.company) + '</td>' +
+          '<td>' + esc(c.company) + (c.product ? '<span class="cma-product">' + esc(c.product) + '</span>' : "") +
+            // 모바일은 기준일 칸을 숨기고 여기(상품명 아래)에 보여준다(capital.css)
+            '<span class="cma-basis-m">' + (link ? link + esc(basis) + " ↗</a>" : esc(basis)) + '</span></td>' +
           '<td>' + pctCell(c.rp_rate) + '</td>' +
           '<td>' + pctCell(c.note_rate) + '</td>' +
           '<td class="cma-basis">' + (link ? link + esc(basis) + " ↗</a>" : esc(basis)) + '</td>' +
@@ -160,7 +160,7 @@
       }).join("");
       document.getElementById("cma-rates").innerHTML =
         '<table class="rate-table"><thead><tr>' +
-        '<th>증권사</th><th>RP형 CMA</th><th>발행어음형 CMA</th><th>기준일(출처)</th>' +
+        '<th>증권사</th><th>RP형 CMA</th><th>발행어음형 CMA</th><th class="cma-basis">기준일(출처)</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>';
     }).catch(function (e) { fail("cma-rates", e.message); });
   }
