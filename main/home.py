@@ -28,11 +28,11 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 # "오늘의 핵심"은 최대 이만큼만(AI가 먼저 걸러줬다는 느낌을 주기 위해 뉴스 feed처럼
-# 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②심사·리스크 공시 시그널
-# ③금융당국 보도자료 1건 ④여신 신규 리드(상속·증여/우리사주) ⑤AI 선별 뉴스 기사(나머지 자리를 채움).
+# 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②당일 경제 속보(있을 때만)
+# ③금융당국 보도자료 1건 ④심사·리스크 공시 시그널 ⑤여신 신규 리드 ⑥AI 선별 뉴스 기사(나머지 자리를 채움).
 # (신용공여/예탁금 비율 급변 알림은 2026-09-27 사용자 요청으로 뺐다.)
-# 영업일 09~18시에 게재 60분 이내 경제 속보가 있으면 ②와 ③ 사이에 끼우고 한 칸 늘린다 —
-# 금융당국 동향이 밀려 사라지지 않고 4번째로 남게(main/breaking_news.py).
+# 영업일 09~18시에 게재 60분 이내 경제 속보가 있으면 ②에 끼우고 한 칸 늘린다 —
+# 뒤 항목이 밀려 사라지지 않게(main/breaking_news.py).
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -169,9 +169,7 @@ def get_home_summary() -> dict:
     market_key = _market_briefing_key(market_briefing)
     if market_key:
         today_key.append(market_key)
-    risk_alert = _safe("심사·리스크 공시 시그널", get_home_risk_summary)   # 스냅샷만 읽음
-    if risk_alert:
-        today_key.append({"kind": "alert", **risk_alert})
+    # 순서(2026-09-29 사용자 지정): 시장 브리핑 → 경제 속보 → 금융당국 동향 → 심사·리스크
     breaking = _safe("당일 경제 속보", get_breaking_news)   # 15분 캐시
     if breaking:
         today_key.append({"kind": "breaking", **breaking})
@@ -179,6 +177,9 @@ def get_home_summary() -> dict:
     policy_highlight = _policy_highlight(policy)
     if policy_highlight:
         today_key.append(policy_highlight)
+    risk_alert = _safe("심사·리스크 공시 시그널", get_home_risk_summary)   # 스냅샷만 읽음
+    if risk_alert:
+        today_key.append({"kind": "alert", **risk_alert})
     credit_alert = _credit_leads_alert()
     if credit_alert:
         today_key.append({"kind": "alert", **credit_alert})
