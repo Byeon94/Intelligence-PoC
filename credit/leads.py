@@ -55,9 +55,9 @@ _TABLE = "credit_lead_snapshots"
 
 _MAX_WORKERS = 5
 _LOOKBACK_DAYS = 60            # 우리사주(유상증자·IPO) 공시 조회 기간
-# 상속·증여 공시는 드물어 60일이면 비는 달이 많다 — 최근 6개월로 넓힌다(2026-09-28 사용자 요청).
-# majorstock.json 은 회사별 전체 이력을 한 번에 주므로 기간을 넓혀도 DART 호출 수는 같다.
-_INHERIT_LOOKBACK_DAYS = 183
+# 상속·증여 공시 조회 기간 — 6개월로 넓혔다가 대상이 너무 많아 2026-09-29 사용자 요청으로 60일로 되돌림.
+# (예전에 늘 0건이던 건 기간이 아니라 rcept_dt 형식 버그였다 — _scan_inherit 참고)
+_INHERIT_LOOKBACK_DAYS = 60
 _session = requests.Session()
 
 # DART 쪽 남용 방지 차단을 피하기 위한 전역 호출 속도 제한(스레드 공유) — 초당 약 4건.

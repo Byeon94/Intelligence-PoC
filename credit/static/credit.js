@@ -216,7 +216,7 @@
     if (!d) return;
     var items = (d.collateral || []).slice().sort(byDateDesc);
     renderExpandableList("leads-inherit-disclosures", items, collateralRowHTML,
-      "최근 6개월 내 상속·증여 관련 DART 공시가 없습니다.", renderInheritDisclosures);
+      "최근 60일 내 상속·증여 관련 DART 공시가 없습니다.", renderInheritDisclosures);
   }
 
   function renderInheritNewsList() {
