@@ -3,7 +3,7 @@
 네이버 뉴스에서 주제 키워드로 최근 2일 기사를 모으고(main.naver_news), Gemini 가 주제와
 가장 관련 깊은 3건을 골라 한 줄 이유를 붙인다. AI 를 못 쓰면(키 없음·한도·실패) 최신순 3건으로
 대신 보여준다. 하루 1회 스냅샷(funding_news_snapshots, 원화·외화를 한 행에), 07:00 아침 배치에서
-rebuild=True 로 다시 만든다(02:00 엔 당일 기사가 거의 없음).
+rebuild=True 로 다시 만든다(01:00 엔 당일 기사가 거의 없음).
 """
 from __future__ import annotations
 

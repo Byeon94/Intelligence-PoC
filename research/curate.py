@@ -150,7 +150,7 @@ def _fallback(today: str, exc: Exception | None) -> dict:
 
 def get_research_digest(rebuild: bool = False) -> dict:
     """rebuild=True(07:00 아침 배치)면 오늘 스냅샷이 있어도 후보를 다시 수집해 새로 선별한다
-    — 02:00 배치에는 당일 기사가 거의 없기 때문. 재수집이 실패하면 기존 스냅샷을 그대로 둔다."""
+    — 01:00 배치에는 당일 기사가 거의 없기 때문. 재수집이 실패하면 기존 스냅샷을 그대로 둔다."""
     global _fail_at, _fail_exc
     with table_lock(_TABLE):
         today = today_iso()

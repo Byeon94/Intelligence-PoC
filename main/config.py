@@ -39,7 +39,7 @@ class Settings:
     supabase_url: str | None
     supabase_key: str | None
 
-    # /internal/warmup 호출 인증용 비밀키. 매일 02:00·07:00 KST GitHub Actions 가 이 키를 붙여
+    # /internal/warmup 호출 인증용 비밀키. 매일 01:00·07:00 KST GitHub Actions 가 이 키를 붙여
     # 호출하면 각 탭의 그날 스냅샷을 미리 만들어둔다(main/app.py _WARMUP_JOBS). 비면 403.
     warmup_key: str | None
 
