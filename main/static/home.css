@@ -61,6 +61,9 @@
   .brief-main-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 1.05fr); }
 }
 .brief-main-grid .block { margin-bottom: 0; }
+/* 오늘의 핵심 경제 속보 배지 */
+.hl-badge.hl-badge-breaking { background: #e5202e; animation: hl-blink 1.6s ease-in-out 3; }
+@keyframes hl-blink { 50% { opacity: .45; } }
 .brief-block-sub { margin: -4px 0 12px; }
 
 /* ── 오늘의 핵심: AI가 먼저 걸러준 최대 3건만(뉴스 feed처럼 보이지 않도록). .hl-card

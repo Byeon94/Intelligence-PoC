@@ -19,6 +19,7 @@ from capital.market_snapshot import (
 )
 from credit.today_summary import get_today_leads_summary
 from risk.signals import get_home_risk_summary
+from .breaking_news import get_breaking_news
 from policy.briefing import get_policy_digest
 from research.curate import get_research_digest
 
@@ -30,6 +31,8 @@ T = TypeVar("T")
 # 나열하지 않는다). 우선순위: ①오늘의 시장 브리핑 요약 ②심사·리스크 공시 시그널
 # ③금융당국 보도자료 1건 ④여신 신규 리드(상속·증여/우리사주) ⑤AI 선별 뉴스 기사(나머지 자리를 채움).
 # (신용공여/예탁금 비율 급변 알림은 2026-09-27 사용자 요청으로 뺐다.)
+# 영업일 09~18시에 게재 60분 이내 경제 속보가 있으면 ②와 ③ 사이에 끼우고 한 칸 늘린다 —
+# 금융당국 동향이 밀려 사라지지 않고 4번째로 남게(main/breaking_news.py).
 _MAX_TODAY_KEY = 3
 
 # "오늘의 주요뉴스"(홈 미리보기 5건) — research.curate 가 관련도순으로 골라둔 기사를
@@ -169,6 +172,10 @@ def get_home_summary() -> dict:
     risk_alert = _safe("심사·리스크 공시 시그널", get_home_risk_summary)   # 스냅샷만 읽음
     if risk_alert:
         today_key.append({"kind": "alert", **risk_alert})
+    breaking = _safe("당일 경제 속보", get_breaking_news)   # 15분 캐시
+    if breaking:
+        today_key.append({"kind": "breaking", **breaking})
+    max_key = _MAX_TODAY_KEY + (1 if breaking else 0)
     policy_highlight = _policy_highlight(policy)
     if policy_highlight:
         today_key.append(policy_highlight)
@@ -176,13 +183,13 @@ def get_home_summary() -> dict:
     if credit_alert:
         today_key.append({"kind": "alert", **credit_alert})
     for a in (articles or []):
-        if len(today_key) >= _MAX_TODAY_KEY:
+        if len(today_key) >= max_key:
             break
         today_key.append({
             "kind": "research", "title": a.get("title"), "tag": a.get("tag"),
             "date": a.get("published"), "url": a.get("url"), "reason": a.get("reason"),
         })
-    today_key = today_key[:_MAX_TODAY_KEY]
+    today_key = today_key[:max_key]
 
     return {
         "policy": {

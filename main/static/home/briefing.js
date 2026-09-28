@@ -41,6 +41,11 @@
       badge = '<span class="hl-badge">HOT</span>';
       reason = "금융당국 발표 — 관련 업무 영향 확인이 필요합니다.";
       dateText = fmtDate(h.date);
+    } else if (h.kind === "breaking") {
+      cat = "경제 속보";
+      badge = '<span class="hl-badge hl-badge-breaking">속보</span>';
+      reason = h.summary || "";
+      dateText = (h.published || "").slice(11, 16);   // 게재 시각 HH:MM
     } else if (h.kind === "market") {
       cat = "시장 브리핑";
       badge = "";
@@ -83,6 +88,23 @@
       return '<div class="' + cls + ' hl-card-btn" data-scroll="brief-briefing-block">' + inner + "</div>";
     }
     return '<a class="' + cls + '" href="' + esc(K.safeUrl(h.url)) + '" target="_blank" rel="noopener">' + inner + "</a>";
+  }
+
+  // 당일 경제 속보(main/breaking_news.py)는 서버가 15분마다 갱신한다 — 홈을 열어둔 채로도
+  // 새 속보가 들어오고 60분이 지나면 빠지도록, 평일 09~18시(KST)에만 10분마다 오늘의 핵심만 다시 그린다.
+  var breakingTimer = null;
+  function kstHourDay() {
+    var k = new Date(Date.now() + 9 * 3600 * 1000);
+    return { h: k.getUTCHours(), d: k.getUTCDay() };
+  }
+  function startBreakingPoll() {
+    if (breakingTimer) return;
+    breakingTimer = setInterval(function () {
+      var t = kstHourDay();
+      if (t.d === 0 || t.d === 6 || t.h < 9 || t.h >= 19) return;   // 18시 직후 한 번 더 받아 속보를 내린다
+      if (document.hidden || !document.getElementById("brief-highlights")) return;
+      get("/api/home/summary").then(renderHighlights).catch(function () {});
+    }, 10 * 60 * 1000);
   }
 
   function renderHighlights(d) {
@@ -364,6 +386,7 @@
     if (briefingLoaded) return;
     briefingLoaded = true;
     renderGreetTitle();
+    startBreakingPoll();
     get("/api/home/summary").then(function (d) {
       renderHighlights(d);
       renderKeyUpdatedAt();
