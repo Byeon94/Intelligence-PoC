@@ -13,6 +13,7 @@
   </div>
 
   <div class="brief-main-grid">
+    <div class="brief-left">
     <section class="block brief-key-block" id="brief-key-block">
       <div class="block-head">
         <div class="block-title-row"><h3>📌 오늘의 핵심</h3><span class="block-updated" id="brief-greet-time"></span></div>
@@ -21,19 +22,22 @@
       <div id="brief-highlights"><div class="chart-loading">불러오는 중…</div></div>
     </section>
 
+    <!-- 첫 화면에서 "오늘의 시장 브리핑" 제목까지 보이도록 오늘의 핵심 바로 아래(왼쪽 칸)에 둔다 -->
+    <section class="block" id="brief-briefing-block">
+      <div class="block-head">
+        <div class="block-title-row"><h3>📝 오늘의 시장 브리핑</h3><span class="block-updated" id="brief-briefing-time"></span></div>
+      </div>
+      <p class="page-note brief-block-sub">AI가 주식·채권·환율·장전(해외) 4개 영역으로 오늘 시장을 요약했습니다.</p>
+      <div id="brief-briefing"><div class="chart-loading">불러오는 중…</div></div>
+    </section>
+
+    </div>
+
     <section class="block brief-market-block" id="brief-market-block">
       <div class="block-head"><h3>📈 시장 한눈에</h3></div>
       <div id="brief-market"><div class="chart-loading">불러오는 중…</div></div>
     </section>
   </div>
-
-  <section class="block" id="brief-briefing-block">
-    <div class="block-head">
-      <div class="block-title-row"><h3>📝 오늘의 시장 브리핑</h3><span class="block-updated" id="brief-briefing-time"></span></div>
-    </div>
-    <p class="page-note brief-block-sub">AI가 주식·채권·환율·장전(해외) 4개 영역으로 오늘 시장을 요약했습니다.</p>
-    <div id="brief-briefing"><div class="chart-loading">불러오는 중…</div></div>
-  </section>
 
   <section class="block" id="brief-news-block">
     <div class="block-head">
