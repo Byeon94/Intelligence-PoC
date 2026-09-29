@@ -85,6 +85,14 @@
     return '<a class="' + cls + '" href="' + esc(K.safeUrl(h.url)) + '" target="_blank" rel="noopener">' + inner + "</a>";
   }
 
+  // 시장 브리핑 문장을 한 줄씩 띄워 보여준다 — "…했습니다. 두 지수…"처럼 붙어 있으면 읽기 어렵다.
+  // "다."/"요." 뒤 공백에서만 끊는다(0.90% 같은 소수점은 건드리지 않음). 구형 iOS 사파리가
+  // 정규식 lookbehind 를 몰라 스크립트 전체가 멈추지 않도록 replace+split 으로 한다.
+  function sentencesHTML(text) {
+    return String(text || "").replace(/([다요]\.)\s+/g, "$1\n").split("\n").filter(Boolean)
+      .map(function (t) { return '<p class="mb-sent">' + esc(t) + "</p>"; }).join("");
+  }
+
   function renderHighlights(d) {
     var box = document.getElementById("brief-highlights");
     if (!box) return;
@@ -313,7 +321,7 @@
       return '<div class="mb-item">' +
         '<div class="mb-item-head"><span class="mb-item-icon">' + esc(c.icon) + '</span>' +
           '<span class="mb-item-label">' + esc(c.key) + '</span></div>' +
-        '<div class="mb-item-text">' + esc(sections[c.key]) + '</div>' +
+        '<div class="mb-item-text">' + sentencesHTML(sections[c.key]) + '</div>' +
         relHTML +
       '</div>';
     }).join('') + '</div>';

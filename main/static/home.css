@@ -180,6 +180,8 @@
 .mb-item-icon { font-size: .9rem; }
 .mb-item-label { font-size: .78rem; font-weight: 800; color: var(--muted); }
 .mb-item-text { font-size: .86rem; line-height: 1.5; }
+.mb-item-text .mb-sent { margin: 0; }
+.mb-item-text .mb-sent + .mb-sent { margin-top: .6em; }   /* 문장 사이 한 줄 간격 */
 /* 카테고리별 "관련 기사" 1건 — 카드 하단에 한 줄로, 길면 말줄임(카드 높이를 늘리지
    않기 위함. 전체 제목은 타이틀 툴팁으로). */
 .mb-item-link {
