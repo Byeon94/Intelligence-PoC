@@ -61,13 +61,6 @@
   .brief-main-grid { grid-template-columns: minmax(0, 1.15fr) minmax(300px, 1fr); }
 }
 .brief-main-grid .block { margin-bottom: 0; }
-/* 왼쪽 칸: 오늘의 핵심 + 오늘의 시장 브리핑(오른쪽 시장 한눈에와 높이를 맞춰 빈 공간을 줄임) */
-.brief-left { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
-/* 좁은 화면(한 칸)에선 예전 순서(오늘의 핵심 → 시장 한눈에 → 시장 브리핑) 그대로 */
-@media (max-width: 899px) {
-  .brief-left { display: contents; }
-  #brief-key-block { order: 1; } #brief-market-block { order: 2; } #brief-briefing-block { order: 3; }
-}
 .brief-block-sub { margin: -4px 0 12px; }
 
 /* ── 오늘의 핵심: AI가 먼저 걸러준 최대 3건만(뉴스 feed처럼 보이지 않도록). .hl-card
@@ -143,14 +136,14 @@
 /* 첫 화면에 시장 한눈에 전체 + 아래 "오늘의 시장 브리핑" 제목까지 보이도록 카드를 납작하게:
    변동폭·등락률은 한 줄, 그래프는 낮게(2026-09-29) */
 .mkt-grid-3 { gap: 8px; margin-bottom: 8px; }
-.mkt-grid-3 .mkt-idx { padding: 9px 11px 6px; border-radius: 10px; }
+.mkt-grid-3 .mkt-idx { padding: 8px 11px 4px; border-radius: 10px; }
 .mkt-grid-3 .mkt-idx-name { font-size: .7rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mkt-grid-3 .mkt-idx-value { font-size: 1.02rem; white-space: nowrap; }
 .mkt-grid-3 .mkt-idx-chg { font-size: .74rem; margin-top: 1px; white-space: nowrap; }
 .mkt-grid-3 .mkt-idx-pct { display: inline; margin: 0 0 0 3px; font-size: .95em; }
-.mkt-grid-3 .mkt-idx-spark { height: 22px; margin-top: 4px; }
+.mkt-grid-3 .mkt-idx-spark { height: 18px; margin-top: 3px; }
 .brief-market-block .mkt-sub-label { margin: 2px 0 6px; }
-.brief-market-block .mkt-asof { margin-bottom: 8px; }
+.brief-market-block .mkt-asof { margin-bottom: 6px; }
 .mkt-idx {
   background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
 }

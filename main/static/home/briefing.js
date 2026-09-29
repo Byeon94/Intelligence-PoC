@@ -192,11 +192,11 @@
     // 기준일 안내는 "시장 한눈에" 제목 바로 밑에 둔다 — 국내 지수가 오늘이 아닌 공공데이터
     // 기준일 값이라는 걸 카드를 보기 전에 먼저 알 수 있도록. 상단 인사말 문구에도 같은 기준일을 채운다.
     var asofBits = [];
-    if (m && m.source === "live") asofBits.push(esc(fmtDate(m.as_of)) + " 기준 코스피·코스닥(공공데이터포털)");
-    if (gm && gm.source === "live") asofBits.push("실시간 해외·환율·금리(Yahoo Finance, 참고용)");
+    if (m && m.source === "live") asofBits.push("국내 " + esc(fmtDate(m.as_of)) + " 기준");   // 출처는 "!" 안내에
+    if (gm && gm.source === "live") asofBits.push("해외·환율·금리 실시간(참고용)");
     if (asofBits.length) {
       html += '<div class="page-note mkt-asof"><span class="mkt-asof-inline">' + asofBits.join(" · ") +
-        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율·금리는 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다. 그래프는 최근 1년 일별 종가 추이이고, 등락은 전영업일 대비입니다(금리는 %p)." ' +
+        '<button type="button" class="asof-info" data-msg="코스피·코스닥은 공공데이터포털(금융위원회 지수시세), 해외 지수·환율·금리는 Yahoo Finance 입니다. 코스피·코스닥은 공공데이터 특성상 통계가 집계되어 제공되기까지 시간이 걸려, 화면에 표시되는 기준일이 오늘보다 며칠 늦을 수 있습니다. 해외 지수·환율·금리는 Yahoo Finance 실시간 시세로, 공식 통계가 아닌 참고용입니다. 그래프는 최근 1년 일별 종가 추이이고, 등락은 전영업일 대비입니다(금리는 %p)." ' +
           'aria-label="기준일 안내">!</button></span></div>';
     }
 
