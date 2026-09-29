@@ -61,9 +61,6 @@
   .brief-main-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 1.05fr); }
 }
 .brief-main-grid .block { margin-bottom: 0; }
-/* 오늘의 핵심 경제 속보 배지 */
-.hl-badge.hl-badge-breaking { background: #e5202e; animation: hl-blink 1.6s ease-in-out 3; }
-@keyframes hl-blink { 50% { opacity: .45; } }
 .brief-block-sub { margin: -4px 0 12px; }
 
 /* ── 오늘의 핵심: AI가 먼저 걸러준 최대 3건만(뉴스 feed처럼 보이지 않도록). .hl-card
@@ -132,13 +129,13 @@
 /* ── 오늘의 시장 한눈에 ── 국내(코스피·코스닥)·해외(다우·나스닥·S&P500) 지수를 탭
    전환 없이 한 그리드에 같이 보여주고, 환율은 그 아래 별도 줄로 붙인다. */
 .mkt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-/* 반응형 — 카드 최소 폭(84px)만 정하고 들어가는 만큼 한 줄에(데스크톱 최대 5개, 폰 3개) */
-.mkt-grid-3 { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
-.mkt-grid-3 .mkt-idx { padding: 10px 9px; border-radius: 10px; }
-.mkt-grid-3 .mkt-idx-name { font-size: .66rem; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mkt-grid-3 .mkt-idx-value { font-size: .92rem; white-space: nowrap; }
-.mkt-grid-3 .mkt-idx-chg { font-size: .7rem; }
-.mkt-grid-3 .mkt-idx-spark { height: 26px; }
+/* 반응형 — 한 줄 최대 3개(국내 2 · 해외 3 · 환율 3 · 금리 2), 좁은 폰에선 2개씩. 5개를 한 줄에
+   넣었더니 글씨가 너무 작아 읽기 어려웠다(2026-09-29). */
+.mkt-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 400px) { .mkt-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mkt-grid-3 .mkt-idx { padding: 12px 12px; }
+.mkt-grid-3 .mkt-idx-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mkt-grid-3 .mkt-idx-value { font-size: 1.1rem; white-space: nowrap; }
 .mkt-idx {
   background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
 }

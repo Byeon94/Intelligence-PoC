@@ -19,7 +19,7 @@
   }
 
   // ── 오늘의 핵심 ── AI가 먼저 골라낸 최대 3건만 보여준다(시장 브리핑 요약 → 심사·리스크
-  // (속보) → 정책 발표 → 공시 시그널 → 여신 신규 리드 → AI 선별 뉴스 기사 순으로 채워짐,
+  // 정책 발표 → 공시 시그널 → 여신 신규 리드 → AI 선별 뉴스 기사 순으로 채워짐,
   // main/home.py get_home_summary 참고). 뉴스 feed처럼 보이지 않도록 01번은 크게
   // (+"왜 중요한가?"), 02/03은 컴팩트하게 렌더한다. 새 Gemini 호출 없음.
   // 알림 제목 뒤 "(YYYY-MM-DD 기준)" — detail 안의 날짜가 하나로 모일 때만 붙인다
@@ -41,11 +41,6 @@
       badge = '<span class="hl-badge">HOT</span>';
       reason = "금융당국 발표 — 관련 업무 영향 확인이 필요합니다.";
       dateText = fmtDate(h.date);
-    } else if (h.kind === "breaking") {
-      cat = "경제 속보";
-      badge = '<span class="hl-badge hl-badge-breaking">속보</span>';
-      reason = h.summary || "";
-      dateText = (h.published || "").slice(11, 16);   // 게재 시각 HH:MM
     } else if (h.kind === "market") {
       cat = "시장 브리핑";
       badge = "";
@@ -88,23 +83,6 @@
       return '<div class="' + cls + ' hl-card-btn" data-scroll="brief-briefing-block">' + inner + "</div>";
     }
     return '<a class="' + cls + '" href="' + esc(K.safeUrl(h.url)) + '" target="_blank" rel="noopener">' + inner + "</a>";
-  }
-
-  // 당일 경제 속보(main/breaking_news.py)는 서버가 15분마다 갱신한다 — 홈을 열어둔 채로도
-  // 새 속보가 들어오고 60분이 지나면 빠지도록, 평일 09~18시(KST)에만 10분마다 오늘의 핵심만 다시 그린다.
-  var breakingTimer = null;
-  function kstHourDay() {
-    var k = new Date(Date.now() + 9 * 3600 * 1000);
-    return { h: k.getUTCHours(), d: k.getUTCDay() };
-  }
-  function startBreakingPoll() {
-    if (breakingTimer) return;
-    breakingTimer = setInterval(function () {
-      var t = kstHourDay();
-      if (t.d === 0 || t.d === 6 || t.h < 9 || t.h >= 19) return;   // 18시 직후 한 번 더 받아 속보를 내린다
-      if (document.hidden || !document.getElementById("brief-highlights")) return;
-      get("/api/home/summary").then(renderHighlights).catch(function () {});
-    }, 10 * 60 * 1000);
   }
 
   function renderHighlights(d) {
@@ -222,19 +200,24 @@
           'aria-label="기준일 안내">!</button></span></div>';
     }
 
-    var idxCards = "";
+    // 주가지수 — 국내(코스피·코스닥) 한 줄, 해외(다우·S&P500·나스닥) 한 줄로 나눠 카드를 크게 보여준다.
+    var domCards = "", usCards = "";
     if (m && m.source === "live") {
-      idxCards += mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change, m.kospi.change_pct, mhLive && mh.kospi) +
+      domCards = mktIdxHTML("KOSPI", m.kospi.close, m.kospi.change, m.kospi.change_pct, mhLive && mh.kospi) +
         mktIdxHTML("KOSDAQ", m.kosdaq.close, m.kosdaq.change, m.kosdaq.change_pct, mhLive && mh.kosdaq);
     }
     if (gm && gm.source === "live") {
-      idxCards += gm.us_indices.map(function (idx) {
-        var hist = ghLive && gh[idx.name];
-        return mktIdxHTML(idx.name, idx.close, idx.change, idx.change_pct, hist);
+      var US_ORDER = ["다우존스", "S&P500", "나스닥"];
+      usCards = gm.us_indices.slice().sort(function (a, b) {
+        return US_ORDER.indexOf(a.name) - US_ORDER.indexOf(b.name);
+      }).map(function (idx) {
+        return mktIdxHTML(idx.name, idx.close, idx.change, idx.change_pct, ghLive && gh[idx.name]);
       }).join("");
     }
-    if (idxCards) {
-      html += '<div class="mkt-sub-label">주가지수</div><div class="mkt-grid mkt-grid-3">' + idxCards + "</div>";
+    if (domCards || usCards) {
+      html += '<div class="mkt-sub-label">주가지수</div>' +
+        (domCards ? '<div class="mkt-grid mkt-grid-3">' + domCards + "</div>" : "") +
+        (usCards ? '<div class="mkt-grid mkt-grid-3">' + usCards + "</div>" : "");
     } else {
       html += '<div class="page-note">시장 지수를 일시적으로 불러오지 못했습니다.</div>';
     }
@@ -386,7 +369,6 @@
     if (briefingLoaded) return;
     briefingLoaded = true;
     renderGreetTitle();
-    startBreakingPoll();
     get("/api/home/summary").then(function (d) {
       renderHighlights(d);
       renderKeyUpdatedAt();
